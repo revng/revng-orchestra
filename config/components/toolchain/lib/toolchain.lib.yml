@@ -1,0 +1,52 @@
+#@ load("/lib/fn_args.lib.yml", "mandatory")
+
+#@ load("/components/toolchain/lib/linux_headers.lib.yml", "create_linux_headers_component")
+#@ load("/components/toolchain/lib/binutils.lib.yml", "create_binutils_component")
+#@ load("/components/toolchain/lib/gdb.lib.yml", "create_gdb_component")
+#@ load("/components/toolchain/lib/gcc.lib.yml", "create_gcc_component")
+#@ load("/components/toolchain/lib/musl.lib.yml", "create_musl_component")
+#@ load("/components/toolchain/lib/uclibc.lib.yml", "create_uclibc_component")
+#@ load("/components/toolchain/lib/coreutils.lib.yml", "create_coreutils_component")
+
+#@yaml/text-templated-strings
+---
+#@ def create_toolchain_components(
+#@    toolchain_name=mandatory,
+#@    triple=mandatory,
+#@    linux_arch_name=None,
+#@    linux_version=None,
+#@    binutils_version=None,                # x86_64, i386, aarch64, arm, mips, host
+#@    coreutils_version=None,               # x86_64, i386, aarch64, mips, arm,
+#@    musl_version=None,                    # x86_64, i386, aarch64, mips,
+#@    uclibc_arch_name=None,                # arm,
+#@    uclibc_version=None,                  # arm,
+#@    gdb_version=None,                     # x86_64, i386, aarch64, arm, mips, host
+#@    gcc_version=None,                     # x86_64, i386, aarch64, arm, host
+#@    gcc_sysroot=None,                     # host
+#@    extra_gcc_configure_options=None,     # x86_64, i386, aarch64, mips, arm, host
+#@    extra_gcc_make_variables="",          # host
+#@    dynamic=None                          # x86_64, i386, aarch64, mips, arm,
+#@ ):
+
+#@ if/end binutils_version:
+(@= "toolchain/" + toolchain_name + "/binutils" @): #@ create_binutils_component(triple=triple, binutils_version=binutils_version)
+
+#@ if/end gdb_version:
+(@= "toolchain/" + toolchain_name + "/gdb" @): #@ create_gdb_component(triple=triple, gdb_version=gdb_version)
+
+#@ if/end linux_version:
+(@= "toolchain/" + toolchain_name + "/linux-headers" @): #@ create_linux_headers_component(triple=triple, linux_version=linux_version, arch_name=linux_arch_name)
+
+#@ if/end gcc_version:
+(@= "toolchain/" + toolchain_name + "/gcc" @): #@ create_gcc_component(toolchain_name=toolchain_name, triple=triple, gcc_sysroot=gcc_sysroot, gcc_version=gcc_version, extra_gcc_configure_options=extra_gcc_configure_options, extra_gcc_make_variables=extra_gcc_make_variables, musl_version=musl_version, uclibc_version=uclibc_version, linux_version=linux_version)
+
+#@ if/end musl_version:
+(@= "toolchain/" + toolchain_name + "/musl" @): #@ create_musl_component(triple=triple, musl_version=musl_version, toolchain_name=toolchain_name, gcc_version=gcc_version)
+
+#@ if/end coreutils_version:
+(@= "toolchain/" + toolchain_name + "/coreutils" @): #@ create_coreutils_component(triple=triple, coreutils_version=coreutils_version)
+
+#@ if/end uclibc_version:
+(@= "toolchain/" + toolchain_name + "/uclibc" @): #@ create_uclibc_component(triple=triple, toolchain_name=toolchain_name, uclibc_version=uclibc_version, uclibc_arch_name=uclibc_arch_name, gcc_version=gcc_version, binutils_version=binutils_version)
+
+#@ end
