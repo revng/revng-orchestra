@@ -7,7 +7,6 @@
 
 #@   source_url = "https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-" + linux_version + ".tar.xz"
 
-#! TODO: why does orchestra have the same command repeated for build and install? For now I preserve it
 builds:
   default:
     configure: |

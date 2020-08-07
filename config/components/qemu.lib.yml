@@ -6,7 +6,6 @@
 #@yaml/text-templated-strings
 ---
 #@ def _qemu_component(use_asan=False):
-#! TODO: magically clone llvm from git in $SOURCE_DIR
 repository: qemu
 builds:
   #@ for flavor, f_options in typical_project_flavors(use_asan=use_asan).items():
