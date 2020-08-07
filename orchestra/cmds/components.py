@@ -4,8 +4,6 @@ from ..model.index import ComponentIndex
 def install_subcommand(sub_argparser):
     cmd_parser = sub_argparser.add_parser("components", handler=handle_components)
     cmd_parser.add_argument("component", nargs="?")
-    cmd_parser = sub_argparser.add_parser("component", handler=handle_components)
-    cmd_parser.add_argument("component")
 
 
 def handle_components(args, config, index: ComponentIndex):

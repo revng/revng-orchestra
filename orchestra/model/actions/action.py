@@ -36,10 +36,5 @@ class Action:
 
 
 # TODO
-class UninstallAction(Action):
-    pass
-
-
-# TODO
 class CleanAction(Action):
     pass

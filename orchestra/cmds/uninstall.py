@@ -10,4 +10,4 @@ def install_subcommand(sub_argparser):
 def handle_uninstall(args, config, index: ComponentIndex):
     build = index.get_build(args.component)
     executor = Executor(show_output=args.show_output)
-    executor.run(build.uninstall, force=args.force)
+    executor.run(build.uninstall)

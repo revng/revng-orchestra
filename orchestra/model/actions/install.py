@@ -16,7 +16,7 @@ class InstallAction(Action):
     def _run(self, show_output=False):
         genv = global_env(self.index.config)
         self._prepare_tmproot()
-        pre_file_list = self._index_tmproot()
+        pre_file_list = self._index_directory(genv["TMP_ROOT"], strip_prefix=f"{genv['TMP_ROOT']}{genv['ORCHESTRA_ROOT']}")
 
         result = run_script(self.script_to_run, show_output=show_output)
         if result.returncode != 0:
@@ -26,7 +26,7 @@ class InstallAction(Action):
             logging.error(f"STDERR: {result.stderr}")
             raise Exception("Script failed")
 
-        post_file_list = self._index_tmproot()
+        post_file_list = self._index_directory(genv["TMP_ROOT"], strip_prefix=f"{genv['TMP_ROOT']}{genv['ORCHESTRA_ROOT']}")
         new_files = [f for f in post_file_list if f not in pre_file_list]
 
         # TODO: uninstall the currently installed build of this component if there's one
@@ -79,16 +79,7 @@ class InstallAction(Action):
             f.write("\n".join(new_files))
 
     def is_satisfied(self):
-        # return is_installed(self.build.qualified_name, self.index.config)
-
-        installed_component_path = install_component_path(self.build.component.name, self.index.config)
-        if not os.path.exists(installed_component_path):
-            return False
-
-        with open(installed_component_path) as f:
-            installed_build = f.readline().strip()
-
-        return installed_build == self.build.qualified_name
+        return is_installed(self.index.config, self.build.component.name, wanted_build=self.build.name)
 
     @property
     def script_to_run(self):
@@ -122,29 +113,10 @@ class InstallAction(Action):
         for p in paths_to_create:
             os.makedirs(f"{tmp_root}/{orchestra_root}/{p}", exist_ok=True)
 
-    def _index_tmproot(self):
-        tmproot = global_env(self.index.config)["TMP_ROOT"]
-        return list(glob.glob(f"{tmproot}/**", recursive=True))
+    @staticmethod
+    def _index_directory(dirpath, strip_prefix=None):
+        paths = list(glob.glob(f"{dirpath}/**", recursive=True))
+        if strip_prefix:
+            paths = [p.lstrip(strip_prefix) for p in paths]
+        return paths
 
-
-class UninstallAction(Action):
-    def __init__(self, build, index):
-        super().__init__("uninstall", build, "", index)
-
-    def _run(self, show_output=False):
-        index_path = install_component_path(self.build.qualified_name, self.index.config)
-        with open(index_path) as f:
-            f.readline()
-            paths = f.readlines()
-        paths.sort(reverse=True)
-
-        breakpoint()
-        for path in paths:
-            pass
-
-    def is_satisfied(self):
-        return not is_installed(self.build.qualified_name, self.index.config)
-
-    @property
-    def script_to_run(self):
-        return ""
