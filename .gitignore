@@ -2,3 +2,5 @@ build/
 root/
 sources/
 .orchestra/
+__pycache__/
+*.py[cod]

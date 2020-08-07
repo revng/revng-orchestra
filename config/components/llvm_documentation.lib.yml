@@ -3,16 +3,18 @@
 #@yaml/text-templated-strings
 ---
 #@ def _llvm_documentation_component():
+repository: llvm-project
 builds:
   default:
     depencencies:
       - llvm
     configure: |
       rm -rf "$BUILD_DIR"
-      mkdir -p "$BUILD_DIR"
-      clone llvm-project "$BUILD_DIR"
+      cp -r "$SOURCE_DIR" "$BUILD_DIR"
+      # mkdir -p "$BUILD_DIR"
+      # clone llvm-project "$BUILD_DIR"
 
-      sed 's|FILE_PATTERNS|#FILE_PATTERNS|' -i "$BUILD_DIR/*/docs/doxygen.cfg.in"
+      sed 's|FILE_PATTERNS|#FILE_PATTERNS|' -i "$BUILD_DIR"/*/docs/doxygen.cfg.in
 
       mkdir -p "$BUILD_DIR/build"
 
@@ -32,28 +34,34 @@ builds:
       fi
 
       cd $BUILD_DIR/build/docs/doxygen/html
-      sed -i 's|$$$$(XCODE_INSTALL)/usr/bin/docsetutil|'$(PWD)'/support/docsetutil|' Makefile
-      sed -i 's|XCODE_INSTALL="$$$$(shell xcode-select -print-path)"||' Makefile
+      sed -i 's|$(XCODE_INSTALL)/usr/bin/docsetutil|'$ORCHESTRA'/helpers/docsetutil|' Makefile
+      sed -i 's|XCODE_INSTALL="$(shell xcode-select -print-path)"||' Makefile
       sed -i 's|<string>doxygen</string>|<string>llvm</string>|' Info.plist
       (@= make @)
       sed -i -s 's/ inherit / /' llvm.docset/Contents/Resources/Documents/*.html
 
-      $(call download-file,$(1)/build/docs/doxygen/html/llvm.docset/Contents/Resources/Documents,https://opensource.apple.com/source/lldb/lldb-310.2.36/www/cpp_reference/html,dynsections.js)
 
-      cd $(1)/build/tools/clang/docs/doxygen/html
-      sed -i 's|$$$$(XCODE_INSTALL)/usr/bin/docsetutil|'$(PWD)'/support/docsetutil|' Makefile
-      sed -i 's|XCODE_INSTALL="$$$$(shell xcode-select -print-path)"||' Makefile
+      download_file.sh "$BUILD_DIR/build/docs/doxygen/html/llvm.docset/Contents/Resources/Documents" \
+                        "https://opensource.apple.com/source/lldb/lldb-310.2.36/www/cpp_reference/html" \
+                        "dynsections.js"
+
+
+      cd $BUILD_DIR/build/tools/clang/docs/doxygen/html
+      sed -i 's|$(XCODE_INSTALL)/usr/bin/docsetutil|'$ORCHESTRA'/helpers/docsetutil|' Makefile
+      sed -i 's|XCODE_INSTALL="$(shell xcode-select -print-path)"||' Makefile
       sed -i 's|<string>doxygen</string>|<string>clang</string>|' Info.plist
       (@= make @)
       sed -i -s 's/ inherit / /' clang.docset/Contents/Resources/Documents/*.html
 
-      $(call download-file,$(1)/build/tools/clang/docs/doxygen/html/clang.docset/Contents/Resources/Documents,https://opensource.apple.com/source/lldb/lldb-310.2.36/www/cpp_reference/html,dynsections.js)
+      download_file.sh "$BUILD_DIR/build/tools/clang/docs/doxygen/html/clang.docset/Contents/Resources/Documents" \
+                        "https://opensource.apple.com/source/lldb/lldb-310.2.36/www/cpp_reference/html" \
+                        "dynsections.js"
 
-      mkdir -p $$$$DESTDIR$(INSTALL_PATH)/share/doc/llvm
-      cp -ar $(1)/build/docs/doxygen/html/llvm.docset $$$$DESTDIR$(INSTALL_PATH)/share/doc/llvm
+      mkdir -p "${DESTDIR}${ORCHESTRA_ROOT}/share/doc/llvm"
+      cp -ar "$BUILD_DIR/build/docs/doxygen/html/llvm.docset" "${DESTDIR}${ORCHESTRA_ROOT}/share/doc/llvm"
 
-      mkdir -p $$$$DESTDIR$(INSTALL_PATH)/share/doc/clang
-      cp -ar $(1)/build/tools/clang/docs/doxygen/html/clang.docset $$$$DESTDIR$(INSTALL_PATH)/share/doc/clang
+      mkdir -p "${DESTDIR}${ORCHESTRA_ROOT}/share/doc/clang"
+      cp -ar "$BUILD_DIR/build/tools/clang/docs/doxygen/html/clang.docset" "${DESTDIR}${ORCHESTRA_ROOT}/share/doc/clang"
 #@ end
 
 ---
