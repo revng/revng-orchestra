@@ -21,7 +21,7 @@ builds:
     install: |
       cd "$BUILD_DIR"
 
-      rm "${DESTDIR}${ORCHESTRA_ROOT}/lib64/libc++.so"
+      rm "${DESTDIR}${ORCHESTRA_ROOT}/lib64/libc++.so" || true
       echo 'INPUT(libc++.so.1 -lc++abi -lpthread)' > "${DESTDIR}${ORCHESTRA_ROOT}/lib64/libc++.so"
 
       if test -z "$DESTDIR"; then
