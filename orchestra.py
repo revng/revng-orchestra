@@ -12,6 +12,7 @@ parser.add_argument("--config", default="./config")
 # TODO: set default loglevel to INFO or WARNING
 parser.add_argument("--loglevel", "-v", default="DEBUG", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
 parser.add_argument("--show-output", dest="show_output", action="store_true", help="Show commands output")
+parser.add_argument("--nocache", action="store_true")
 subparsers = install_subcommands(parser)
 
 
@@ -25,7 +26,7 @@ if __name__ == "__main__":
         parser.print_help()
         exit(1)
 
-    config = gen_config(args.config)
+    config = gen_config(args.config, use_cache=not args.nocache)
     index = ComponentIndex(config)
 
     cmd_parser.handler(args, config, index)
