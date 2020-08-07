@@ -84,10 +84,6 @@ class ComponentIndex:
                     dep_action = dep_build.install
 
                     build.configure.dependencies.add(dep_action)
-                    # TODO: when using binary archives
-                    #  this dependency will be ignored
-                    #  if build_only is True
-                    # build.install.dependencies.add(dep_action)
 
     def get_suggested_component_name(self, user_component_name):
         best_ratio = 0
