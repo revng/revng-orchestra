@@ -18,7 +18,7 @@ use_asan: false
 
 ---
 #@ def _revng_c_component():
-repository: renvg-c
+repository: revng-c
 builds: #@ typical_cmake_builds(**build_args())
 #@ end
 
