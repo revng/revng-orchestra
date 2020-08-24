@@ -17,7 +17,7 @@ class ConfigureAction(Action):
             logging.error(f"Script executed: {self.script_to_run}")
             logging.error(f"STDOUT: {result.stdout}")
             logging.error(f"STDERR: {result.stderr}")
-            raise Exception("Script failed")
+            raise Exception("Configure script failed")
 
     def is_satisfied(self):
         return os.path.exists(self._build_dir())

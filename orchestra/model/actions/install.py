@@ -24,7 +24,7 @@ class InstallAction(Action):
             logging.error(f"Script executed: {self.script_to_run}")
             logging.error(f"STDOUT: {result.stdout}")
             logging.error(f"STDERR: {result.stderr}")
-            raise Exception("Script failed")
+            raise Exception("Install script failed")
 
         post_file_list = self._index_directory(genv["TMP_ROOT"], strip_prefix=f"{genv['TMP_ROOT']}{genv['ORCHESTRA_ROOT']}")
         new_files = [f for f in post_file_list if f not in pre_file_list]
@@ -69,7 +69,7 @@ class InstallAction(Action):
             logging.error(f"Script executed: {copy_command}")
             logging.error(f"STDOUT: {result.stdout}")
             logging.error(f"STDERR: {result.stderr}")
-            raise Exception("Script failed")
+            raise Exception("Post-install script failed (might be a bug in Orchestra)")
 
         os.makedirs(install_component_dir(self.index.config), exist_ok=True)
         installed_component_path = install_component_path(self.build.component.name, self.index.config)

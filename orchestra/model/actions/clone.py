@@ -19,7 +19,7 @@ class CloneAction(Action):
             logging.error(f"Script executed: {self.script_to_run}")
             logging.error(f"STDOUT: {result.stdout}")
             logging.error(f"STDERR: {result.stderr}")
-            raise Exception("Script failed")
+            raise Exception("Clone script failed")
 
     def is_satisfied(self):
         source_dir = per_action_env(self)["SOURCE_DIR"]
