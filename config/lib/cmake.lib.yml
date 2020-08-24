@@ -76,14 +76,12 @@
     (@= post_configure_script @)
     (@ end -@)
 
-  build: |
-    cmake --build "$BUILD_DIR" -j(@= options["parallelism"] @)
-
   install: |
     (@- if pre_install_script: @)
     (@= pre_install_script @)
     (@ end -@)
 
+    cmake --build "$BUILD_DIR" -j(@= options["parallelism"] @)
     cmake --install "$BUILD_DIR"
 
     (@- if post_install_script: @)
