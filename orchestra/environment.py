@@ -17,13 +17,13 @@ def global_env(config):
             path += f":{additional_path}"
 
     path += "${PATH:+:${PATH}}"
-    env["PATH"] = path
     env["ORCHESTRA"] = orchestra
     env["ORCHESTRA_ROOT"] = f"{orchestra}/root"
     env["SOURCE_ARCHIVES"] = f"{orchestra}/.orchestra/source_archives"
     env["PATCH_DIR"] = f"{orchestra}/patches"
     env["TMP_ROOT"] = f"{orchestra}/.orchestra/tmproot"
     env["JOBS"] = config["options"]["parallelism"]
+    env["PATH"] = path
     return env
 
 
