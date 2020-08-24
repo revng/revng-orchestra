@@ -28,13 +28,13 @@ builds:
         echo "Installing clang-release which will clobber LLVM!"
       else
         find ${DESTDIR}${ORCHESTRA_ROOT}/lib* -maxdepth 1 -not -type d \( -name libLLVM* -or -name libclang* \) -delete;
-        rm ${DESTDIR}${ORCHESTRA_ROOT}/bin/opt;
-        rm ${DESTDIR}${ORCHESTRA_ROOT}/bin/llvm-config;
-        rm -rf ${DESTDIR}${ORCHESTRA_ROOT}/lib*/cmake/;
-        rm -rf ${DESTDIR}${ORCHESTRA_ROOT}/include/clang/;
-        rm -rf ${DESTDIR}${ORCHESTRA_ROOT}/include/clang-c/;
-        rm -rf ${DESTDIR}${ORCHESTRA_ROOT}/include/llvm/;
-        rm -rf ${DESTDIR}${ORCHESTRA_ROOT}/include/llvm-c/;
+        rm ${DESTDIR}${ORCHESTRA_ROOT}/bin/opt || true
+        rm ${DESTDIR}${ORCHESTRA_ROOT}/bin/llvm-config || true
+        rm -rf ${DESTDIR}${ORCHESTRA_ROOT}/lib*/cmake/ || true
+        rm -rf ${DESTDIR}${ORCHESTRA_ROOT}/include/clang/ || true
+        rm -rf ${DESTDIR}${ORCHESTRA_ROOT}/include/clang-c/ || true
+        rm -rf ${DESTDIR}${ORCHESTRA_ROOT}/include/llvm/ || true
+        rm -rf ${DESTDIR}${ORCHESTRA_ROOT}/include/llvm-c/ || true
       fi
 
       ninja install
