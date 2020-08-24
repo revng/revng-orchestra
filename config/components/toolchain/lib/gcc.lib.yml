@@ -125,6 +125,7 @@ dependencies: #@ dependencies
 - toolchain/(@= toolchain_name @)/gcc@stage1
 #@ end
 
+#@yaml/text-templated-strings
 ---
 #@ def create_gcc_component(
 #@    toolchain_name=mandatory,
