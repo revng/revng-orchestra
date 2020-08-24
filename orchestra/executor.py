@@ -33,12 +33,6 @@ class Executor:
                 else:
                     self._schedule_next()
 
-        # Todo: remove these 4 lines
-        if self._pending_actions:
-            logging.error("Could not schedule any action, something failed")
-            logging.error(f"Remaining: {self._pending_actions}")
-            breakpoint()
-
     def _collect_actions(self, action: Action, force=False):
         if not force and action.is_satisfied():
             return

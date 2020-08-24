@@ -8,7 +8,6 @@ def install_subcommand(sub_argparser):
 
 
 def handle_graph(args, config, index: ComponentIndex):
-    # TODO: this function prints duplicate edges
     if args.component:
         actions = [index.get_build(args.component).install]
     else:
