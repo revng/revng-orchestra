@@ -43,6 +43,7 @@ configure: |
     CXXFLAGS="-w -ggdb3 -O3" \
     LDFLAGS="(@= linker_flags @)"
 build_system: make
+additional_path: ${ORCHESTRA_ROOT}/x86_64-pc-linux-gnu/(@= triple @)/binutils-bin/(@= binutils_version @)
 #@ end
 
 ---

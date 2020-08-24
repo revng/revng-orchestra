@@ -10,18 +10,11 @@ def global_env(config):
     # TODO: discuss if it is better to expand orchestra as it's done now or to use $ORCHESTRA
     path = f"{orchestra}/root/bin"
     path += f":{orchestra}/helpers"
-    # TODO: find a better way to export environment variables from components
-    path += f":{orchestra}/root/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/gcc-bin/10.1.0"
-    path += f":{orchestra}/root/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/binutils-bin/2.34"
-    path += f":{orchestra}/root/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/binutils-bin/9.2"
 
-    path += f":{orchestra}/root/x86_64-pc-linux-gnu/x86_64-gentoo-linux-musl/binutils-bin/2.25"
-    path += f":{orchestra}/root/x86_64-pc-linux-gnu/x86_64-gentoo-linux-musl/binutils-bin/8.2.1"
-    path += f":{orchestra}/root/x86_64-pc-linux-gnu/x86_64-gentoo-linux-musl/gcc-bin/4.9.3"
-
-    path += f":{orchestra}/root/x86_64-pc-linux-gnu/s390x-ibm-linux-musl/binutils-bin/2.34"
-    path += f":{orchestra}/root/x86_64-pc-linux-gnu/s390x-ibm-linux-musl/binutils-bin/8.2.1"
-    path += f":{orchestra}/root/x86_64-pc-linux-gnu/s390x-ibm-linux-musl/gcc-bin/7.3.0"
+    for _, component in config["components"].items():
+        additional_path = component.get("additional_path")
+        if additional_path:
+            path += f":{additional_path}"
 
     path += "${PATH:+:${PATH}}"
     env["PATH"] = path

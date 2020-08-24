@@ -14,6 +14,7 @@
 #@      dependencies=[],
 #@      build_dependencies=[],
 #@      repository=None,
+#@      additional_path=[],
 #@  ):
 
 #@ if/end repository:
@@ -41,4 +42,7 @@ builds:
     #@ else:
     #@   fail("build_system must be either make or ninja")
     #@ end
+
+#@ if/end additional_path:
+additional_path: #@ additional_path
 #@ end

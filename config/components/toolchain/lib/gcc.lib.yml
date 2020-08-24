@@ -139,4 +139,5 @@ default_build: stage2
 builds:
   stage1: #@ gcc_build(build_specific_configure_options="--enable-languages=c", dependencies=stage1_deps, **kwargs)
   stage2: #@ gcc_build(build_specific_configure_options="--enable-languages=c,c++", dependencies=stage2_deps, **kwargs)
+additional_path: ${ORCHESTRA_ROOT}/x86_64-pc-linux-gnu/(@= kwargs["triple"] @)/gcc-bin/(@= kwargs["gcc_version"] @)
 #@ end
