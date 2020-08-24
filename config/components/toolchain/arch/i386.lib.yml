@@ -5,7 +5,7 @@ toolchain_name: i386
 triple: i386-gentoo-linux-musl
 linux_version: "4.5.2"
 linux_arch_name: i386
-binutils_version: "2.25"
+binutils_version: "2.35"
 gdb_version: "8.2.1"
 musl_version: "1.1.12"
 gcc_version: "4.9.3"

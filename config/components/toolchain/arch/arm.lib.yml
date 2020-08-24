@@ -7,7 +7,7 @@ linux_arch_name: arm
 linux_version: "4.5.2"
 uclibc_arch_name: arm
 uclibc_version: "0.9.33.2"
-binutils_version: "2.25.1"
+binutils_version: "2.35"
 gdb_version: "8.2.1"
 gcc_version: "4.9.3"
 coreutils_version: "8.29"
