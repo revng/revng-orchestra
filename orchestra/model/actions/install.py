@@ -30,45 +30,42 @@ class InstallAction(Action):
 
         # TODO: uninstall the currently installed build of this component if there's one
         # TODO: do all the stuff that install-in-temp did (see string below)
-        """
-        rm -rf "$(TEMP_INSTALL_PATH)"
-        mkdir -p "$(TEMP_INSTALL_PATH)"
-        make install-impl-$($(1)_TARGET_NAME) "DESTDIR=$(TEMP_INSTALL_PATH)"
-        cd "$(TEMP_INSTALL_PATH)/$(INSTALL_PATH)"
-        $(PWD)/support/hard-to-symbolic.py .
-        mkdir -p "share/orchestra"
-        mkdir -p $$$$(dirname "share/orchestra/$($(6)_TARGET_NAME)")
-        find . -mindepth 1 -not -type d -not -path ./lib > "share/orchestra/$($(6)_TARGET_NAME)"
-        find . -type f -executable | while read EXECUTABLE; do \
-          if head -c 4 "$$$$EXECUTABLE" | grep '^.ELF' > /dev/null && file "$$$$EXECUTABLE" | grep x86-64 | grep -E '(shared|dynamic)' > /dev/null; then \
-            $(call log-info,"$$$$EXECUTABLE is an ELF for the host") \
-            REPLACE='$$$$'ORIGIN/$$$$(realpath --relative-to="$$$$(dirname $$$$EXECUTABLE)" ".")
-            echo "Setting rpath to $$$$REPLACE"
-            $(PWD)/support/elf-replace-dynstr.py "$$$$EXECUTABLE" $(RPATH_PLACEHOLDER) "$$$$REPLACE" /
-            $(PWD)/support/elf-replace-dynstr.py "$$$$EXECUTABLE" $(INSTALL_PATH) "$$$$REPLACE" /
+
+        hard_to_symbolic = """hard-to-symbolic.py "${TMP_ROOT}${ORCHESTRA_ROOT}" """
+        run_script(hard_to_symbolic, show_output=show_output, environment=self.environment)
+
+        fix_rpath_script = dedent(f"""
+        cd "$TMP_ROOT$ORCHESTRA_ROOT"
+        # Fix rpath
+        find . -type f -executable | while read EXECUTABLE; do
+          if head -c 4 "$EXECUTABLE" | grep '^.ELF' > /dev/null && 
+                file "$EXECUTABLE" | grep x86-64 | grep -E '(shared|dynamic)' > /dev/null; then
+            REPLACE='$'ORIGIN/$(realpath --relative-to="$(dirname "$EXECUTABLE")" ".")
+            echo "Setting rpath to $REPLACE"
+            elf-replace-dynstr.py "$EXECUTABLE" "{rpath_placeholder}" "$REPLACE"
+            elf-replace-dynstr.py "$EXECUTABLE" "$ORCHESTRA_ROOT" "$REPLACE"
           fi
         done
-    
-        $(call log-info,"Patching NDEBUG in include/*.h")
-        find include/ \
-          -name "*.h" \
+        """)
+        run_script(fix_rpath_script, show_output=show_output, environment=self.environment)
+
+        ndebug = "0"
+        debug = "1" if ndebug == "0" else "0"
+        patch_ndebug_script = dedent(rf"""
+        cd "$TMP_ROOT$ORCHESTRA_ROOT"
+        find include/ -name "*.h" \
           -exec \
             sed -i \
-            -e 's|^\s*#\s*ifndef\s\+NDEBUG|#if $(if $(filter 1,$($(1)_NDEBUG)),0,1)|' \
-            -e 's|^\s*#\s*ifdef\s\+NDEBUG|#if $($(1)_NDEBUG)|' \
-            -e 's|^\(\s*#\s*if\s\+.*\)!defined(NDEBUG)|\1$(if $(filter 1,$($(1)_NDEBUG)),0,1)|' \
-            -e 's|^\(\s*#\s*if\s\+.*\)defined(NDEBUG)|\1$($(1)_NDEBUG)|' \
-            {} \;
-        """
+            -e 's|^\s*#\s*ifndef\s\+NDEBUG|#if {debug}|' \
+            -e 's|^\s*#\s*ifdef\s\+NDEBUG|#if {ndebug}|' \
+            -e 's|^\(\s*#\s*if\s\+.*\)!defined(NDEBUG)|\1{debug}|' \
+            -e 's|^\(\s*#\s*if\s\+.*\)defined(NDEBUG)|\1{ndebug}|' \
+            {"{}"} ';'
+        """)
+        run_script(patch_ndebug_script, show_output=show_output, environment=self.environment)
 
-        copy_command = f'cp -farl "{genv["TMP_ROOT"]}/{genv["ORCHESTRA_ROOT"]}/." "{genv["ORCHESTRA_ROOT"]}"'
-        result = run_script(copy_command, show_output=show_output)
-        if result.returncode != 0:
-            logging.error(f"Subprocess exited with exit code {result.returncode}")
-            logging.error(f"Script executed: {copy_command}")
-            logging.error(f"STDOUT: {result.stdout}")
-            logging.error(f"STDERR: {result.stderr}")
-            raise Exception("Post-install script failed (might be a bug in Orchestra)")
+        copy_command = f'cp -farl "{tmp_root}/{orchestra_root}/." "{orchestra_root}"'
+        run_script(copy_command, show_output=show_output, environment=self.environment)
 
         os.makedirs(install_component_dir(self.index.config), exist_ok=True)
         installed_component_path = install_component_path(self.build.component.name, self.index.config)
@@ -85,19 +82,30 @@ class InstallAction(Action):
         orchestra_root = global_env(self.index.config)["ORCHESTRA_ROOT"]
         shutil.rmtree(tmp_root, ignore_errors=True)
         os.makedirs(tmp_root, exist_ok=True)
+        
+        script = dedent("""
+        mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/include"
+        mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/lib64"
+        test -e "${TMP_ROOT}${ORCHESTRA_ROOT}/lib" || ln -s lib64 "${TMP_ROOT}${ORCHESTRA_ROOT}/lib"
+        test -L "${TMP_ROOT}${ORCHESTRA_ROOT}/lib"
+        mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/bin"
+        mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/libexec"
+        """)
+        
+        run_script(script)
 
         paths_to_create = [
-            "bin",
             "share/info",
             "share/doc",
             "share/man",
-            "libexec",
+            "include",
             "lib64",
+            "bin",
+            "libexec",
             "lib/include",
             "lib/pkgconfig",
             "usr/lib",
             "usr/include",
-            "include",
         ]
         for p in paths_to_create:
             os.makedirs(f"{tmp_root}/{orchestra_root}/{p}", exist_ok=True)
