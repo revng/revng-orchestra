@@ -8,7 +8,7 @@ from .action import Action
 
 class UninstallAction(Action):
     def __init__(self, build, index):
-        super().__init__("uninstall", build, "", index)
+        super().__init__("uninstall", build, None, index)
 
     def _run(self, show_output=False):
         index_path = install_component_path(self.build.component.name, self.index.config)
@@ -34,7 +34,3 @@ class UninstallAction(Action):
 
     def is_satisfied(self):
         return not is_installed(self.index.config, self.build.component.name, wanted_build=self.build.name)
-
-    @property
-    def script_to_run(self):
-        return ""

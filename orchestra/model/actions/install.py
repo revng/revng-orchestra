@@ -1,12 +1,13 @@
 import glob
-import logging
 import os
 import shutil
+from collections import OrderedDict
+from textwrap import dedent
 
-from ...environment import export_environment, global_env, per_action_env
-from ...util import install_component_dir, install_component_path, is_installed
-from .util import run_script, bash_prelude
 from .action import Action
+from .util import run_script
+from ...environment import global_env, per_action_env
+from ...util import install_component_dir, install_component_path, is_installed
 
 
 class InstallAction(Action):
@@ -15,18 +16,16 @@ class InstallAction(Action):
 
     def _run(self, show_output=False):
         genv = global_env(self.index.config)
+        tmp_root = genv["TMP_ROOT"]
+        orchestra_root = genv['ORCHESTRA_ROOT']
+        rpath_placeholder = self.index.config["options"]["rpath_placeholder"]
+
         self._prepare_tmproot()
-        pre_file_list = self._index_directory(genv["TMP_ROOT"], strip_prefix=f"{genv['TMP_ROOT']}{genv['ORCHESTRA_ROOT']}")
+        pre_file_list = self._index_directory(tmp_root, strip_prefix=tmp_root + orchestra_root)
 
-        result = run_script(self.script_to_run, show_output=show_output)
-        if result.returncode != 0:
-            logging.error(f"Subprocess exited with exit code {result.returncode}")
-            logging.error(f"Script executed: {self.script_to_run}")
-            logging.error(f"STDOUT: {result.stdout}")
-            logging.error(f"STDERR: {result.stderr}")
-            raise Exception("Install script failed")
+        run_script(self.script, show_output=show_output, environment=self.environment)
 
-        post_file_list = self._index_directory(genv["TMP_ROOT"], strip_prefix=f"{genv['TMP_ROOT']}{genv['ORCHESTRA_ROOT']}")
+        post_file_list = self._index_directory(tmp_root, strip_prefix=tmp_root + orchestra_root)
         new_files = [f for f in post_file_list if f not in pre_file_list]
 
         # TODO: uninstall the currently installed build of this component if there's one
@@ -81,16 +80,6 @@ class InstallAction(Action):
     def is_satisfied(self):
         return is_installed(self.index.config, self.build.component.name, wanted_build=self.build.name)
 
-    @property
-    def script_to_run(self):
-        env = per_action_env(self)
-        env["DESTDIR"] = env["TMP_ROOT"]
-
-        script_to_run = bash_prelude
-        script_to_run += export_environment(env)
-        script_to_run += self.script
-        return script_to_run
-
     def _prepare_tmproot(self):
         tmp_root = global_env(self.index.config)["TMP_ROOT"]
         orchestra_root = global_env(self.index.config)["ORCHESTRA_ROOT"]
@@ -120,3 +109,8 @@ class InstallAction(Action):
             paths = [p.lstrip(strip_prefix) for p in paths]
         return paths
 
+    @property
+    def environment(self) -> OrderedDict:
+        env = per_action_env(self)
+        env["DESTDIR"] = env["TMP_ROOT"]
+        return env
