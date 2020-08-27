@@ -32,6 +32,8 @@
 #@ load("/components/toolchain/arch/win32.lib.yml", "win32_toolchain_components")
 #@ load("/components/toolchain/arch/win64.lib.yml", "win64_toolchain_components")
 
+#@ load("/components/macos/macos.lib.yml", "macos_toolchain_components")
+
 #@ load("/global_options.lib.yml", "options")
 
 components:
@@ -67,5 +69,7 @@ components:
 
   _: #@ template.replace(win64_toolchain_components)
   _: #@ template.replace(win32_toolchain_components)
+
+  _: #@ template.replace(macos_toolchain_components)
 
 options: #@ options
