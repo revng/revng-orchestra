@@ -18,7 +18,7 @@ use_asan: false
 
 ---
 #@ def _quickqanava_component():
-repository: quickqanava
+repository: ui/quickqanava
 builds: #@ typical_cmake_builds(**build_args())
 #@ end
 
