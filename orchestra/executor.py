@@ -26,7 +26,6 @@ class Executor:
                 exception = d.exception()
                 if exception:
                     logging.critical("An action failed!")
-                    logging.critical(exception)
                     if self._pending_actions:
                         logging.critical("Waiting for other running actions to terminate")
                     self._pending_actions = set()
@@ -45,7 +44,8 @@ class Executor:
     def _schedule_next(self):
         next_runnable_action = self._get_next_runnable_action()
         if not next_runnable_action:
-            logging.debug(f"Did not find more runnable actions")
+            if self._pending_actions:
+                logging.error(f"Could not run any action! An action has failed or there is a circular dependency")
             return
 
         future = self._pool.submit(self._run_action, next_runnable_action)
