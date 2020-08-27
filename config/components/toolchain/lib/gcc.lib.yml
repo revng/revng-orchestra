@@ -99,7 +99,7 @@ dependencies: #@ dependencies
 
 #@yaml/text-templated-strings
 ---
-#@ def dependencies(stage, toolchain_name, musl_version, uclibc_version, linux_version):
+#@ def dependencies(stage, toolchain_name, musl_version, uclibc_version, linux_version, mingw64_version):
 #@ if stage == 1:
 #@   build = "@headers"
 #@ elif stage == 2:
@@ -117,6 +117,8 @@ dependencies: #@ dependencies
 - toolchain/(@= toolchain_name @)/musl(@= build @)
 #@ if/end uclibc_version:
 - toolchain/(@= toolchain_name @)/uclibc(@= build @)
+#@ if/end mingw64_version:
+- toolchain/(@= toolchain_name @)/mingw64(@= build @)
 
 #@ if/end linux_version:
 - toolchain/(@= toolchain_name @)/linux-headers
@@ -132,10 +134,11 @@ dependencies: #@ dependencies
 #@    musl_version=None,
 #@    uclibc_version=None,
 #@    linux_version=None,
+#@    mingw64_version=None,
 #@    **kwargs
 #@ ):
-#@    stage1_deps = dependencies(1, toolchain_name, musl_version, uclibc_version, linux_version)
-#@    stage2_deps = dependencies(2, toolchain_name, musl_version, uclibc_version, linux_version)
+#@    stage1_deps = dependencies(1, toolchain_name, musl_version, uclibc_version, linux_version, mingw64_version)
+#@    stage2_deps = dependencies(2, toolchain_name, musl_version, uclibc_version, linux_version, mingw64_version)
 default_build: stage2
 builds:
   stage1: #@ gcc_build(build_specific_configure_options="--enable-languages=c", dependencies=stage1_deps, **kwargs)
