@@ -4,7 +4,7 @@
 #@     return builtin_assert.fail(msg)
 #@ end
 
-#@ def assert(cond, msg):
+#@ def assert(cond, msg="Assertion failed"):
 #@     if not cond:
 #@         return fail(msg)
 #@     end
