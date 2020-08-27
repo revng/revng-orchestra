@@ -39,6 +39,7 @@
 #@yaml/text-templated-strings
 ---
 #@ def _qt_creator_component():
+repository: ui/qt-creator
 default_build: optimized
 builds:
   #@ for flavor, opts in qmake_optimization_flavors.items():
@@ -50,6 +51,11 @@ builds:
       (@= make @)
       (@= make @) install INSTALL_ROOT=$DESTDIR"
   #@ end
+dependencies:
+  - clang-release
+  - toolchain/host/gcc
+  - llvm
+  - ui/qt
 #@ end
 
 ---
