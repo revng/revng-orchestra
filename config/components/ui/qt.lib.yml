@@ -101,18 +101,21 @@ builds:
       cd "$BUILD_DIR"
 
       (@= make @)
-      (@= make @) install INSTALL_ROOT=$DESTDIR
+      (@= make @) install INSTALL_ROOT=$TMP_ROOT
 
-      rm $DESTDIR/lib64/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake
-      touch $DESTDIR/lib64/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake
-      find $DESTDIR \( -name "*.pri" -or -name "*.pc" -or -name "*.pri"  \) \
+      rm "${TMP_ROOT}${ORCHESTRA_ROOT}/lib64/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake"
+      touch "${TMP_ROOT}${ORCHESTRA_ROOT}/lib64/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake"
+      find "${TMP_ROOT}${ORCHESTRA_ROOT}" \( -name "*.pri" -or -name "*.pc" -or -name "*.pri"  \) \
           -exec sed 's|/[^; ]*/lib\([^; ]*\)\.so|-l\1|g' {} -i ";"
 
-      cat > $DESTDIR/bin/qt.conf <<EOF
+      cat > "${TMP_ROOT}${ORCHESTRA_ROOT}/bin/qt.conf" <<EOF
       [Paths]
       Prefix = $ORCHESTRA_ROOT
       EOF
   #@ end
+dependencies:
+  - clang-release
+  - toolchain/host/gcc
 #@ end
 
 ---
