@@ -97,9 +97,9 @@ class InstallAction(Action):
                         file "$EXECUTABLE" | grep x86-64 | grep -E '(shared|dynamic)' > /dev/null;
                 then
                     REPLACE='$'ORIGIN/$(realpath --relative-to="$(dirname "$EXECUTABLE")" ".")
-                    echo "Setting rpath to $REPLACE"
-                    elf-replace-dynstr.py "$EXECUTABLE" "{rpath_placeholder}" "$REPLACE"
-                    elf-replace-dynstr.py "$EXECUTABLE" "$ORCHESTRA_ROOT" "$REPLACE"
+                    echo "Setting rpath of $EXECUTABLE to $REPLACE"
+                    elf-replace-dynstr.py "$EXECUTABLE" "{rpath_placeholder}" "$REPLACE" /
+                    elf-replace-dynstr.py "$EXECUTABLE" "$ORCHESTRA_ROOT" "$REPLACE" /
                 fi
             done
             """)
