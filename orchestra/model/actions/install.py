@@ -131,7 +131,7 @@ class InstallAction(Action):
     def _index_directory(dirpath, strip_prefix=None):
         paths = list(glob.glob(f"{dirpath}/**", recursive=True))
         if strip_prefix:
-            paths = [p.lstrip(strip_prefix) for p in paths]
+            paths = [remove_prefix(p, strip_prefix) for p in paths]
         return paths
 
     @property
@@ -139,3 +139,10 @@ class InstallAction(Action):
         env = per_action_env(self)
         env["DESTDIR"] = env["TMP_ROOT"]
         return env
+
+
+def remove_prefix(string, prefix):
+    if string.startswith(prefix):
+        return string[len(prefix):]
+    else:
+        return string[:]
