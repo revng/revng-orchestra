@@ -21,6 +21,8 @@ builds:
     install: |
       cd "$BUILD_DIR"
 
+      ninja install
+
       rm "${DESTDIR}${ORCHESTRA_ROOT}/lib64/libc++.so" || true
       echo 'INPUT(libc++.so.1 -lc++abi -lpthread)' > "${DESTDIR}${ORCHESTRA_ROOT}/lib64/libc++.so"
 
@@ -37,7 +39,6 @@ builds:
         rm -rf ${DESTDIR}${ORCHESTRA_ROOT}/include/llvm-c/ || true
       fi
 
-      ninja install
     dependencies:
       - toolchain/host/gcc
       - toolchain/host/binutils
