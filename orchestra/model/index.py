@@ -5,7 +5,7 @@ from fuzzywuzzy import fuzz
 
 from . import build as bld
 from . import component as comp
-from .actions import CloneAction, ConfigureAction, InstallAction, UninstallAction
+from .actions import CloneAction, ConfigureAction, InstallAction
 from ..util import parse_component_name
 
 
@@ -56,8 +56,6 @@ class ComponentIndex:
                 install_action = InstallAction(build, install_script, self)
                 install_action.dependencies.add(build.configure)
                 build.install = install_action
-
-                build.uninstall = UninstallAction(build, self)
 
         # Second pass: resolve "external" dependencies
         for component_name, component_yaml in self.config["components"].items():

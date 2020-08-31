@@ -1,5 +1,5 @@
 from . import component
-from .actions import CloneAction, ConfigureAction, InstallAction, UninstallAction
+from .actions import CloneAction, ConfigureAction, InstallAction
 
 
 class Build:
@@ -14,7 +14,6 @@ class Build:
         self.clone: CloneAction = None
         self.configure: ConfigureAction = None
         self.install: InstallAction = None
-        self.uninstall: UninstallAction = None
 
     @property
     def qualified_name(self):

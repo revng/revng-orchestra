@@ -36,13 +36,19 @@ def install_component_dir(config):
     return os.path.join(env["ORCHESTRA"], ".orchestra", "installed_components")
 
 
-def is_installed(config, wanted_component, wanted_build=None):
-    index_path = install_component_path(wanted_component, config)
+def get_installed(config, component_name):
+    index_path = install_component_path(component_name, config)
     if not os.path.exists(index_path):
-        return False
+        return None, None
 
     with open(index_path) as f:
         installed_component, _, installed_build = f.readline().strip().partition("@")
+
+    return installed_component, installed_build
+
+
+def is_installed(config, wanted_component, wanted_build=None):
+    installed_component, installed_build = get_installed(config, wanted_component)
 
     # Wanted component name must be equal
     # Wanted build name too, but only if if provided

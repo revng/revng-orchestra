@@ -1,4 +1,5 @@
 import glob
+import logging
 import os
 import shutil
 from collections import OrderedDict
@@ -6,8 +7,9 @@ from textwrap import dedent
 
 from .action import Action
 from .util import run_script
+
 from ...environment import global_env, per_action_env
-from ...util import install_component_dir, install_component_path, is_installed
+from ...util import install_component_dir, install_component_path, is_installed, get_installed
 
 
 class InstallAction(Action):
@@ -28,14 +30,13 @@ class InstallAction(Action):
         post_file_list = self._index_directory(tmp_root, strip_prefix=tmp_root + orchestra_root)
         new_files = [f for f in post_file_list if f not in pre_file_list]
 
-        # TODO: uninstall the currently installed build of this component if there's one
-        self._uninstall_currently_installed_build()
-
         self._hard_to_symbolic(show_output)
 
         self._fix_rpath(rpath_placeholder, show_output)
 
-        self._replace_ndebug(False, show_output)
+        self._replace_ndebug(True, show_output)
+
+        self._uninstall_currently_installed_build(show_output)
 
         self._merge(show_output)
 
@@ -119,6 +120,13 @@ class InstallAction(Action):
                 """)
         run_script(patch_ndebug_script, show_output=show_output, environment=self.environment)
 
+    def _uninstall_currently_installed_build(self, show_output):
+        _, installed_build = get_installed(self.index.config, self.build.component.name)
+        if installed_build is None or installed_build == self.build.name:
+            return
+
+        uninstall(self.index.config, self.build.component.name)
+
     def _merge(self, show_output):
         environment = global_env(self.index.config)
         tmp_root = environment["TMP_ROOT"]
@@ -146,3 +154,30 @@ def remove_prefix(string, prefix):
         return string[len(prefix):]
     else:
         return string[:]
+
+
+def uninstall(config, component_name):
+    index_path = install_component_path(component_name, config)
+    with open(index_path) as f:
+        f.readline()
+        paths = f.readlines()
+
+    # Ensure depth first visit by reverse-sorting
+    paths.sort(reverse=True)
+    paths = [path.strip() for path in paths]
+
+    for path in paths:
+        path = path.lstrip("/")
+        path_to_delete = os.path.join(global_env(config)['ORCHESTRA_ROOT'], path)
+        if os.path.isfile(path_to_delete):
+            logging.debug(f"Deleting {path_to_delete}")
+            os.remove(path_to_delete)
+        elif os.path.isdir(path_to_delete):
+            if os.listdir(path_to_delete):
+                logging.debug(f"Not removing directory {path_to_delete} as it is not empty")
+            else:
+                logging.debug(f"Deleting directory {path_to_delete}")
+                os.rmdir(path_to_delete)
+
+    logging.debug(f"Deleting index file {index_path}")
+    os.remove(index_path)

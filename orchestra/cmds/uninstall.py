@@ -1,5 +1,8 @@
+import logging
+
 from ..model.index import ComponentIndex
-from ..executor import Executor
+from ..util import parse_component_name, is_installed
+from ..model.actions.install import uninstall
 
 
 def install_subcommand(sub_argparser):
@@ -8,6 +11,9 @@ def install_subcommand(sub_argparser):
 
 
 def handle_uninstall(args, config, index: ComponentIndex):
-    build = index.get_build(args.component)
-    executor = Executor(show_output=args.show_output)
-    executor.run(build.uninstall)
+    component_name, build_name = parse_component_name(args.component)
+    if not is_installed(config, component_name, build_name):
+        print(f"Component {args.component} is not installed")
+        return
+
+    uninstall(config, component_name)
