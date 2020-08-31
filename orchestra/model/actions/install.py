@@ -92,7 +92,7 @@ class InstallAction(Action):
         mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/libexec"
         """)
         
-        run_script(script)
+        run_script(script, environment=self.environment)
 
         paths_to_create = [
             "share/info",
