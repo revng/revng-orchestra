@@ -121,8 +121,9 @@ class InstallAction(Action):
         run_script(patch_ndebug_script, show_output=show_output, environment=self.environment)
 
     def _uninstall_currently_installed_build(self, show_output):
-        _, installed_build = get_installed(self.index.config, self.build.component.name)
-        if installed_build is None or installed_build == self.build.name:
+        installed_component, installed_build = get_installed(self.index.config, self.build.component.name)
+
+        if installed_component is None:
             return
 
         uninstall(self.index.config, self.build.component.name)
