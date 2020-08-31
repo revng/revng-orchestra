@@ -1,5 +1,3 @@
-import logging
-
 from ..model.index import ComponentIndex
 from ..util import parse_component_name, is_installed
 from ..model.actions.install import uninstall
