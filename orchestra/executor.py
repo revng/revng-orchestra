@@ -25,7 +25,7 @@ class Executor:
                 self._running_actions.remove(d)
                 exception = d.exception()
                 if exception:
-                    logging.critical("An action failed!")
+                    logging.critical(exception)
                     if self._pending_actions:
                         logging.critical("Waiting for other running actions to terminate")
                     self._pending_actions = set()
