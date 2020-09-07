@@ -2,13 +2,13 @@ import logging
 from concurrent import futures
 from typing import List
 
-from .model.actions.action import Action
+from .actions.action import Action
 
 
 class Executor:
-    def __init__(self, threads=1, show_output=False):
+    def __init__(self, args, threads=1):
+        self.args = args
         self.threads = 1
-        self.show_output = show_output
         self._pending_actions = set()
         self._running_actions: List[futures.Future] = []
         self._pool = futures.ThreadPoolExecutor(max_workers=threads, thread_name_prefix="Builder")
@@ -33,7 +33,7 @@ class Executor:
                     self._schedule_next()
 
     def _collect_actions(self, action: Action, force=False):
-        if not force and action.is_satisfied():
+        if not force and action.is_satisfied(recursively=True):
             return
 
         if action not in self._pending_actions:
@@ -53,9 +53,9 @@ class Executor:
 
     def _get_next_runnable_action(self):
         for action in self._pending_actions:
-            if all([d.is_satisfied() for d in action.dependencies]):
+            if all([d.is_satisfied(recursively=True) for d in action.dependencies]):
                 self._pending_actions.remove(action)
                 return action
 
     def _run_action(self, action: Action):
-        return action.run(show_output=self.show_output)
+        return action.run(show_output=self.args.show_output, args=self.args)

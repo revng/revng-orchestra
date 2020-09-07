@@ -7,7 +7,6 @@ from . import configure
 from . import install
 from . import uninstall
 from . import graph
-from . import dump_config
 from . import shell
 
 
@@ -31,6 +30,5 @@ def install_subcommands(argparser):
     install.install_subcommand(subparsers)
     uninstall.install_subcommand(subparsers)
     graph.install_subcommand(subparsers)
-    dump_config.install_subcommand(subparsers)
     shell.install_subcommand(subparsers)
     return subparsers

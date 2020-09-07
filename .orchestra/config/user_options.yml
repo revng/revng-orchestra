@@ -1,0 +1,13 @@
+#@data/values
+---
+parallelism: "8"
+build_from_source:
+  - gmp
+  - mpfr
+paths:
+  #! orchestra_root: /absolute/path/only
+  #! source_archives: /absolute/path/only
+  #! binary_archives: /absolute/path/only
+  #! tmproot: /absolute/path/only
+  #! sources_dir: /absolute/path/only
+  #! builds_dir: /absolute/path/only

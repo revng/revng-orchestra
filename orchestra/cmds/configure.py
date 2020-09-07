@@ -1,4 +1,4 @@
-from ..model.index import ComponentIndex
+from ..model.configuration import Configuration
 from ..executor import Executor
 
 
@@ -8,7 +8,7 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("--force", action="store_true", help="Force execution of the root action")
 
 
-def handle_configure(args, config, index: ComponentIndex):
-    build = index.get_build(args.component)
-    executor = Executor(show_output=args.show_output)
+def handle_configure(args, config: Configuration):
+    build = config.get_build(args.component)
+    executor = Executor(args)
     executor.run(build.configure, force=args.force)

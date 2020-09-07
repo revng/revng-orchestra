@@ -1,6 +1,7 @@
 import os.path
-
-from .environment import global_env
+import re
+from collections import OrderedDict
+from typing import Union
 
 
 def parse_component_name(component_spec):
@@ -10,46 +11,63 @@ def parse_component_name(component_spec):
     return component_name, build_name
 
 
-def get_build_or_default(components, component_name, build_name):
-    component = components.get(component_name)
-    if not component:
-        raise Exception(f"Component {component_name} not found!")
-
-    if not build_name and "default_build" in component:
-        build_name = component["default_build"]
-    elif not build_name:
-        build_name = list(component["builds"].keys())[0]
-
-    build = component["builds"].get(build_name)
-    if not build:
-        raise Exception(f"Build {build_name} not found in {component_name}")
-
-    return component, build_name, build
-
-
-def install_component_path(component_name, config):
-    return os.path.join(install_component_dir(config), component_name.replace("/", "_"))
+def parse_dependency(dependency) -> (str, Union[str, None], bool):
+    """
+    Dependencies can be specified in the following formats:
+    - Simple:
+        `component`
+        Depend on the installation of any build of `component`.
+        If the component is not installed, the default build is picked.
+    - Exact:
+        `component@build`
+        Depend on the installation of a specific build of `component`
+    - Simple with preferred build:
+        `component~build`
+        to depend on the installation of any build of `component`.
+        If the component is not installed, the specified build is picked.
 
 
-def install_component_dir(config):
-    env = global_env(config)
-    return os.path.join(env["ORCHESTRA"], ".orchestra", "installed_components")
+    :returns component_name, build_name, exact_build_required
+                component_name: name of the requested component
+                build_name: name of the requested build or None
+                exact_build_required: True if build_name represents an exact requirement
+    """
+    dependency_re = re.compile(r"(?P<component>[\w\-_/]+)((?P<type>[@~])(?P<build>[\w\-_/]+))?")
+    match = dependency_re.fullmatch(dependency)
+    if not match:
+        raise Exception(f"Invalid dependency specified: {dependency}")
+
+    component = match.group("component")
+    exact_build_required = True if match.group("type") == "@" else False
+    build = match.group("build")
+
+    return component, build, exact_build_required
 
 
-def get_installed(config, component_name):
-    index_path = install_component_path(component_name, config)
+def get_installed_build(component_name, config):
+    """
+    Returns the name of the installed build for the given component name.
+    If the component is not installed, returns None.
+    """
+    index_path = config.component_index_path(component_name)
     if not os.path.exists(index_path):
-        return None, None
+        return None
 
     with open(index_path) as f:
         installed_component, _, installed_build = f.readline().strip().partition("@")
 
-    return installed_component, installed_build
+    # ensure the returned type is None if build type cannot be deduced
+    return installed_build or None
 
 
 def is_installed(config, wanted_component, wanted_build=None):
-    installed_component, installed_build = get_installed(config, wanted_component)
+    installed_build = get_installed_build(wanted_component, config)
 
-    # Wanted component name must be equal
-    # Wanted build name too, but only if if provided
-    return wanted_component == installed_component and (not wanted_build or wanted_build == installed_build)
+    return installed_build is not None and (wanted_build is None or installed_build == wanted_build)
+
+
+def export_environment(variables: OrderedDict):
+    env = ""
+    for var, val in variables.items():
+        env += f'export {var}="{val}"\n'
+    return env

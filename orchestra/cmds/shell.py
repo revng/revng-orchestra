@@ -6,9 +6,9 @@ import tty
 import pty
 from subprocess import Popen
 
-from ..model.index import ComponentIndex
-from ..environment import global_env, per_action_env, export_environment
-from ..model.actions.util import run_script
+from ..model.configuration import Configuration
+from ..util import export_environment
+from ..actions.util import run_script
 
 
 def install_subcommand(sub_argparser):
@@ -16,13 +16,13 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("component", nargs="?")
 
 
-def handle_shell(args, config, index: ComponentIndex):
+def handle_shell(args, config: Configuration):
     if not args.component:
-        env = global_env(config)
+        env = config.global_env()
         env["PS1"] = "(orchestra) $PS1"
     else:
-        build = index.get_build(args.component)
-        env = per_action_env(build.install)
+        build = config.get_build(args.component)
+        env = build.install.environment
         env["PS1"] = f"(orchestra - {build.qualified_name}) $PS1"
 
     user_shell = run_script("getent passwd $(whoami) | cut -d: -f7").stdout.decode("utf-8").strip()

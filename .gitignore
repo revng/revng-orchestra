@@ -1,6 +1,10 @@
 build/
 root/
 sources/
-.orchestra/
+.orchestra/source_archives
+.orchestra/binary_archives
+.orchestra/installed_components
+.orchestra/tmproot
+.orchestra/config_cache
 __pycache__/
 *.py[cod]

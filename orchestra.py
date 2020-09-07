@@ -4,15 +4,15 @@ import argparse
 import logging
 
 from orchestra.cmds import install_subcommands
-from orchestra.config import gen_config
-from orchestra.model.index import ComponentIndex
+from orchestra.model.configuration import Configuration
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--config", default="./config")
 # TODO: set default loglevel to INFO or WARNING
 parser.add_argument("--loglevel", "-v", default="DEBUG", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
 parser.add_argument("--show-output", dest="show_output", action="store_true", help="Show commands output")
-parser.add_argument("--nocache", action="store_true")
+parser.add_argument("--no-config-cache", action="store_true", help="Do not cache generated yaml configuration")
+parser.add_argument("--no-binary-archives", action="store_true", help="Build all components from source")
+
 subparsers = install_subcommands(parser)
 
 
@@ -26,7 +26,6 @@ if __name__ == "__main__":
         parser.print_help()
         exit(1)
 
-    config = gen_config(args.config, use_cache=not args.nocache)
-    index = ComponentIndex(config)
+    configuration = Configuration(args)
 
-    cmd_parser.handler(args, config, index)
+    cmd_parser.handler(args, configuration)
