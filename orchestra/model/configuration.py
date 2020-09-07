@@ -232,11 +232,10 @@ def set_build_hash(build: "bld.Build"):
     if build.recursive_hash is not None:
         return
 
-    # all_builds = {d.build for d in build.configure.external_dependencies}
-    # all_builds.update({d.build for d in build.install.external_dependencies})
-    # all_builds = {b for b in all_builds if b.component is not build.component}
-    all_builds = {d.build for d in build.install.external_dependencies if d.build.component is not build.component}
-
+    all_builds = {d.build for d in build.configure.external_dependencies}
+    all_builds.update({d.build for d in build.install.external_dependencies})
+    all_builds = {b for b in all_builds if b.component is not build.component}
+    
     # Ensure all dependencies hashes are computed
     for b in all_builds:
         set_build_hash(b)
