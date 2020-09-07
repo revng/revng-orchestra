@@ -38,7 +38,8 @@ class CloneAction(Action):
         for remote in remotes:
             result = run_script(
                 f'git -C "$ORCHESTRA_DOTDIR" config --get remote.{remote}.url',
-                environment=self.environment
+                environment=self.environment,
+                quiet=True
             )
             remote_url = result.stdout.strip().decode("utf-8")
             remote_base_url = remote_url.rpartition("/")[0]

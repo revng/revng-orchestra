@@ -25,7 +25,7 @@ def handle_shell(args, config: Configuration):
         env = build.install.environment
         env["PS1"] = f"(orchestra - {build.qualified_name}) $PS1"
 
-    user_shell = run_script("getent passwd $(whoami) | cut -d: -f7").stdout.decode("utf-8").strip()
+    user_shell = run_script("getent passwd $(whoami) | cut -d: -f7", quiet=True).stdout.decode("utf-8").strip()
 
     env_setter_script = export_environment(env)
 

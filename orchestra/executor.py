@@ -1,5 +1,5 @@
-import logging
 from concurrent import futures
+from loguru import logger
 from typing import List
 
 from .actions.action import Action
@@ -25,9 +25,9 @@ class Executor:
                 self._running_actions.remove(d)
                 exception = d.exception()
                 if exception:
-                    logging.critical(exception)
+                    logger.critical(exception)
                     if self._pending_actions:
-                        logging.critical("Waiting for other running actions to terminate")
+                        logger.error(f"Waiting for other running actions to terminate: {self._pending_actions}")
                     self._pending_actions = set()
                 else:
                     self._schedule_next()
@@ -45,7 +45,8 @@ class Executor:
         next_runnable_action = self._get_next_runnable_action()
         if not next_runnable_action:
             if self._pending_actions:
-                logging.error(f"Could not run any action! An action has failed or there is a circular dependency")
+                logger.error(f"Could not run any action! An action has failed or there is a circular dependency")
+                logger.error(f"Remaining actions: {self._pending_actions}")
             return
 
         future = self._pool.submit(self._run_action, next_runnable_action)
@@ -58,4 +59,4 @@ class Executor:
                 return action
 
     def _run_action(self, action: Action):
-        return action.run(show_output=self.args.show_output, args=self.args)
+        return action.run(args=self.args)

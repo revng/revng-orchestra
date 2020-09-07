@@ -1,7 +1,7 @@
 import glob
-import logging
 import os
 from collections import OrderedDict
+from loguru import logger
 from textwrap import dedent
 
 from .action import Action
@@ -15,20 +15,20 @@ class InstallAction(Action):
         super().__init__(name, build, script, config)
         self.from_binary_archives = from_binary_archives
 
-    def _run(self, show_output=False, args=None):
+    def _run(self, args):
         environment = self.config.global_env()
         tmp_root = environment["TMP_ROOT"]
         orchestra_root = environment['ORCHESTRA_ROOT']
 
-        logging.info("Preparing temporary root directory")
+        logger.info("Preparing temporary root directory")
         self._prepare_tmproot()
         pre_file_list = self._index_directory(tmp_root + orchestra_root, strip_prefix=tmp_root + orchestra_root)
 
         if self.from_binary_archives:
             self._install_from_binary_archives()
         else:
-            self._install(show_output)
-            self._post_install(show_output)
+            self._install(args.quiet)
+            self._post_install(args.quiet)
 
         post_file_list = self._index_directory(tmp_root + orchestra_root, strip_prefix=tmp_root + orchestra_root)
         new_files = [f for f in post_file_list if f not in pre_file_list]
@@ -36,14 +36,14 @@ class InstallAction(Action):
         archive_name = self.build.binary_archive_filename
         archive_path = os.path.join(self.environment["BINARY_ARCHIVES"], archive_name)
         if args.create_binary_archives and not os.path.exists(archive_path):
-            logging.info("Creating binary archive")
+            logger.info("Creating binary archive")
             self._create_binary_archive()
 
         if not args.no_merge:
-            self._uninstall_currently_installed_build(show_output)
+            self._uninstall_currently_installed_build(args.quiet)
 
-            logging.info("Merging installation into Orchestra root directory")
-            self._merge(show_output)
+            logger.info("Merging installation into Orchestra root directory")
+            self._merge(args.quiet)
 
             # Write file index
             os.makedirs(self.config.component_index_dir(), exist_ok=True)
@@ -70,30 +70,30 @@ class InstallAction(Action):
             touch "${TMP_ROOT}${ORCHESTRA_ROOT}/share/info/dir"
             mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/libexec"
             """)
-        run_script(script, environment=self.environment)
+        run_script(script, environment=self.environment, quiet=True)
 
-    def _install(self, show_output):
-        logging.info("Executing install script")
-        run_script(self.script, show_output=show_output, environment=self.environment)
+    def _install(self, quiet):
+        logger.info("Executing install script")
+        run_script(self.script, quiet=quiet, environment=self.environment)
 
-    def _post_install(self, show_output):
+    def _post_install(self, quiet):
         # TODO: maybe this should be put into the configuration and not in Orchestra itself
-        logging.info("Converting hardlinks to symbolic")
-        self._hard_to_symbolic(show_output)
+        logger.info("Converting hardlinks to symbolic")
+        self._hard_to_symbolic(quiet)
 
         # TODO: maybe this should be put into the configuration and not in Orchestra itself
-        logging.info("Fixing RPATHs")
-        self._fix_rpath(show_output)
+        logger.info("Fixing RPATHs")
+        self._fix_rpath(quiet)
 
         # TODO: this should be put into the configuration and not in Orchestra itself
-        logging.info("Replacing NDEBUG preprocessor statements")
-        self._replace_ndebug(True, show_output)
+        logger.info("Replacing NDEBUG preprocessor statements")
+        self._replace_ndebug(True, quiet)
 
-    def _hard_to_symbolic(self, show_output):
+    def _hard_to_symbolic(self, quiet):
         hard_to_symbolic = """hard-to-symbolic.py "${TMP_ROOT}${ORCHESTRA_ROOT}" """
-        run_script(hard_to_symbolic, show_output=show_output, environment=self.environment)
+        run_script(hard_to_symbolic, quiet=quiet, environment=self.environment)
 
-    def _fix_rpath(self, show_output):
+    def _fix_rpath(self, quiet):
         fix_rpath_script = dedent(f"""
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             # Fix rpath
@@ -108,9 +108,9 @@ class InstallAction(Action):
                 fi
             done
             """)
-        run_script(fix_rpath_script, show_output=show_output, environment=self.environment)
+        run_script(fix_rpath_script, quiet=quiet, environment=self.environment)
 
-    def _replace_ndebug(self, enable_debugging, show_output):
+    def _replace_ndebug(self, enable_debugging, quiet):
         debug, ndebug = ("1", "0") if enable_debugging else ("0", "1")
         patch_ndebug_script = dedent(rf"""
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
@@ -123,20 +123,20 @@ class InstallAction(Action):
                     -e 's|^\(\s*#\s*if\s\+.*\)defined(NDEBUG)|\1{ndebug}|' \
                     {"{}"} ';'
             """)
-        run_script(patch_ndebug_script, show_output=show_output, environment=self.environment)
+        run_script(patch_ndebug_script, quiet=quiet, environment=self.environment)
 
-    def _uninstall_currently_installed_build(self, show_output):
+    def _uninstall_currently_installed_build(self, quiet):
         installed_build = get_installed_build(self.build.component.name, self.config)
 
         if installed_build is None:
             return
 
-        logging.info("Uninstalling previously installed build")
+        logger.info("Uninstalling previously installed build")
         uninstall(self.build.component.name, self.config)
 
-    def _merge(self, show_output):
+    def _merge(self, quiet):
         copy_command = f'cp -farl "$TMP_ROOT/$ORCHESTRA_ROOT/." "$ORCHESTRA_ROOT"'
-        run_script(copy_command, show_output=show_output, environment=self.environment)
+        run_script(copy_command, quiet=quiet, environment=self.environment)
 
     def _create_binary_archive(self):
         archive_name = self.build.binary_archive_filename
@@ -145,7 +145,7 @@ class InstallAction(Action):
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             tar caf "$BINARY_ARCHIVES/{archive_name}" --owner=0 --group=0 "."
             """)
-        run_script(script, show_output=True, environment=self.environment)
+        run_script(script, quiet=True, environment=self.environment)
 
     def _install_from_binary_archives(self):
         archives_dir = self.environment["BINARY_ARCHIVES"]
@@ -158,7 +158,7 @@ class InstallAction(Action):
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             tar xaf "{archive_filepath}"
             """)
-        run_script(script, environment=self.environment)
+        run_script(script, environment=self.environment, quiet=True)
 
     @staticmethod
     def _index_directory(dirpath, strip_prefix=None):
@@ -193,7 +193,7 @@ class InstallAnyBuildAction(Action):
     def _implicit_dependencies(self):
         return {self.build.install}
 
-    def _run(self, show_output=False, args=None):
+    def _run(self, args):
         return
 
     def is_satisfied(self, recursively=False, already_checked=None):
@@ -235,14 +235,14 @@ def uninstall(component_name, config):
         path = path.lstrip("/")
         path_to_delete = os.path.join(config.global_env()['ORCHESTRA_ROOT'], path)
         if os.path.isfile(path_to_delete) or os.path.islink(path_to_delete):
-            logging.debug(f"Deleting {path_to_delete}")
+            logger.debug(f"Deleting {path_to_delete}")
             os.remove(path_to_delete)
         elif os.path.isdir(path_to_delete):
             if os.listdir(path_to_delete):
-                logging.debug(f"Not removing directory {path_to_delete} as it is not empty")
+                logger.debug(f"Not removing directory {path_to_delete} as it is not empty")
             else:
-                logging.debug(f"Deleting directory {path_to_delete}")
+                logger.debug(f"Deleting directory {path_to_delete}")
                 os.rmdir(path_to_delete)
 
-    logging.debug(f"Deleting index file {index_path}")
+    logger.debug(f"Deleting index file {index_path}")
     os.remove(index_path)

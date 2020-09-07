@@ -1,6 +1,6 @@
-import logging
 import subprocess
 from collections import OrderedDict
+from loguru import logger
 
 from ..util import export_environment
 
@@ -12,11 +12,20 @@ set -o pipefail
 
 
 def run_script(script,
-               show_output=False,
+               quiet=False,
                environment: OrderedDict = None,
                strict_flags=True,
                check_returncode=True,
                ):
+    """Helper for running shell scripts.
+    :param script: the script to run
+    :param quiet: if True the output of the command is not shown to the user,
+    but instead captured and accessible from the `stdout` and `stderr` properties of the returned value.
+    :param environment: will be exported at the beginning of the script
+    :param strict_flags: if True, a prelude is prepended to the script to help catch errors
+    :param check_returncode: if True an exception is raised unless the script returns 0
+    :return: a subprocess.CompletedProcess instance
+    """
     if strict_flags:
         script_to_run = bash_prelude
     else:
@@ -27,23 +36,23 @@ def run_script(script,
 
     script_to_run += script
 
-    if show_output:
-        stdout = None
-        stderr = None
-    else:
+    if quiet:
         stdout = subprocess.PIPE
         stderr = subprocess.PIPE
+    else:
+        stdout = None
+        stderr = None
 
-    logging.debug(f"Executing: {script}")
+    logger.debug(f"Executing: {script}")
     result = subprocess.run(script_to_run, shell=True, stdout=stdout, stderr=stderr)
     if check_returncode and result.returncode != 0:
-        logging.error(f"Subprocess exited with exit code {result.returncode}")
-        logging.error(f"Script executed: {script_to_run}")
-        if not show_output:
+        logger.error(f"Subprocess exited with exit code {result.returncode}")
+        logger.error(f"Script executed: {script_to_run}")
+        if quiet:
             stdout_content = try_decode(result.stdout)
             stderr_content = try_decode(result.stderr)
-            logging.error(f"STDOUT: {stdout_content}")
-            logging.error(f"STDERR: {stderr_content}")
+            logger.error(f"STDOUT: {stdout_content}")
+            logger.error(f"STDERR: {stderr_content}")
         raise Exception("Script failed", result)
 
     return result

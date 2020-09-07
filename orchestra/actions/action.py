@@ -1,5 +1,5 @@
-import logging
 from collections import OrderedDict
+from loguru import logger
 from typing import Set
 
 from .util import run_script
@@ -13,13 +13,13 @@ class Action:
         self.external_dependencies: Set[Action] = set()
         self._script = script
 
-    def run(self, show_output=False, args=None):
-        logging.info(f"Executing {self}")
-        self._run(show_output=show_output, args=args)
+    def run(self, args):
+        logger.info(f"Executing {self}")
+        self._run(args)
 
-    def _run(self, show_output=False, args=None):
+    def _run(self, args):
         """Executes the action"""
-        run_script(self.script, show_output=show_output, environment=self.environment)
+        run_script(self.script, quiet=args.quiet, environment=self.environment)
 
     @property
     def script(self):
