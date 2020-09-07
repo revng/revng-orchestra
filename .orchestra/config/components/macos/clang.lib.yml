@@ -24,10 +24,10 @@ macos/(@= prefix @)-clang:
         cp support/add-sysroot-wrapper.sh "${TMP_ROOT}${ORCHESTRA_ROOT}/bin/(@= prefix @)-apple-darwin11-clang"
         rm -f "${TMP_ROOT}${ORCHESTRA_ROOT}/bin/(@= prefix @)-apple-darwin11-clang++"
         cp support/add-sysroot-wrapper.sh "${TMP_ROOT}${ORCHESTRA_ROOT}/bin/(@= prefix @)-apple-darwin11-clang++"
-  dependencies:
-    - macos/sdk
-    - clang-release
-    - macos/(@= prefix @)-ld64
+      dependencies:
+        - macos/sdk
+        - clang-release
+        - macos/(@= prefix @)-ld64
 #@ end
 #@ end
 

@@ -10,10 +10,10 @@ builds:
       echo "TODO: macosx sdk" && exit 1
       create-package.sh Xcode_9.xip
       extract.sh --into "${TMP_ROOT}${ORCHESTRA_ROOT}" --src-archive-dir "$SDK_ARCHIVE_DIR" "(@= sdk_archive_name @)"
-dependencies:
-  - cmake
-  - clang-release
-  - toolchain/host/gcc@stage2
+    dependencies:
+      - cmake
+      - clang-release
+      - toolchain/host/gcc@stage2
 add_to_path: "$ORCHESTRA_DOTDIR/helpers/repackage-apple-sdk"
 #@ end
 
