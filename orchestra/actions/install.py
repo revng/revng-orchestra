@@ -10,8 +10,10 @@ from ..util import is_installed, get_installed_build
 
 
 class InstallAction(Action):
-    def __init__(self, build, script, config):
-        super().__init__("install", build, script, config)
+    def __init__(self, build, script, config, from_binary_archives=False):
+        name = "install" if not from_binary_archives else "install from binary archives"
+        super().__init__(name, build, script, config)
+        self.from_binary_archives = from_binary_archives
 
     def _run(self, show_output=False, args=None):
         environment = self.config.global_env()
@@ -22,26 +24,22 @@ class InstallAction(Action):
         self._prepare_tmproot()
         pre_file_list = self._index_directory(tmp_root + orchestra_root, strip_prefix=tmp_root + orchestra_root)
 
-        logging.info("Executing install script")
-        run_script(self.script, show_output=show_output, environment=self.environment)
-
-        # TODO: maybe this should be put into the configuration and not in Orchestra itself
-        logging.info("Converting hardlinks to symbolic")
-        self._hard_to_symbolic(show_output)
-
-        # TODO: maybe this should be put into the configuration and not in Orchestra itself
-        logging.info("Fixing RPATHs")
-        self._fix_rpath(show_output)
-
-        # TODO: this should be put into the configuration and not in Orchestra itself
-        logging.info("Replacing NDEBUG preprocessor statements")
-        self._replace_ndebug(True, show_output)
+        if self.from_binary_archives:
+            self._install_from_binary_archives()
+        else:
+            self._install(show_output)
+            self._post_install(show_output)
 
         post_file_list = self._index_directory(tmp_root + orchestra_root, strip_prefix=tmp_root + orchestra_root)
         new_files = [f for f in post_file_list if f not in pre_file_list]
 
+        archive_name = self.build.binary_archive_filename
+        archive_path = os.path.join(self.environment["BINARY_ARCHIVES"], archive_name)
+        if args.create_binary_archives and not os.path.exists(archive_path):
+            logging.info("Creating binary archive")
+            self._create_binary_archive()
+
         if not args.no_merge:
-            logging.info("Cleaning up previous installation (if present)")
             self._uninstall_currently_installed_build(show_output)
 
             logging.info("Merging installation into Orchestra root directory")
@@ -60,19 +58,36 @@ class InstallAction(Action):
 
     def _prepare_tmproot(self):
         script = dedent("""
-        rm -rf "$TMP_ROOT"
-        mkdir -p "$TMP_ROOT"
-        mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/include"
-        mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/lib64"{,/include,/pkgconfig}
-        test -e "${TMP_ROOT}${ORCHESTRA_ROOT}/lib" || ln -s lib64 "${TMP_ROOT}${ORCHESTRA_ROOT}/lib"
-        test -L "${TMP_ROOT}${ORCHESTRA_ROOT}/lib"
-        mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/bin"
-        mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/usr/"{lib,include}
-        mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/share/"{info,doc,man}
-        touch "${TMP_ROOT}${ORCHESTRA_ROOT}/share/info/dir"
-        mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/libexec"
-        """)
+            rm -rf "$TMP_ROOT"
+            mkdir -p "$TMP_ROOT"
+            mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/include"
+            mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/lib64"{,/include,/pkgconfig}
+            test -e "${TMP_ROOT}${ORCHESTRA_ROOT}/lib" || ln -s lib64 "${TMP_ROOT}${ORCHESTRA_ROOT}/lib"
+            test -L "${TMP_ROOT}${ORCHESTRA_ROOT}/lib"
+            mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/bin"
+            mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/usr/"{lib,include}
+            mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/share/"{info,doc,man}
+            touch "${TMP_ROOT}${ORCHESTRA_ROOT}/share/info/dir"
+            mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/libexec"
+            """)
         run_script(script, environment=self.environment)
+
+    def _install(self, show_output):
+        logging.info("Executing install script")
+        run_script(self.script, show_output=show_output, environment=self.environment)
+
+    def _post_install(self, show_output):
+        # TODO: maybe this should be put into the configuration and not in Orchestra itself
+        logging.info("Converting hardlinks to symbolic")
+        self._hard_to_symbolic(show_output)
+
+        # TODO: maybe this should be put into the configuration and not in Orchestra itself
+        logging.info("Fixing RPATHs")
+        self._fix_rpath(show_output)
+
+        # TODO: this should be put into the configuration and not in Orchestra itself
+        logging.info("Replacing NDEBUG preprocessor statements")
+        self._replace_ndebug(True, show_output)
 
     def _hard_to_symbolic(self, show_output):
         hard_to_symbolic = """hard-to-symbolic.py "${TMP_ROOT}${ORCHESTRA_ROOT}" """
@@ -98,16 +113,16 @@ class InstallAction(Action):
     def _replace_ndebug(self, enable_debugging, show_output):
         debug, ndebug = ("1", "0") if enable_debugging else ("0", "1")
         patch_ndebug_script = dedent(rf"""
-                cd "$TMP_ROOT$ORCHESTRA_ROOT"
-                find include/ -name "*.h" \
-                  -exec \
+            cd "$TMP_ROOT$ORCHESTRA_ROOT"
+            find include/ -name "*.h" \
+                -exec \
                     sed -i \
                     -e 's|^\s*#\s*ifndef\s\+NDEBUG|#if {debug}|' \
                     -e 's|^\s*#\s*ifdef\s\+NDEBUG|#if {ndebug}|' \
                     -e 's|^\(\s*#\s*if\s\+.*\)!defined(NDEBUG)|\1{debug}|' \
                     -e 's|^\(\s*#\s*if\s\+.*\)defined(NDEBUG)|\1{ndebug}|' \
                     {"{}"} ';'
-                """)
+            """)
         run_script(patch_ndebug_script, show_output=show_output, environment=self.environment)
 
     def _uninstall_currently_installed_build(self, show_output):
@@ -116,11 +131,34 @@ class InstallAction(Action):
         if installed_build is None:
             return
 
+        logging.info("Uninstalling previously installed build")
         uninstall(self.build.component.name, self.config)
 
     def _merge(self, show_output):
         copy_command = f'cp -farl "$TMP_ROOT/$ORCHESTRA_ROOT/." "$ORCHESTRA_ROOT"'
         run_script(copy_command, show_output=show_output, environment=self.environment)
+
+    def _create_binary_archive(self):
+        archive_name = self.build.binary_archive_filename
+        script = dedent(f"""
+            mkdir -p "$BINARY_ARCHIVES"
+            cd "$TMP_ROOT$ORCHESTRA_ROOT"
+            tar caf "$BINARY_ARCHIVES/{archive_name}" --owner=0 --group=0 "."
+            """)
+        run_script(script, show_output=True, environment=self.environment)
+
+    def _install_from_binary_archives(self):
+        archives_dir = self.environment["BINARY_ARCHIVES"]
+        archive_filepath = os.path.join(archives_dir, self.build.binary_archive_filename)
+        if not os.path.exists(archive_filepath):
+            raise Exception("Binary archive not found!")
+
+        script = dedent(f"""
+            mkdir -p "$TMP_ROOT$ORCHESTRA_ROOT"
+            cd "$TMP_ROOT$ORCHESTRA_ROOT"
+            tar xaf "{archive_filepath}"
+            """)
+        run_script(script, environment=self.environment)
 
     @staticmethod
     def _index_directory(dirpath, strip_prefix=None):
@@ -136,7 +174,10 @@ class InstallAction(Action):
         return env
 
     def _implicit_dependencies(self):
-        return {self.build.configure}
+        if self.from_binary_archives:
+            return set()
+        else:
+            return {self.build.configure}
 
 
 class InstallAnyBuildAction(Action):

@@ -1,3 +1,4 @@
+import hashlib
 import os
 import subprocess
 from collections import OrderedDict
@@ -5,11 +6,12 @@ from itertools import repeat
 from typing import Dict
 
 import yaml
+import json
 from fuzzywuzzy import fuzz
 
 from . import build as bld
 from . import component as comp
-from ..actions import CloneAction, ConfigureAction, InstallAction, InstallAnyBuildAction, InstallFromBinaryArchives
+from ..actions import CloneAction, ConfigureAction, InstallAction, InstallAnyBuildAction
 from ..util import parse_component_name, parse_dependency
 
 
@@ -17,8 +19,7 @@ class Configuration:
     def __init__(self, args):
         self.args = args
         self.components: Dict[str, comp.Component] = {}
-        # TODO: remove the "or True"
-        self.no_binary_archives = args.no_binary_archives or True
+        self.no_binary_archives = args.no_binary_archives
 
         self.orchestra_dotdir = self._locate_orchestra_dotdir()
         if not self.orchestra_dotdir:
@@ -142,12 +143,13 @@ class Configuration:
                 build.configure = ConfigureAction(build, configure_script, self)
 
                 # TODO: install and create binary archives
-                if not self.parsed_yaml["components"][component_name].get("build_from_source") \
-                        and not self.no_binary_archives:
-                    build.install = InstallFromBinaryArchives(build, self)
-                else:
-                    install_script = build_yaml["install"]
-                    build.install = InstallAction(build, install_script, self)
+                from_source = self.parsed_yaml["components"][component_name].get("build_from_source", False) \
+                                or self.no_binary_archives
+                install_script = build_yaml["install"]
+                build.install = InstallAction(build, install_script, self, from_binary_archives=not from_source)
+
+                serialized_build = json.dumps(build_yaml, sort_keys=True).encode("utf-8")
+                build.self_hash = hashlib.sha1(serialized_build).hexdigest()
 
         # Second pass: resolve "external" dependencies
         for component_name, component_yaml in self.parsed_yaml["components"].items():
@@ -182,6 +184,8 @@ class Configuration:
                             and not self.no_binary_archives \
                             and not build_only:
                         build.install.external_dependencies.add(dep_action)
+
+                set_build_hash(build)
 
     def _locate_orchestra_dotdir(self, relpath=""):
         cwd = os.getcwd()
@@ -222,3 +226,26 @@ def run_ytt(orchestra_dotdir, use_cache=True):
             f.write(expanded_yaml)
 
     return expanded_yaml
+
+
+def set_build_hash(build: "bld.Build"):
+    if build.recursive_hash is not None:
+        return
+
+    # all_builds = {d.build for d in build.configure.external_dependencies}
+    # all_builds.update({d.build for d in build.install.external_dependencies})
+    # all_builds = {b for b in all_builds if b.component is not build.component}
+    all_builds = {d.build for d in build.install.external_dependencies if d.build.component is not build.component}
+
+    # Ensure all dependencies hashes are computed
+    for b in all_builds:
+        set_build_hash(b)
+
+    sorted_dependencies = [(b.qualified_name, b) for b in all_builds]
+    sorted_dependencies.sort()
+
+    to_hash = build.self_hash
+    for _, b in sorted_dependencies:
+        to_hash += b.self_hash
+
+    build.recursive_hash = hashlib.sha1(to_hash.encode("utf-8")).hexdigest()

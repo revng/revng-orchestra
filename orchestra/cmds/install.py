@@ -7,6 +7,7 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("component")
     cmd_parser.add_argument("--force", action="store_true", help="Force execution of the root action")
     cmd_parser.add_argument("--no-merge", action="store_true", help="Do not merge files into Orchestra root")
+    cmd_parser.add_argument("--create-binary-archives", action="store_true", help="Create binary archives")
 
 
 def handle_install(args, config: Configuration):
