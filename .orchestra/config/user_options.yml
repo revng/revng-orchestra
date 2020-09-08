@@ -1,9 +1,7 @@
 #@data/values
 ---
-parallelism: "8"
-build_from_source:
-  - gmp
-  - mpfr
+parallelism: "16"
+build_from_source: []
 paths:
   #! orchestra_root: /absolute/path/only
   #! source_archives: /absolute/path/only
