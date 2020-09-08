@@ -25,7 +25,6 @@ build_dependencies:
   - clang-release
 dependencies:
   - toolchain/host/gcc
-  - ui/mesa
 #@ end
 
 ---

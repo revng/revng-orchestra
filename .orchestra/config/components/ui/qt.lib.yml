@@ -115,6 +115,7 @@ builds:
     dependencies:
       - clang-release
       - toolchain/host/gcc
+      - ui/mesa
   #@ end
 
 #@ end
