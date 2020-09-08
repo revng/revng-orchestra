@@ -148,9 +148,7 @@ class Configuration:
                 configure_script = build_yaml["configure"]
                 build.configure = ConfigureAction(build, configure_script, self)
 
-                # TODO: install and create binary archives
-                from_source = self.parsed_yaml["components"][component_name].get("build_from_source", False) \
-                                or self.no_binary_archives
+                from_source = component_yaml.get("build_from_source", False) or self.no_binary_archives
                 install_script = build_yaml["install"]
                 build.install = InstallAction(build, install_script, self, from_binary_archives=not from_source)
 
@@ -186,7 +184,7 @@ class Configuration:
                         dep_action = InstallAnyBuildAction(dep_build, self)
 
                     build.configure.external_dependencies.add(dep_action)
-                    if not self.parsed_yaml["components"][component_name].get("build_from_source") \
+                    if not component_yaml.get("build_from_source") \
                             and not self.no_binary_archives \
                             and not build_only:
                         build.install.external_dependencies.add(dep_action)
