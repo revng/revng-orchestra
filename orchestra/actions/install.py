@@ -69,6 +69,7 @@ class InstallAction(Action):
             json.dump(metadata, f)
         with open(self.config.installed_component_file_list_path(self.build.component.name), "w") as f:
             f.truncate(0)
+            new_files = [f"{f}\n" for f in new_files]
             f.writelines(new_files)
 
     def _is_satisfied(self):
