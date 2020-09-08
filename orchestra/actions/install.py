@@ -12,10 +12,13 @@ from ..util import is_installed, get_installed_build
 
 
 class InstallAction(Action):
-    def __init__(self, build, script, config, from_binary_archives=False):
-        name = "install" if not from_binary_archives else "install from binary archives"
+    def __init__(self, build, script, config, from_binary_archives=False, fallback_to_build=False):
+        name = "install"
+        name += " from binary archives" if from_binary_archives else ""
+        name += " with fallback" if from_binary_archives and fallback_to_build else ""
         super().__init__(name, build, script, config)
         self.from_binary_archives = from_binary_archives
+        self.fallback_to_build = fallback_to_build
 
     def _run(self, args):
         environment = self.config.global_env()
@@ -28,11 +31,13 @@ class InstallAction(Action):
 
         start_time = time.time()
 
-        if self.from_binary_archives:
+        if self.from_binary_archives and self._binary_archive_exists():
             self._install_from_binary_archives()
-        else:
+        elif not self.from_binary_archives or self.fallback_to_build:
             self._install(args.quiet)
             self._post_install(args.quiet)
+        else:
+            raise Exception("Binary archive not found!")
 
         end_time = time.time()
 
@@ -160,12 +165,19 @@ class InstallAction(Action):
             """)
         run_script(script, quiet=True, environment=self.environment)
 
-    def _install_from_binary_archives(self):
+    def _binary_archive_filepath(self):
         archives_dir = self.environment["BINARY_ARCHIVES"]
-        archive_filepath = os.path.join(archives_dir, self.build.binary_archive_filename)
-        if not os.path.exists(archive_filepath):
+        return os.path.join(archives_dir, self.build.binary_archive_filename)
+
+    def _binary_archive_exists(self):
+        archive_filepath = self._binary_archive_filepath()
+        return os.path.exists(archive_filepath)
+
+    def _install_from_binary_archives(self):
+        if not self._binary_archive_exists():
             raise Exception("Binary archive not found!")
 
+        archive_filepath = self._binary_archive_filepath()
         script = dedent(f"""
             mkdir -p "$TMP_ROOT$ORCHESTRA_ROOT"
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
@@ -187,7 +199,7 @@ class InstallAction(Action):
         return env
 
     def _implicit_dependencies(self):
-        if self.from_binary_archives:
+        if self.from_binary_archives and (self._binary_archive_exists() or not self.fallback_to_build):
             return set()
         else:
             return {self.build.configure}

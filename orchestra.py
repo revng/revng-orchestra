@@ -13,6 +13,7 @@ parser.add_argument("--loglevel", "-v", default="DEBUG", choices=["DEBUG", "INFO
 parser.add_argument("--quiet", "-q", action="store_true", help="Do not show output of executed commands")
 parser.add_argument("--no-config-cache", action="store_true", help="Do not cache generated yaml configuration")
 parser.add_argument("--from-source", "-B", action="store_true", help="Build all components from source")
+parser.add_argument("--fallback-build", "-b", action="store_true", help="Build if binary archives are not available")
 
 subparsers = install_subcommands(parser)
 

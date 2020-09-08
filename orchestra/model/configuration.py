@@ -20,6 +20,7 @@ class Configuration:
         self.args = args
         self.components: Dict[str, comp.Component] = {}
         self.from_source = args.from_source
+        self.fallback_to_build = args.fallback_build
 
         self.orchestra_dotdir = self._locate_orchestra_dotdir()
         if not self.orchestra_dotdir:
@@ -150,7 +151,13 @@ class Configuration:
 
                 from_source = component_yaml.get("build_from_source", False) or self.from_source
                 install_script = build_yaml["install"]
-                build.install = InstallAction(build, install_script, self, from_binary_archives=not from_source)
+                build.install = InstallAction(
+                    build,
+                    install_script,
+                    self,
+                    from_binary_archives=not from_source,
+                    fallback_to_build=self.fallback_to_build,
+                )
 
                 serialized_build = json.dumps(build_yaml, sort_keys=True).encode("utf-8")
                 build.self_hash = hashlib.sha1(serialized_build).hexdigest()
