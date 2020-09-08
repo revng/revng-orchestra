@@ -1,3 +1,4 @@
+import json
 import os.path
 import re
 from collections import OrderedDict
@@ -49,15 +50,14 @@ def get_installed_build(component_name, config):
     Returns the name of the installed build for the given component name.
     If the component is not installed, returns None.
     """
-    index_path = config.component_index_path(component_name)
-    if not os.path.exists(index_path):
+    metadata_path = config.installed_component_metadata_path(component_name)
+    if not os.path.exists(metadata_path):
         return None
 
-    with open(index_path) as f:
-        installed_component, _, installed_build = f.readline().strip().partition("@")
+    with open(metadata_path) as f:
+        metadata = json.load(f)
 
-    # ensure the returned type is None if build type cannot be deduced
-    return installed_build or None
+    return metadata.get("build_name", None)
 
 
 def is_installed(config, wanted_component, wanted_build=None):

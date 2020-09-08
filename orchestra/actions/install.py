@@ -1,4 +1,6 @@
 import glob
+import json
+import time
 import os
 from collections import OrderedDict
 from loguru import logger
@@ -24,11 +26,15 @@ class InstallAction(Action):
         self._prepare_tmproot()
         pre_file_list = self._index_directory(tmp_root + orchestra_root, strip_prefix=tmp_root + orchestra_root)
 
+        start_time = time.time()
+
         if self.from_binary_archives:
             self._install_from_binary_archives()
         else:
             self._install(args.quiet)
             self._post_install(args.quiet)
+
+        end_time = time.time()
 
         post_file_list = self._index_directory(tmp_root + orchestra_root, strip_prefix=tmp_root + orchestra_root)
         new_files = [f for f in post_file_list if f not in pre_file_list]
@@ -39,19 +45,26 @@ class InstallAction(Action):
             logger.info("Creating binary archive")
             self._create_binary_archive()
 
-        if not args.no_merge:
-            self._uninstall_currently_installed_build(args.quiet)
+        if args.no_merge:
+            return
 
-            logger.info("Merging installation into Orchestra root directory")
-            self._merge(args.quiet)
+        self._uninstall_currently_installed_build(args.quiet)
 
-            # Write file index
-            os.makedirs(self.config.component_index_dir(), exist_ok=True)
-            installed_component_path = self.config.component_index_path(self.build.component.name)
-            with open(installed_component_path, "w") as f:
-                f.truncate(0)
-                f.write(self.build.qualified_name + "\n")
-                f.write("\n".join(new_files))
+        logger.info("Merging installation into Orchestra root directory")
+        self._merge(args.quiet)
+
+        # Write file metadata and index
+        os.makedirs(self.config.installed_component_metadata_dir(), exist_ok=True)
+        metadata = {
+            "component_name": self.build.component.name,
+            "build_name": self.build.name,
+            "install_time": int(end_time - start_time),
+        }
+        with open(self.config.installed_component_metadata_path(self.build.component.name), "w") as f:
+            json.dump(metadata, f)
+        with open(self.config.installed_component_file_list_path(self.build.component.name), "w") as f:
+            f.truncate(0)
+            f.writelines(new_files)
 
     def _is_satisfied(self):
         return is_installed(self.config, self.build.component.name, wanted_build=self.build.name)
@@ -121,7 +134,7 @@ class InstallAction(Action):
                     -e 's|^\s*#\s*ifdef\s\+NDEBUG|#if {ndebug}|' \
                     -e 's|^\(\s*#\s*if\s\+.*\)!defined(NDEBUG)|\1{debug}|' \
                     -e 's|^\(\s*#\s*if\s\+.*\)defined(NDEBUG)|\1{ndebug}|' \
-                    {"{}"} ';'
+                    {{}} ';'
             """)
         run_script(patch_ndebug_script, quiet=quiet, environment=self.environment)
 
@@ -222,9 +235,8 @@ def remove_prefix(string, prefix):
 
 
 def uninstall(component_name, config):
-    index_path = config.component_index_path(component_name)
+    index_path = config.installed_component_file_list_path(component_name)
     with open(index_path) as f:
-        f.readline()
         paths = f.readlines()
 
     # Ensure depth first visit by reverse-sorting

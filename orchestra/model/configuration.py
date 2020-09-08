@@ -66,13 +66,19 @@ class Configuration:
             build = component.default_build
         return build
 
-    def component_index_path(self, component_name):
+    def installed_component_file_list_path(self, component_name):
         """
-        Returns the path of the index containing the exact build and list of installed files of a component
+        Returns the path of the index containing the list of installed files of a component
         """
-        return os.path.join(self.component_index_dir(), component_name.replace("/", "_"))
+        return os.path.join(self.installed_component_metadata_dir(), component_name.replace("/", "_") + ".idx")
 
-    def component_index_dir(self):
+    def installed_component_metadata_path(self, component_name):
+        """
+        Returns the path of the file containing metadata about an installed component
+        """
+        return os.path.join(self.installed_component_metadata_dir(), component_name.replace("/", "_") + ".json")
+
+    def installed_component_metadata_dir(self):
         """
         Returns the path of the directory containing indices of the installed components
         """
@@ -235,7 +241,7 @@ def set_build_hash(build: "bld.Build"):
     all_builds = {d.build for d in build.configure.external_dependencies}
     all_builds.update({d.build for d in build.install.external_dependencies})
     all_builds = {b for b in all_builds if b.component is not build.component}
-    
+
     # Ensure all dependencies hashes are computed
     for b in all_builds:
         set_build_hash(b)
