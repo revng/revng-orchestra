@@ -19,7 +19,7 @@ class Configuration:
     def __init__(self, args):
         self.args = args
         self.components: Dict[str, comp.Component] = {}
-        self.no_binary_archives = args.no_binary_archives
+        self.from_source = args.from_source
 
         self.orchestra_dotdir = self._locate_orchestra_dotdir()
         if not self.orchestra_dotdir:
@@ -148,7 +148,7 @@ class Configuration:
                 configure_script = build_yaml["configure"]
                 build.configure = ConfigureAction(build, configure_script, self)
 
-                from_source = component_yaml.get("build_from_source", False) or self.no_binary_archives
+                from_source = component_yaml.get("build_from_source", False) or self.from_source
                 install_script = build_yaml["install"]
                 build.install = InstallAction(build, install_script, self, from_binary_archives=not from_source)
 
@@ -185,7 +185,7 @@ class Configuration:
 
                     build.configure.external_dependencies.add(dep_action)
                     if not component_yaml.get("build_from_source") \
-                            and not self.no_binary_archives \
+                            and not self.from_source \
                             and not build_only:
                         build.install.external_dependencies.add(dep_action)
 
