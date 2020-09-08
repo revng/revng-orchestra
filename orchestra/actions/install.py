@@ -58,7 +58,7 @@ class InstallAction(Action):
         metadata = {
             "component_name": self.build.component.name,
             "build_name": self.build.name,
-            "install_time": int(end_time - start_time),
+            "install_time": end_time - start_time,
         }
         with open(self.config.installed_component_metadata_path(self.build.component.name), "w") as f:
             json.dump(metadata, f)
