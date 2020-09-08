@@ -4,7 +4,8 @@ from ..model.configuration import Configuration
 def install_subcommand(sub_argparser):
     cmd_parser = sub_argparser.add_parser("graph", handler=handle_graph)
     cmd_parser.add_argument("component", nargs="?")
-    cmd_parser.add_argument("--all-builds", action="store_true", help="Include all builds instead of only the default one.")
+    cmd_parser.add_argument("--all-builds", action="store_true",
+                            help="Include all builds instead of only the default one.")
 
 
 def handle_graph(args, config: Configuration):
@@ -32,7 +33,13 @@ def print_dependencies(actions):
         if action in already_visited_actions:
             return
 
-        color = "green" if action.is_satisfied(recursively=True) else "red"
+        if action.is_satisfied(recursively=True):
+            color = "green"
+        elif action.can_run():
+            color = "orange"
+        else:
+            color = "red"
+
         rows.add(f'  "{action.name_for_graph}"[ shape=box, style=filled, color={color} ];')
         for d in action.dependencies:
             rows.add(f'  "{d.name_for_graph}" -> "{action.name_for_graph}";')

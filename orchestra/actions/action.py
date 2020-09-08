@@ -1,6 +1,7 @@
 from collections import OrderedDict
-from loguru import logger
 from typing import Set
+
+from loguru import logger
 
 from .util import run_script
 
@@ -55,6 +56,10 @@ class Action:
     def _is_satisfied(self):
         """Returns true if the action is satisfied, false if it needs to run."""
         raise NotImplementedError()
+
+    def can_run(self):
+        """Returns true if the action can be run (i.e. all its dependencies are satisfied)"""
+        return all(d.is_satisfied() for d in self.dependencies)
 
     @property
     def environment(self) -> OrderedDict:
