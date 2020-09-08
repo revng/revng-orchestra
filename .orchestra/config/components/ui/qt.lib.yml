@@ -114,7 +114,7 @@ builds:
       EOF
     dependencies:
       - clang-release
-      - toolchain/host/gcc@stage2
+      - toolchain/host/gcc
   #@ end
 
 #@ end

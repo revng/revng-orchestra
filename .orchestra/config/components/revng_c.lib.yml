@@ -9,7 +9,7 @@ extra_cmake_args: #@ cmake_boost_configuration
 build_dependencies:
   - cmake
 dependencies:
-  - toolchain/host/gcc@stage2
+  - toolchain/host/gcc
   - clang-release
   - revng
   - boost

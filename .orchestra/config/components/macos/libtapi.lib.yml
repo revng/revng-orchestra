@@ -31,10 +31,11 @@ builds:
       cp lib/libtapi.so "${TMP_ROOT}${ORCHESTRA_ROOT}/lib/"
       cp -ar src/projects/libtapi/include/tapi/ "${TMP_ROOT}${ORCHESTRA_ROOT}/include/"
       cp -a projects/libtapi/include/tapi/Version.inc "${TMP_ROOT}${ORCHESTRA_ROOT}/include/tapi/"
-    dependencies:
+    build_dependencies:
       - cmake
+    dependencies:
       - clang-release
-      - toolchain/host/gcc@stage2
+      - toolchain/host/gcc
 #@ end
 
 ---

@@ -24,7 +24,7 @@ build_system: ninja
 build_dependencies:
   - clang-release
 dependencies:
-  - toolchain/host/gcc@stage2
+  - toolchain/host/gcc
   - ui/mesa
 #@ end
 

@@ -38,11 +38,11 @@ builds:
         rm -rf ${DESTDIR}${ORCHESTRA_ROOT}/include/llvm/ || true
         rm -rf ${DESTDIR}${ORCHESTRA_ROOT}/include/llvm-c/ || true
       fi
-
-    dependencies:
-      - toolchain/host/gcc@stage2
-      - toolchain/host/binutils
+    build_dependencies:
       - cmake
+    dependencies:
+      - toolchain/host/gcc
+      - toolchain/host/binutils
 #@ end
 
 ---

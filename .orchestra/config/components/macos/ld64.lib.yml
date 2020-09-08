@@ -47,7 +47,7 @@ macos/(@= prefix @)-ld64:
       dependencies:
         - macos/libtapi
         - clang-release
-        - toolchain/host/gcc@stage2
+        - toolchain/host/gcc
 #@ end
 #@ end
 

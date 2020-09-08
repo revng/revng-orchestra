@@ -19,7 +19,7 @@ configure: |
     -DCMAKE_USE_OPENSSL=OFF
 build_system: make
 dependencies:
-  - toolchain/host/gcc@stage2
+  - toolchain/host/gcc
 #@ end
 
 ---

@@ -9,7 +9,7 @@ extra_cmake_args: #@ cmake_boost_configuration
 build_dependencies:
   - revng-qa
 dependencies:
-  - toolchain/host/gcc@stage2
+  - toolchain/host/gcc
   - llvm
   - qemu
   - boost

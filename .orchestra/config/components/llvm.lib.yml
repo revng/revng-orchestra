@@ -29,7 +29,7 @@ builds:
       build_dependencies:
         - cmake
       dependencies:
-        - toolchain/host/gcc@stage2
+        - toolchain/host/gcc
         - clang-release
   #@ end
 #@ end
