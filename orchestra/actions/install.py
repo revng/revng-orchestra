@@ -223,7 +223,10 @@ class InstallAnyBuildAction(Action):
         return
 
     def is_satisfied(self, recursively=False, already_checked=None):
-        return self.build.install.is_satisfied(recursively=recursively, already_checked=already_checked)
+        return any(
+            build.install.is_satisfied(recursively=recursively, already_checked=already_checked)
+            for build in self.build.component.builds.values()
+            )
 
     def _is_satisfied(self):
         raise NotImplementedError("This method should not be called!")
