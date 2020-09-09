@@ -54,6 +54,7 @@ build_system: ninja
 build_dependencies:
   - clang-release
 dependencies:
+  - llvm
   - ui/libglvnd
   - toolchain/host/gcc
 #@ end
