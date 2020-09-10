@@ -32,6 +32,7 @@ class InstallAction(Action):
         start_time = time.time()
 
         if self.from_binary_archives and self._binary_archive_exists():
+            self._fetch_binary_archive()
             self._install_from_binary_archives()
         elif not self.from_binary_archives or self.fallback_to_build:
             self._install(args.quiet)
@@ -173,6 +174,13 @@ class InstallAction(Action):
     def _binary_archive_exists(self):
         archive_filepath = self._binary_archive_filepath()
         return os.path.exists(archive_filepath)
+
+    def _fetch_binary_archive(self):
+        script = dedent(f'''
+            cd "$BINARY_ARCHIVES"
+            python $ORCHESTRA_DOTDIR/helpers/git-lfs --only "$(readlink -f "{self._binary_archive_filepath()}")"
+            ''')
+        run_script(script, quiet=True, environment=self.environment)
 
     def _install_from_binary_archives(self):
         if not self._binary_archive_exists():
