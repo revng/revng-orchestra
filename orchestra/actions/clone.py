@@ -1,4 +1,5 @@
 import os.path
+import re
 
 from .action import Action
 from .util import run_script
@@ -50,3 +51,24 @@ class CloneAction(Action):
     @staticmethod
     def branches():
         return ["develop", "master"]
+
+    def get_remote_head(self):
+        remotes = [f"{base_url}/{self.repository}" for base_url in self.remote_base_urls()]
+        local_repo = os.path.join(self.environment["SOURCE_DIR"], ".git")
+        if os.path.exists(local_repo):
+            remotes.insert(0, local_repo)
+
+        for remote in remotes:
+            result = run_script(
+                f'git ls-remote -h --refs "{remote}"',
+                quiet=True,
+                environment=self.environment,
+                check_returncode=False
+                ).stdout.decode("utf-8")
+            parse_regex = re.compile(r"(?P<commit>[a-f0-9]*)\W*refs/heads/(?P<branch>.*)")
+            matches = parse_regex.findall(result)
+            for commit, branch in matches:
+                if branch in self.branches():
+                    return commit
+
+        return None

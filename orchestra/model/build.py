@@ -29,7 +29,14 @@ class Build:
 
     @property
     def binary_archive_filename(self):
-        return f'{self.safe_name}_{self.recursive_hash}.tar.gz'
+        component_commit = self.commit() or "none"
+        return f'{self.safe_name}_{component_commit}_{self.recursive_hash}.tar.gz'
+
+    def commit(self):
+        if self.clone is None:
+            return None
+
+        return self.clone.get_remote_head()
 
     def __str__(self):
         return f"Build {self.component.name}@{self.name}"
