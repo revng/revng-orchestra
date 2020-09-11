@@ -31,6 +31,7 @@ builds:
       dependencies:
         - toolchain/host/gcc
         - clang-release
+        - libunwind
   #@ end
 #@ end
 

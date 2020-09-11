@@ -43,6 +43,7 @@ builds:
     dependencies:
       - toolchain/host/gcc
       - toolchain/host/binutils
+      - libunwind
 #@ end
 
 ---
