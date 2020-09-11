@@ -5,11 +5,12 @@
 #@ def _macosx_sdk_component():
 builds:
   default:
-    configure: ""
+    configure: |
+      mkdir -p "$BUILD_DIR"
     install: |
-      echo "TODO: macosx sdk" && exit 1
-      create-package.sh Xcode_9.xip
-      extract.sh --into "${TMP_ROOT}${ORCHESTRA_ROOT}" --src-archive-dir "$SDK_ARCHIVE_DIR" "(@= sdk_archive_name @)"
+      # echo "TODO: macosx sdk" && exit 1
+      # create-package.sh Xcode_9.xip
+      extract.sh --into "${TMP_ROOT}${ORCHESTRA_ROOT}" "(@= sdk_archive_name @)"
     build_dependencies:
       - cmake
     dependencies:
