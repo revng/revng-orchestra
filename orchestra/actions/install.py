@@ -121,8 +121,8 @@ class InstallAction(Action):
 
     def _remove_conflicting_files(self):
         script = dedent("""
-            rm -rf $TMP_ROOT/$ORCHESTRA_ROOT/share/info 
-            rm -rf $TMP_ROOT/$ORCHESTRA_ROOT/share/locale 
+            rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/info" 
+            rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/locale" 
             """)
         run_script(script, quiet=True, environment=self.environment)
 
