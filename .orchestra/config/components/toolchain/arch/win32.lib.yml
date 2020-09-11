@@ -3,7 +3,7 @@
 #@ def _params():
 toolchain_name: win32
 triple: i686-w64-mingw32
-binutils_version: "2.25.1"
+binutils_version: "2.35"
 gdb_version: "8.2.1"
 mingw64_version: "6.0.0"
 gcc_version: "7.3.0"
