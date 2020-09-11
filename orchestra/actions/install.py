@@ -105,6 +105,9 @@ class InstallAction(Action):
         run_script(self.script, quiet=quiet, environment=self.environment)
 
     def _post_install(self, quiet):
+        logger.debug("Removing conflicting files")
+        self._remove_conflicting_files()
+
         # TODO: maybe this should be put into the configuration and not in Orchestra itself
         logger.info("Converting hardlinks to symbolic")
         self._hard_to_symbolic(quiet)
@@ -116,6 +119,13 @@ class InstallAction(Action):
         # TODO: this should be put into the configuration and not in Orchestra itself
         logger.info("Replacing NDEBUG preprocessor statements")
         self._replace_ndebug(True, quiet)
+
+    def _remove_conflicting_files(self):
+        script = dedent("""
+            rm -rf $TMP_ROOT/$ORCHESTRA_ROOT/share/info 
+            rm -rf $TMP_ROOT/$ORCHESTRA_ROOT/share/locale 
+            """)
+        run_script(script, quiet=True, environment=self.environment)
 
     def _hard_to_symbolic(self, quiet):
         hard_to_symbolic = """hard-to-symbolic.py "${TMP_ROOT}${ORCHESTRA_ROOT}" """
