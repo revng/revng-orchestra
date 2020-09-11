@@ -1,3 +1,5 @@
+from loguru import logger
+
 from ..model.configuration import Configuration
 from ..util import parse_component_name, is_installed
 from ..actions.install import uninstall
@@ -11,7 +13,6 @@ def install_subcommand(sub_argparser):
 def handle_uninstall(args, config: Configuration):
     component_name, build_name = parse_component_name(args.component)
     if not is_installed(config, component_name, build_name):
-        print(f"Component {args.component} is not installed")
-        return
+        logger.error(f"Component {args.component} is not installed")
 
     uninstall(component_name, config)
