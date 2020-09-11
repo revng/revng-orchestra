@@ -12,7 +12,7 @@
   cmake "(@= source_dir @)/llvm" \
     -GNinja \
     -DCMAKE_BUILD_RPATH="\$ORIGIN/../lib:$ORCHESTRA_ROOT/lib" \
-    -DCMAKE_INSTALL_RPATH="\$ORIGIN/../lib" \
+    -DCMAKE_INSTALL_RPATH="$RPATH_PLACEHOLDER/lib" \
     -DCMAKE_BUILD_TYPE="(@= cmake_build_type @)" \
     -DCMAKE_EXE_LINKER_FLAGS="(@= cflags @) (@= options["modern_linker_flags"] @)" \
     -DCMAKE_SHARED_LINKER_FLAGS="(@= cflags @) (@= options["modern_linker_flags"] @)" \
