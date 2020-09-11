@@ -18,6 +18,8 @@ extra_gcc_configure_options:
   - --disable-libssp
   - --disable-shared
 dynamic: "0"
+spec: true
+
 #@ end
 
 ---

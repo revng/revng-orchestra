@@ -1,3 +1,5 @@
+#@ load("@ytt:template", "template")
+
 #@ load("/lib/fn_args.lib.yml", "mandatory")
 
 #@ load("/components/toolchain/lib/linux_headers.lib.yml", "create_linux_headers_component")
@@ -8,6 +10,7 @@
 #@ load("/components/toolchain/lib/uclibc.lib.yml", "create_uclibc_component")
 #@ load("/components/toolchain/lib/coreutils.lib.yml", "create_coreutils_component")
 #@ load("/components/toolchain/lib/mingw64.lib.yml", "create_mingw64_component")
+#@ load("/components/toolchain/lib/spec.lib.yml", "create_spec_components")
 
 #@yaml/text-templated-strings
 ---
@@ -27,7 +30,8 @@
 #@    mingw64_version=None,
 #@    extra_gcc_configure_options=None,
 #@    extra_gcc_make_variables="",
-#@    dynamic=None                     
+#@    dynamic=None,
+#@    spec=False,
 #@ ):
 
 #@ if/end binutils_version:
@@ -53,5 +57,8 @@
 
 #@ if/end uclibc_version:
 (@= "toolchain/" + toolchain_name + "/uclibc" @): #@ create_uclibc_component(triple=triple, toolchain_name=toolchain_name, uclibc_version=uclibc_version, uclibc_arch_name=uclibc_arch_name, gcc_version=gcc_version, binutils_version=binutils_version)
+
+#@ if/end spec:
+_: #@ template.replace(create_spec_components(triple=triple, toolchain_name=toolchain_name))
 
 #@ end

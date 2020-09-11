@@ -2,6 +2,7 @@
 ---
 parallelism: "16"
 build_from_source: []
+nonredistributable_base_url: "https://dummydomain.com/nonredistributable/"
 paths:
   #! orchestra_root: /absolute/path/only
   #! source_archives: /absolute/path/only
