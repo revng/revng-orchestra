@@ -268,6 +268,8 @@ def remove_prefix(string, prefix):
 
 def uninstall(component_name, config):
     index_path = config.installed_component_file_list_path(component_name)
+    metadata_path = config.installed_component_metadata_path(component_name)
+
     with open(index_path) as f:
         paths = f.readlines()
 
@@ -290,3 +292,6 @@ def uninstall(component_name, config):
 
     logger.debug(f"Deleting index file {index_path}")
     os.remove(index_path)
+
+    logger.debug(f"Deleting metadata file {metadata_path}")
+    os.remove(metadata_path)
