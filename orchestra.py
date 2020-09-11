@@ -22,7 +22,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     logger.remove(0)
-    logger.add(sys.stdout, level=args.loglevel, colorize=True, format="<level>[+] {level}</level> - {message}")
+    logger.add(sys.stderr, level=args.loglevel, colorize=True, format="<level>[+] {level}</level> - {message}")
 
     cmd_parser = subparsers.choices.get(args.command_name)
     if not cmd_parser:
