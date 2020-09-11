@@ -15,6 +15,7 @@ dependencies:
   - toolchain/host/gcc
   - clang-release
   - caliban
+  - ui/graphviz
   - ui/adaptagrams
   - ui/quickqanava
   - ui/qt-creator

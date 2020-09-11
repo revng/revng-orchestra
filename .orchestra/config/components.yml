@@ -20,6 +20,7 @@
 #@ load("/components/ui/qt.lib.yml", "qt_component")
 #@ load("/components/ui/quickqanava.lib.yml", "quickqanava_component")
 #@ load("/components/ui/qt_creator.lib.yml", "qt_creator_component")
+#@ load("/components/ui/graphviz.lib.yml", "graphviz_component")
 #@ load("/components/ui/adaptagrams.lib.yml", "adaptagrams_component")
 #@ load("/components/ui/cold_revng.lib.yml", "cold_revng_component")
 #@ load("/components/ui/mesa.lib.yml", "mesa_component")
@@ -60,6 +61,7 @@ components:
   ui/qt: #@ qt_component
   ui/quickqanava: #@ quickqanava_component
   ui/qt-creator: #@ qt_creator_component
+  ui/graphviz: #@ graphviz_component
   ui/adaptagrams: #@ adaptagrams_component
   ui/cold-revng: #@ cold_revng_component
   ui/mesa: #@ mesa_component
