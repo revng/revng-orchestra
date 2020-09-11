@@ -73,6 +73,10 @@ class InstallAction(Action):
             new_files = [f"{f}\n" for f in new_files]
             f.writelines(new_files)
 
+        if not args.keep_tmproot:
+            logger.info("Cleaning up tmproot")
+            self._cleanup_tmproot()
+
     def _is_satisfied(self):
         return is_installed(self.config, self.build.component.name, wanted_build=self.build.name)
 
@@ -91,6 +95,9 @@ class InstallAction(Action):
             mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/libexec"
             """)
         run_script(script, environment=self.environment, quiet=True)
+
+    def _cleanup_tmproot(self):
+        run_script('rm -rf "$TMP_ROOT"', environment=self.environment, quiet=True)
 
     def _install(self, quiet):
         logger.info("Executing install script")
@@ -204,6 +211,7 @@ class InstallAction(Action):
     @property
     def environment(self) -> OrderedDict:
         env = super().environment
+        env["TMP_ROOT"] = os.path.join(env["TMP_ROOT"], self.build.safe_name)
         env["DESTDIR"] = env["TMP_ROOT"]
         return env
 
