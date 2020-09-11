@@ -26,6 +26,9 @@ builds:
           --without-pixman \
           --disable-tools \
           --disable-system \
+          --disable-libnfs \
+          --disable-vde \
+          --disable-gnutls \
           --disable-smartcard-nss \
           --python="(@= options["python2"] @)" \
           (@ if build_type == "Debug": @)--enable-debug (@ end @)\
