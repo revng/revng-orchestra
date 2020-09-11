@@ -48,7 +48,6 @@
     -skip qtwebengine \
     -openssl-runtime \
     -no-glib \
-    -qt-zlib \
     -no-cups \
     -no-gtk \
     -qt-harfbuzz \
@@ -65,7 +64,6 @@
     -qt-libjpeg \
     -qt-sqlite \
     -qt-pcre \
-    -qt-zlib \
     -qt-doubleconversion \
     -sql-sqlite \
     -no-sql-odbc \
@@ -116,6 +114,7 @@ builds:
       - clang-release
       - toolchain/host/gcc
       - ui/mesa
+      - zlib
   #@ end
 
 #@ end

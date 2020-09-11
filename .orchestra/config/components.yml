@@ -5,6 +5,7 @@
 #@ load("/components/mpc.lib.yml", "mpc_component")
 #@ load("/components/mpfr.lib.yml", "mpfr_component")
 #@ load("/components/cmake.lib.yml", "cmake_component")
+#@ load("/components/zlib.lib.yml", "zlib_component")
 #@ load("/components/libunwind.lib.yml", "libunwind_component")
 #@ load("/components/llvm.lib.yml", "llvm_component")
 #@ load("/components/llvm_documentation.lib.yml", "llvm_documentation_component")
@@ -46,6 +47,7 @@ components:
   mpc: #@ mpc_component
   mpfr: #@ mpfr_component
   cmake: #@ cmake_component
+  zlib: #@ zlib_component
   libunwind: #@ libunwind_component
   llvm: #@ llvm_component
   llvm-documentation: #@ llvm_documentation_component
