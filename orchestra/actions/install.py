@@ -27,6 +27,7 @@ class InstallAction(Action):
 
         logger.info("Preparing temporary root directory")
         self._prepare_tmproot()
+
         pre_file_list = self._index_directory(tmp_root + orchestra_root, strip_prefix=tmp_root + orchestra_root)
 
         start_time = time.time()
@@ -51,27 +52,27 @@ class InstallAction(Action):
             logger.info("Creating binary archive")
             self._create_binary_archive()
 
-        if args.no_merge:
-            return
+        if not args.no_merge:
+            if is_installed(self.config, self.build.component.name):
+                logger.info("Uninstalling previously installed build")
+                uninstall(self.build.component.name, self.config)
 
-        self._uninstall_currently_installed_build(args.quiet)
+            logger.info("Merging installation into Orchestra root directory")
+            self._merge(args.quiet)
 
-        logger.info("Merging installation into Orchestra root directory")
-        self._merge(args.quiet)
-
-        # Write file metadata and index
-        os.makedirs(self.config.installed_component_metadata_dir(), exist_ok=True)
-        metadata = {
-            "component_name": self.build.component.name,
-            "build_name": self.build.name,
-            "install_time": end_time - start_time,
-        }
-        with open(self.config.installed_component_metadata_path(self.build.component.name), "w") as f:
-            json.dump(metadata, f)
-        with open(self.config.installed_component_file_list_path(self.build.component.name), "w") as f:
-            f.truncate(0)
-            new_files = [f"{f}\n" for f in new_files]
-            f.writelines(new_files)
+            # Write file metadata and index
+            os.makedirs(self.config.installed_component_metadata_dir(), exist_ok=True)
+            metadata = {
+                "component_name": self.build.component.name,
+                "build_name": self.build.name,
+                "install_time": end_time - start_time,
+            }
+            with open(self.config.installed_component_metadata_path(self.build.component.name), "w") as f:
+                json.dump(metadata, f)
+            with open(self.config.installed_component_file_list_path(self.build.component.name), "w") as f:
+                f.truncate(0)
+                new_files = [f"{f}\n" for f in new_files]
+                f.writelines(new_files)
 
         if not args.keep_tmproot:
             logger.info("Cleaning up tmproot")
@@ -151,15 +152,6 @@ class InstallAction(Action):
                     {{}} ';'
             """)
         run_script(patch_ndebug_script, quiet=quiet, environment=self.environment)
-
-    def _uninstall_currently_installed_build(self, quiet):
-        installed_build = get_installed_build(self.build.component.name, self.config)
-
-        if installed_build is None:
-            return
-
-        logger.info("Uninstalling previously installed build")
-        uninstall(self.build.component.name, self.config)
 
     def _merge(self, quiet):
         copy_command = f'cp -farl "$TMP_ROOT/$ORCHESTRA_ROOT/." "$ORCHESTRA_ROOT"'
