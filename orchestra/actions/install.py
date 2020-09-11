@@ -21,9 +21,8 @@ class InstallAction(Action):
         self.fallback_to_build = fallback_to_build
 
     def _run(self, args):
-        environment = self.config.global_env()
-        tmp_root = environment["TMP_ROOT"]
-        orchestra_root = environment['ORCHESTRA_ROOT']
+        tmp_root = self.environment["TMP_ROOT"]
+        orchestra_root = self.environment['ORCHESTRA_ROOT']
 
         logger.info("Preparing temporary root directory")
         self._prepare_tmproot()
