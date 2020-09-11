@@ -139,12 +139,13 @@ install: |
 
   NEW_GCC_PATH="(@= new_gcc_path(triple=triple, gcc_version=gcc_version) @)"
 
-  if test -e ${DESTDIR}${NEW_GCC_PATH}/gcc && ! test -e ${DESTDIR}${NEW_GCC_PATH}/cc; then
-    ln -s gcc ${DESTDIR}${NEW_GCC_PATH}/cc
+  if test -e "${DESTDIR}${NEW_GCC_PATH}/gcc" && ! test -e "${DESTDIR}${NEW_GCC_PATH}/cc"; then
+    ln -s gcc "${DESTDIR}${NEW_GCC_PATH}/cc"
   fi
-  if test -e ${DESTDIR}${NEW_GCC_PATH}/g++ && ! test -e ${DESTDIR}${NEW_GCC_PATH}/c++; then
-    ln -s g++ ${DESTDIR}${NEW_GCC_PATH}/c++
+  if test -e "${DESTDIR}${NEW_GCC_PATH}/g++" && ! test -e "${DESTDIR}${NEW_GCC_PATH}/c++"; then
+    ln -s g++ "${DESTDIR}${NEW_GCC_PATH}/c++"
   fi
+  rm -f "${DESTDIR}${ORCHESTRA_ROOT}"/lib64/libcc1.*
 dependencies: #@ dependencies
 build_dependencies: #@ build_dependencies
 #@ end
