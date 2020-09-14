@@ -1,4 +1,2 @@
-#@ load("/global_options.lib.yml", "options")
-
 #@ make = "make ${JOBS:+-j$JOBS}"
 #@ serial_make = "make"
