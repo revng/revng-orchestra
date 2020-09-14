@@ -11,6 +11,7 @@
 #@ load("/components/llvm_documentation.lib.yml", "llvm_documentation_component")
 #@ load("/components/llvmcpy.lib.yml", "llvmcpy_component")
 #@ load("/components/clang_release.lib.yml", "clang_release_component")
+#@ load("/components/glib.lib.yml", "glib_component")
 #@ load("/components/qemu.lib.yml", "qemu_component")
 #@ load("/components/boost.lib.yml", "boost_component")
 #@ load("/components/revng.lib.yml", "revng_component")
@@ -53,6 +54,7 @@ components:
   llvm-documentation: #@ llvm_documentation_component
   llvmcpy: #@ llvmcpy_component
   clang-release: #@ clang_release_component
+  glib: #@ glib_component
   qemu: #@ qemu_component
   boost: #@ boost_component
   revng: #@ revng_component

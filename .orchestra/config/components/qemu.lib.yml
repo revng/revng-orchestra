@@ -41,6 +41,7 @@ builds:
         - llvm
         - clang-release
         - zlib
+        - glib
   #@ end
 #@ end
 
