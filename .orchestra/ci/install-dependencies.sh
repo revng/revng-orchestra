@@ -63,6 +63,8 @@ apt install --no-install-recommends --yes \
   libxkbcommon-x11-dev \
   libxrender-dev
 
+pip install -r .orchestra/ci/requirements.txt
+
 curl -L -o /usr/bin/ytt https://github.com/k14s/ytt/releases/download/v0.30.0/ytt-linux-amd64
 chmod +x /usr/bin/ytt
 
