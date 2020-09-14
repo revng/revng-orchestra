@@ -1,0 +1,12 @@
+image: ubuntu:18.04
+
+stages:
+  - build
+
+create-binaries:
+  stage: build
+  script:
+  - .orchestra/ci/install-dependencies.sh
+  - git checkout -B "$CI_COMMIT_REF_NAME" "$CI_COMMIT_SHA"
+  - ./orchestra.py components
+  - ./orchestra.py -b install --create-binary-archives ui/cold-revng
