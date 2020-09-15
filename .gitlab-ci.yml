@@ -1,4 +1,4 @@
-image: fcremo/orchestra-v3:latest
+image: registry.rev.ng:443/fcremo/orchestra-v3:latest
 
 stages:
   - build
