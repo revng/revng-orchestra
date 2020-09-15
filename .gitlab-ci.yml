@@ -6,7 +6,9 @@ stages:
 create-binaries:
   stage: build
   script:
-  - .orchestra/ci/install-dependencies.sh
   - git checkout -B "$CI_COMMIT_REF_NAME" "$CI_COMMIT_SHA"
+  - .orchestra/ci/install-dependencies.sh
+  - git remote add internal git@rev.ng:revng-internal/orchestra-v3.git
+  - git remote add private git@rev.ng:revng-private/orchestra-v3.git
   - ./orchestra.py components
   - ./orchestra.py -b install --create-binary-archives ui/cold-revng
