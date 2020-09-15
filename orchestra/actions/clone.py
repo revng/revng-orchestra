@@ -1,6 +1,6 @@
 import os.path
 import re
-from functools import cached_property
+from functools import lru_cache
 
 from .action import Action
 from .util import run_script
@@ -31,7 +31,8 @@ class CloneAction(Action):
     def _is_satisfied(self):
         return os.path.exists(self.environment["SOURCE_DIR"])
 
-    @cached_property
+    @property
+    @lru_cache()
     def remotes(self):
         result = run_script('git -C "$ORCHESTRA_DOTDIR" remote show', environment=self.environment, quiet=True)
         return result.stdout.decode("utf-8").split("\n").strip().split("\n")
