@@ -1,6 +1,7 @@
 from concurrent import futures
-from loguru import logger
 from typing import List
+
+from loguru import logger
 
 from .actions.action import Action
 
@@ -12,6 +13,7 @@ class Executor:
         self._pending_actions = set()
         self._running_actions: List[futures.Future] = []
         self._pool = futures.ThreadPoolExecutor(max_workers=threads, thread_name_prefix="Builder")
+        self._errors_occurred = []
 
     def run(self, action, force=False):
         self._collect_actions(action, force=force)
@@ -29,8 +31,12 @@ class Executor:
                     if self._pending_actions:
                         logger.error(f"Waiting for other running actions to terminate: {self._pending_actions}")
                     self._pending_actions = set()
+                    self._errors_occurred.append(exception)
                 else:
                     self._schedule_next()
+
+        if self._errors_occurred:
+            raise Exception("Errors occurred", self._errors_occurred)
 
     def _collect_actions(self, action: Action, force=False):
         if not force and action.is_satisfied(recursively=True):
