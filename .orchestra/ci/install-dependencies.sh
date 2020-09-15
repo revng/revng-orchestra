@@ -42,6 +42,7 @@ apt-get install --no-install-recommends --yes \
   sed \
   texinfo \
   valgrind \
+  wget \
   zlib1g-dev
 
 # Dependencies for Qt
