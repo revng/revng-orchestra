@@ -6,6 +6,7 @@ stages:
 create-binaries:
   stage: build
   script:
+  - echo -e "machine rev.ng\nlogin gitlab-ci-token\npassword ${CI_JOB_TOKEN}" > ~/.netrc
   - git checkout -B "$CI_COMMIT_REF_NAME" "$CI_COMMIT_SHA"
   - .orchestra/ci/install-dependencies.sh
   - |
