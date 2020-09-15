@@ -65,16 +65,19 @@ class CloneAction(Action):
             remotes.insert(0, local_repo)
 
         for remote in remotes:
-            result = run_script(
-                f'git ls-remote -h --refs "{remote}"',
-                quiet=True,
-                environment=self.environment,
-                check_returncode=False
-            ).stdout.decode("utf-8")
+            result = self._ls_remote(remote)
             parse_regex = re.compile(r"(?P<commit>[a-f0-9]*)\W*refs/heads/(?P<branch>.*)")
             matches = parse_regex.findall(result)
             for commit, branch in matches:
                 if branch in self.branches():
                     return commit
-
         return None
+
+    @lru_cache()
+    def _ls_remote(self, remote):
+        return run_script(
+            f'git ls-remote -h --refs "{remote}"',
+            quiet=True,
+            environment=self.environment,
+            check_returncode=False
+        ).stdout.decode("utf-8")
