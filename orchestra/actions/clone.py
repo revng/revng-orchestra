@@ -35,7 +35,7 @@ class CloneAction(Action):
     @lru_cache()
     def remotes(self):
         result = run_script('git -C "$ORCHESTRA_DOTDIR" remote show', environment=self.environment, quiet=True)
-        return result.stdout.decode("utf-8").split("\n").strip().split("\n")
+        return result.stdout.decode("utf-8").strip().split("\n")
 
     def remote_base_urls(self):
         # TODO: the remote is not necessarily called origin, and there might be more than one
