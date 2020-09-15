@@ -34,6 +34,7 @@ apt-get install --no-install-recommends --yes \
   python-pyelftools \
   python3 \
   python3-pip \
+  python3-dev \
   python3-cffi \
   python3-pyelftools \
   python3-pygraphviz \
@@ -63,7 +64,7 @@ apt install --no-install-recommends --yes \
   libxkbcommon-x11-dev \
   libxrender-dev
 
-pip install -r .orchestra/ci/requirements.txt
+pip3 install -r .orchestra/ci/requirements.txt
 
 curl -L -o /usr/bin/ytt https://github.com/k14s/ytt/releases/download/v0.30.0/ytt-linux-amd64
 chmod +x /usr/bin/ytt
