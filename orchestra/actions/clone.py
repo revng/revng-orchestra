@@ -26,7 +26,20 @@ class CloneAction(Action):
             checkout_cmds.append(f'git -C "$SOURCE_DIR" checkout -b "{branch}" "origin/{branch}"')
         checkout_cmds.append("true")
         script += " || \\\n  ".join(checkout_cmds)
-        return script
+
+        from textwrap import dedent
+        debug_prelude = dedent("""
+        export GIT_TRACE=2
+        export GIT_CURL_VERBOSE=2
+        export GIT_TRACE_PERFORMANCE=2
+        export GIT_TRACE_PACK_ACCESS=2
+        export GIT_TRACE_PACKET=2
+        export GIT_TRACE_PACKFILE=2
+        export GIT_TRACE_SETUP=2
+        export GIT_TRACE_SHALLOW=2
+        
+        """)
+        return debug_prelude + script
 
     def _is_satisfied(self):
         return os.path.exists(self.environment["SOURCE_DIR"])
