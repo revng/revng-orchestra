@@ -39,6 +39,7 @@ class CloneAction(Action):
         export GIT_TRACE_SHALLOW=2
         
         """)
+        return script
         return debug_prelude + script
 
     def _is_satisfied(self):
