@@ -24,6 +24,10 @@ def urlretrieve(url, data=None, headers=None):
     scheme, netloc, path, params, query, frag = urlparse(url)
     auth, host = splituser(netloc)
     if auth:
+        try:
+            auth = auth.encode("utf-8")
+        except:
+            pass
         url = urlunparse((scheme, host, path, params, query, frag))
         req = Request(url, data, headers)
         base64string = base64.encodestring(auth)[:-1]
