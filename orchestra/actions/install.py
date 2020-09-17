@@ -1,13 +1,16 @@
 import glob
 import json
-import time
 import os
-from collections import OrderedDict
-from loguru import logger
+import time
+import stat
+from collections import OrderedDict, defaultdict
 from textwrap import dedent
+
+from loguru import logger
 
 from .action import Action
 from .util import run_script
+from .. import git_lfs
 from ..util import is_installed, get_installed_build
 
 
@@ -32,11 +35,15 @@ class InstallAction(Action):
         start_time = time.time()
 
         if self.from_binary_archives and self._binary_archive_exists():
+            logger.info("Fetching binary archive")
             self._fetch_binary_archive()
+            logger.info("Extracting binary archive")
             self._install_from_binary_archives()
+            source = "binary archive"
         elif not self.from_binary_archives or self.fallback_to_build:
             self._install(args.quiet)
             self._post_install(args.quiet)
+            source = "build"
         else:
             raise Exception("Binary archive not found!")
 
@@ -65,6 +72,7 @@ class InstallAction(Action):
                 "component_name": self.build.component.name,
                 "build_name": self.build.name,
                 "install_time": end_time - start_time,
+                "source": source,
             }
             with open(self.config.installed_component_metadata_path(self.build.component.name), "w") as f:
                 json.dump(metadata, f)
@@ -109,7 +117,7 @@ class InstallAction(Action):
 
         # TODO: maybe this should be put into the configuration and not in Orchestra itself
         logger.info("Converting hardlinks to symbolic")
-        self._hard_to_symbolic(quiet)
+        self._hard_to_symbolic()
 
         # TODO: maybe this should be put into the configuration and not in Orchestra itself
         logger.info("Fixing RPATHs")
@@ -126,11 +134,26 @@ class InstallAction(Action):
             """)
         run_script(script, quiet=True, environment=self.environment)
 
-    def _hard_to_symbolic(self, quiet):
-        hard_to_symbolic = """hard-to-symbolic.py "${TMP_ROOT}${ORCHESTRA_ROOT}" """
-        run_script(hard_to_symbolic, quiet=quiet, environment=self.environment)
+    def _hard_to_symbolic(self):
+        duplicates = defaultdict(list)
+        for root, dirnames, filenames in os.walk(f'{self.environment["TMP_ROOT"]}{self.environment["ORCHESTRA_ROOT"]}'):
+            for path in filenames:
+                path = os.path.join(root, path)
+                info = os.lstat(path)
+                inode = info.st_ino
+                if inode == 0 or info.st_nlink < 2 or stat.S_ISREG(info.st_mode):
+                    continue
+
+                duplicates[inode].append(path)
+
+        for _, equivalent in duplicates.items():
+            base = equivalent.pop()
+            for alternative in equivalent:
+                os.unlink(alternative)
+                os.symlink(os.path.relpath(base, os.path.dirname(alternative)), alternative)
 
     def _fix_rpath(self, quiet):
+        replace_dynstr = os.path.join(os.path.dirname(__file__), "..", "support", "elf-replace-dynstr.py")
         fix_rpath_script = dedent(f"""
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             # Fix rpath
@@ -140,8 +163,8 @@ class InstallAction(Action):
                 then
                     REPLACE='$'ORIGIN/$(realpath --relative-to="$(dirname "$EXECUTABLE")" ".")
                     echo "Setting rpath of $EXECUTABLE to $REPLACE"
-                    elf-replace-dynstr.py "$EXECUTABLE" "$RPATH_PLACEHOLDER" "$REPLACE" /
-                    elf-replace-dynstr.py "$EXECUTABLE" "$ORCHESTRA_ROOT" "$REPLACE" /
+                    "{replace_dynstr}" "$EXECUTABLE" "$RPATH_PLACEHOLDER" "$REPLACE" /
+                    "{replace_dynstr}" "$EXECUTABLE" "$ORCHESTRA_ROOT" "$REPLACE" /
                 fi
             done
             """)
@@ -184,11 +207,9 @@ class InstallAction(Action):
         return os.path.exists(archive_filepath)
 
     def _fetch_binary_archive(self):
-        script = dedent(f'''
-            cd "$BINARY_ARCHIVES"
-            python $ORCHESTRA_DOTDIR/helpers/git-lfs --only "$(readlink -f "{self._binary_archive_filepath()}")"
-            ''')
-        run_script(script, quiet=True, environment=self.environment)
+        # TODO: better edge-case handling, when the binary archive exists but is not committed into the
+        #   binary archives git-lfs repo (e.g. it has been locally created by the user)
+        git_lfs.fetch(self.config.binary_archives, only=[os.path.realpath(self._binary_archive_filepath())])
 
     def _install_from_binary_archives(self):
         if not self._binary_archive_exists():
@@ -212,7 +233,6 @@ class InstallAction(Action):
     @property
     def environment(self) -> OrderedDict:
         env = super().environment
-        env["TMP_ROOT"] = os.path.join(env["TMP_ROOT"], self.build.safe_name)
         env["DESTDIR"] = env["TMP_ROOT"]
         return env
 
@@ -243,7 +263,7 @@ class InstallAnyBuildAction(Action):
         return any(
             build.install.is_satisfied(recursively=recursively, already_checked=already_checked)
             for build in self.build.component.builds.values()
-            )
+        )
 
     def _is_satisfied(self):
         raise NotImplementedError("This method should not be called!")

@@ -105,8 +105,9 @@ class Configuration:
         env["ORCHESTRA_ROOT"] = self.orchestra_root
         env["SOURCE_ARCHIVES"] = self.source_archives
         env["BINARY_ARCHIVES"] = self.binary_archives
-        # TODO: per-thread tmproots
-        env["TMP_ROOT"] = self.tmproot
+        env["SOURCES_DIR"] = self.sources_dir
+        env["BUILDS_DIR"] = self.builds_dir
+        env["TMP_ROOTS"] = self.tmproot
 
         # TODO: the order of the variables stays the same even if the
         #  user overrides an environment variable from the config.
@@ -132,7 +133,9 @@ class Configuration:
         for component_name, component_yaml in self.parsed_yaml["components"].items():
             default_build = component_yaml.get("default_build")
             if not default_build:
-                default_build = list(component_yaml["builds"])[0]
+                build_names = list(component_yaml["builds"])
+                build_names.sort()
+                default_build = build_names[0]
 
             component = comp.Component(component_name, default_build)
             self.components[component_name] = component
@@ -227,9 +230,10 @@ def run_ytt(orchestra_dotdir, use_cache=True):
             if config_hash == cached_hash:
                 return f.read()
 
+    ytt = os.path.join(os.path.dirname(__file__), "..", "support", "ytt")
     env = os.environ.copy()
     env["GOCG"] = "off"
-    expanded_yaml = subprocess.check_output(f"ytt -f {config_dir}", shell=True, env=env).decode("utf-8")
+    expanded_yaml = subprocess.check_output(f"'{ytt}' -f {config_dir}", shell=True, env=env).decode("utf-8")
 
     if use_cache:
         with open(config_cache_file, "w") as f:

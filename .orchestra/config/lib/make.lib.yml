@@ -1,2 +1,0 @@
-#@ make = "make ${JOBS:+-j$JOBS}"
-#@ serial_make = "make"

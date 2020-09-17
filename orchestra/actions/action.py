@@ -1,3 +1,4 @@
+import os.path
 from collections import OrderedDict
 from typing import Set
 
@@ -67,6 +68,7 @@ class Action:
         env = self.config.global_env()
         env["SOURCE_DIR"] = f"""{self.config.sources_dir}/{self.build.component.name}"""
         env["BUILD_DIR"] = f"""{self.config.builds_dir}/{self.build.component.name}/{self.build.name}"""
+        env["TMP_ROOT"] = os.path.join(env["TMP_ROOTS"], self.build.safe_name)
         return env
 
     @property
