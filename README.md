@@ -21,3 +21,20 @@ See the documentation in `/docs`.
 ## Usage
 
 TODO - document Orchestra usage
+
+## Installing
+
+```bash
+python setup.py bdist_wheel
+pip install --user dist/orchestra*.whl
+```
+
+## Development setup
+
+Creating a dedicated virtualenv is highly suggested
+
+```bash
+python3 -m venv virtualenv
+. ./virtualenv/bin/activate
+python setup.py develop
+```
