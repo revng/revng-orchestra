@@ -1,8 +1,8 @@
 import glob
 import json
 import os
-import time
 import stat
+import time
 from collections import OrderedDict, defaultdict
 from textwrap import dedent
 
@@ -73,6 +73,9 @@ class InstallAction(Action):
                 "build_name": self.build.name,
                 "install_time": end_time - start_time,
                 "source": source,
+                "self_hash": self.build.self_hash,
+                "recursive_hash": self.build.recursive_hash,
+                "binary_archive_name": self.build.binary_archive_filename,
             }
             with open(self.config.installed_component_metadata_path(self.build.component.name), "w") as f:
                 json.dump(metadata, f)
@@ -191,25 +194,31 @@ class InstallAction(Action):
 
     def _create_binary_archive(self):
         archive_name = self.build.binary_archive_filename
+        binary_archive_repo_name = self.config.binary_archives_remotes.keys()[0]
         script = dedent(f"""
             mkdir -p "$BINARY_ARCHIVES"
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
-            tar caf "$BINARY_ARCHIVES/{archive_name}" --owner=0 --group=0 "."
+            tar caf "$BINARY_ARCHIVES/{binary_archive_repo_name}/{archive_name}" --owner=0 --group=0 "."
             """)
         run_script(script, quiet=True, environment=self.environment)
 
     def _binary_archive_filepath(self):
         archives_dir = self.environment["BINARY_ARCHIVES"]
-        return os.path.join(archives_dir, self.build.binary_archive_filename)
+        for name in self.config.binary_archives_remotes:
+            try_archive_path = os.path.join(archives_dir, name, self.build.binary_archive_filename)
+            if os.path.exists(try_archive_path):
+                return try_archive_path
+        return None
 
     def _binary_archive_exists(self):
-        archive_filepath = self._binary_archive_filepath()
-        return os.path.exists(archive_filepath)
+        return self._binary_archive_filepath() is not None
 
     def _fetch_binary_archive(self):
         # TODO: better edge-case handling, when the binary archive exists but is not committed into the
         #   binary archives git-lfs repo (e.g. it has been locally created by the user)
-        git_lfs.fetch(self.config.binary_archives, only=[os.path.realpath(self._binary_archive_filepath())])
+        binary_archive_path = self._binary_archive_filepath()
+        binary_archive_repo_dir = os.path.dirname(binary_archive_path)
+        git_lfs.fetch(binary_archive_repo_dir, only=[os.path.realpath(binary_archive_path)])
 
     def _install_from_binary_archives(self):
         if not self._binary_archive_exists():

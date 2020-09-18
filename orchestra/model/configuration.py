@@ -1,13 +1,16 @@
 import hashlib
+import json
 import os
+import re
 import subprocess
 from collections import OrderedDict
 from itertools import repeat
+from textwrap import dedent
 from typing import Dict
 
 import yaml
-import json
 from fuzzywuzzy import fuzz
+from loguru import logger
 
 from . import build as bld
 from . import component as comp
@@ -25,8 +28,14 @@ class Configuration:
         self.orchestra_dotdir = self._locate_orchestra_dotdir()
         if not self.orchestra_dotdir:
             raise Exception("Directory .orchestra not found!")
+
+        self._create_default_remotes_list()
+
         self.generated_yaml = run_ytt(self.orchestra_dotdir, use_cache=not args.no_config_cache)
         self.parsed_yaml = yaml.safe_load(self.generated_yaml)
+
+        self.remotes = self._get_remotes()
+        self.binary_archives_remotes = self._get_binary_archives_remotes()
 
         self.orchestra_root = self.parsed_yaml.get("paths", {}).get("orchestra_root")
         if not self.orchestra_root:
@@ -36,9 +45,9 @@ class Configuration:
         if not self.source_archives:
             self.source_archives = os.path.realpath(os.path.join(self.orchestra_dotdir, "source_archives"))
 
-        self.binary_archives = self.parsed_yaml.get("paths", {}).get("binary_archives")
-        if not self.binary_archives:
-            self.binary_archives = os.path.realpath(os.path.join(self.orchestra_dotdir, "binary_archives"))
+        self.binary_archives_dir = self.parsed_yaml.get("paths", {}).get("binary_archives")
+        if not self.binary_archives_dir:
+            self.binary_archives_dir = os.path.realpath(os.path.join(self.orchestra_dotdir, "binary_archives"))
 
         self.tmproot = self.parsed_yaml.get("paths", {}).get("tmproot")
         if not self.tmproot:
@@ -104,7 +113,7 @@ class Configuration:
         env["ORCHESTRA_DOTDIR"] = self.orchestra_dotdir
         env["ORCHESTRA_ROOT"] = self.orchestra_root
         env["SOURCE_ARCHIVES"] = self.source_archives
-        env["BINARY_ARCHIVES"] = self.binary_archives
+        env["BINARY_ARCHIVES"] = self.binary_archives_dir
         env["SOURCES_DIR"] = self.sources_dir
         env["BUILDS_DIR"] = self.builds_dir
         env["TMP_ROOTS"] = self.tmproot
@@ -211,6 +220,64 @@ class Configuration:
             return None
 
         return self._locate_orchestra_dotdir(os.path.join(relpath, ".."))
+
+    def _create_default_remotes_list(self):
+        remotes_config_file = os.path.join(self.orchestra_dotdir, "config", "user_remotes.yml")
+        if os.path.exists(remotes_config_file):
+            return
+
+        logger.info("Populating default remotes for repositories and binary archives")
+        logger.info("You probably want to run `orchestra update` next")
+        git_output = subprocess.check_output(
+            ["git", "-C", self.orchestra_dotdir, "config", "--get-regexp", "remote\.[^.]*\.url"]
+        ).decode("utf-8")
+        remotes_re = re.compile("remote\.(?P<name>[^.]*)\.url (?P<url>.*)$")
+        remotes = {}
+        for line in git_output.splitlines(keepends=False):
+            match = remotes_re.match(line)
+            base_url = os.path.dirname(match.group("url"))
+            remotes[match.group("name")] = base_url
+
+        if not remotes:
+            logger.error("Could not get default remotes, manually configure .config/user_remotes.yml")
+            exit(1)
+
+        remote_base_urls = ""
+        binary_archives = ""
+        for name, url in remotes.items():
+            logger.info(f"{name}: {url}")
+            remote_base_urls += f'  - {name}: "{url}"\n'
+            binary_archives += f'  - {name}: "{url}/binary-archives"\n'
+
+        with open(remotes_config_file, "w") as f:
+            f.write(dedent(f"""
+            #@data/values
+            ---
+            #@overlay/match missing_ok=True
+            remote_base_urls:
+            """).lstrip())
+            f.write(remote_base_urls)
+            f.write(dedent("""
+            #@overlay/match missing_ok=True
+            binary_archives:
+            """))
+            f.write(binary_archives)
+
+    def _get_remotes(self):
+        remotes = OrderedDict()
+        for remote in self.parsed_yaml.get("remote_base_urls", []):
+            assert len(remote) == 1, "remote_base_urls must be a list of dictionaries with one entry (name: url)"
+            for name, url in remote.items():
+                remotes[name] = url
+        return remotes
+
+    def _get_binary_archives_remotes(self):
+        remotes = OrderedDict()
+        for remote in self.parsed_yaml.get("binary_archives", []):
+            assert len(remote) == 1, "binary_archives must be a list of dictionaries with one entry (name: url)"
+            for name, url in remote.items():
+                remotes[name] = url
+        return remotes
 
 
 def hash_config_dir(config_dir):
