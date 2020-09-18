@@ -194,7 +194,7 @@ class InstallAction(Action):
 
     def _create_binary_archive(self):
         archive_name = self.build.binary_archive_filename
-        binary_archive_repo_name = self.config.binary_archives_remotes.keys()[0]
+        binary_archive_repo_name = list(self.config.binary_archives_remotes.keys())[0]
         script = dedent(f"""
             mkdir -p "$BINARY_ARCHIVES"
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
