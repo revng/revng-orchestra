@@ -1,13 +1,14 @@
 import argparse
 
-from . import components
-from . import environment
 from . import clone
+from . import components
 from . import configure
-from . import install
-from . import uninstall
+from . import environment
 from . import graph
+from . import install
 from . import shell
+from . import uninstall
+from . import update
 
 
 class CustomArgumentParser(argparse.ArgumentParser):
@@ -26,6 +27,7 @@ def install_subcommands(argparser):
     components.install_subcommand(subparsers)
     environment.install_subcommand(subparsers)
     clone.install_subcommand(subparsers)
+    update.install_subcommand(subparsers)
     configure.install_subcommand(subparsers)
     install.install_subcommand(subparsers)
     uninstall.install_subcommand(subparsers)
