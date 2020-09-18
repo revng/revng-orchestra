@@ -39,6 +39,8 @@ def handle_components(args, config: Configuration):
                     if dependencies:
                         infos.append(f"install deps: {' '.join(d.name_for_components for d in dependencies)}")
 
+                infos.append(f"hash: {build.recursive_hash}")
+
                 infos_s = " ".join(f"[{i}]" for i in infos)
 
                 s = f"  Build {build_name} {infos_s}"
