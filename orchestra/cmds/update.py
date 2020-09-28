@@ -21,6 +21,11 @@ def handle_update(args, config: Configuration):
         else:
             clone_binary_archive(name, url, config)
 
+    logger.info("Resetting ls-remote cached info")
+    ls_remote_cache = os.path.join(config.orchestra_dotdir, "remote_refs_cache.json")
+    if os.path.exists(ls_remote_cache):
+        os.remove(ls_remote_cache)
+
     logger.info("Updating repositories")
     for git_repo in glob(os.path.join(config.sources_dir, "**/.git"), recursive=True):
         git_repo = os.path.dirname(git_repo)

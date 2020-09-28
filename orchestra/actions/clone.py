@@ -1,3 +1,4 @@
+import json
 import os.path
 import re
 from functools import lru_cache
@@ -53,9 +54,30 @@ class CloneAction(Action):
 
     @lru_cache()
     def _ls_remote(self, remote):
-        return run_script(
+        cache_filepath = os.path.join(self.config.orchestra_dotdir, "remote_refs_cache.json")
+
+        if os.path.exists(cache_filepath):
+            with open(cache_filepath, "rb") as f:
+                cached_data = json.loads(f.read())
+                if self.build.qualified_name in cached_data:
+                    return cached_data[self.build.qualified_name]
+
+        data = run_script(
             f'git ls-remote -h --refs "{remote}"',
             quiet=True,
             environment=self.environment,
             check_returncode=False
         ).stdout.decode("utf-8")
+
+        if os.path.exists(cache_filepath):
+            with open(cache_filepath, "rb") as f:
+                cached_data = json.loads(f.read())
+        else:
+            cached_data = {}
+
+        cached_data[self.build.qualified_name] = data
+        # TODO: prevent race condition, if two clone actions run at the same time
+        with open(cache_filepath, "w") as f:
+            json.dump(cached_data, f)
+
+        return data
