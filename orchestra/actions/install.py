@@ -52,9 +52,7 @@ class InstallAction(Action):
         post_file_list = self._index_directory(tmp_root + orchestra_root, strip_prefix=tmp_root + orchestra_root)
         new_files = [f for f in post_file_list if f not in pre_file_list]
 
-        archive_name = self.build.binary_archive_filename
-        archive_path = os.path.join(self.environment["BINARY_ARCHIVES"], archive_name)
-        if args.create_binary_archives and not os.path.exists(archive_path):
+        if args.create_binary_archives and self._binary_archive_filepath() is None:
             logger.info("Creating binary archive")
             self._create_binary_archive()
 
