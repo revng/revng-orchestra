@@ -5,13 +5,15 @@ from typing import Set
 from loguru import logger
 
 from .util import run_script
+# Only used for type hints, package-relative import not possible due to circular reference
+import orchestra.model.configuration
 
 
 class Action:
     def __init__(self, name, build, script, config):
         self.name = name
         self.build = build
-        self.config = config
+        self.config: "orchestra.model.configuration.Configuration" = config
         self.external_dependencies: Set[Action] = set()
         self._script = script
 
