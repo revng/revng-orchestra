@@ -43,9 +43,9 @@ def parse_dependency(dependency) -> (str, Union[str, None], bool):
     return component, build, exact_build_required
 
 
-def get_installed_build(component_name, config):
+def get_installed_metadata(component_name, config):
     """
-    Returns the name of the installed build for the given component name.
+    Returns the metadata dictionary for an installed component.
     If the component is not installed, returns None.
     """
     metadata_path = config.installed_component_metadata_path(component_name)
@@ -53,15 +53,43 @@ def get_installed_build(component_name, config):
         return None
 
     with open(metadata_path) as f:
-        metadata = json.load(f)
+        return json.load(f)
+
+
+def get_installed_build(component_name, config):
+    """
+    Returns the name of the installed build for the given component name.
+    If the component is not installed, returns None.
+    """
+    metadata = get_installed_metadata(component_name, config)
+    if not metadata:
+        return None
 
     return metadata.get("build_name", None)
 
 
-def is_installed(config, wanted_component, wanted_build=None):
-    installed_build = get_installed_build(wanted_component, config)
+def get_installed_hash(component_name, config):
+    """
+    Returns the recursive hash of an installed component.
+    If the component is not installed, returns None.
+    """
+    metadata = get_installed_metadata(component_name, config)
+    if not metadata:
+        return None
 
-    return installed_build is not None and (wanted_build is None or installed_build == wanted_build)
+    return metadata.get("recursive_hash", None)
+
+
+def is_installed(config, wanted_component, wanted_build=None, wanted_recursive_hash=None):
+    metadata = get_installed_metadata(wanted_component, config)
+    if metadata is None:
+        return False
+    installed_build = metadata.get("build_name")
+    installed_recursive_hash = metadata.get("recursive_hash")
+
+    return installed_build is not None \
+           and (wanted_build is None or installed_build == wanted_build) \
+           and (wanted_recursive_hash is None or installed_recursive_hash == wanted_recursive_hash)
 
 
 def export_environment(variables: OrderedDict):

@@ -89,7 +89,12 @@ class InstallAction(Action):
             self._cleanup_tmproot()
 
     def _is_satisfied(self):
-        return is_installed(self.config, self.build.component.name, wanted_build=self.build.name)
+        return is_installed(
+            self.config,
+            self.build.component.name,
+            wanted_build=self.build.name,
+            wanted_recursive_hash=self.build.recursive_hash
+        )
 
     def _prepare_tmproot(self):
         script = dedent("""
