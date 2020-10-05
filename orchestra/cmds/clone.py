@@ -10,5 +10,8 @@ def install_subcommand(sub_argparser):
 
 def handle_clone(args, config: Configuration):
     build = config.get_build(args.component)
+    if not build.clone:
+        print("This component does not have a git repository configured!")
+        return
     executor = Executor(args)
     executor.run(build.clone, force=args.force)
