@@ -7,6 +7,7 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("component", nargs="?")
     cmd_parser.add_argument("--installed", action="store_true", help="Only print installed components")
     cmd_parser.add_argument("--not-installed", action="store_true", help="Only print not installed components")
+    cmd_parser.add_argument("--deps", action="store_true", help="Print dependencies")
 
 
 def handle_components(args, config: Configuration):
@@ -29,20 +30,19 @@ def handle_components(args, config: Configuration):
                 if build is component.default_build:
                     infos.append("default")
 
-                if build.configure:
+                if build.configure and args.deps:
                     dependencies = [dep for dep in build.configure.dependencies]
                     if dependencies:
                         infos.append(f"config deps: {' '.join(d.name_for_components for d in dependencies)}")
 
-                if build.install:
+                if build.install and args.deps:
                     dependencies = [dep for dep in build.install.dependencies if dep.build is not build]
                     if dependencies:
                         infos.append(f"install deps: {' '.join(d.name_for_components for d in dependencies)}")
-
-                infos.append(f"hash: {build.recursive_hash}")
 
                 infos_s = " ".join(f"[{i}]" for i in infos)
 
                 s = f"  Build {build_name} {infos_s}"
 
                 print(s)
+            print()
