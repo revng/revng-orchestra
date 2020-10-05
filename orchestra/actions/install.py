@@ -1,4 +1,3 @@
-import glob
 import json
 import os
 import stat
@@ -30,7 +29,7 @@ class InstallAction(Action):
         logger.info("Preparing temporary root directory")
         self._prepare_tmproot()
 
-        pre_file_list = self._index_directory(tmp_root + orchestra_root, strip_prefix=tmp_root + orchestra_root)
+        pre_file_list = self._index_directory(tmp_root + orchestra_root, relative_to=tmp_root + orchestra_root)
 
         start_time = time.time()
 
@@ -40,16 +39,27 @@ class InstallAction(Action):
             logger.info("Extracting binary archive")
             self._install_from_binary_archives()
             source = "binary archive"
+
+            logger.debug("Removing conflicting files")
+            self._remove_conflicting_files()
         elif not self.from_binary_archives or self.fallback_to_build:
             self._install(args.quiet)
-            self._post_install(args.quiet)
             source = "build"
+
+            logger.debug("Removing conflicting files")
+            self._remove_conflicting_files()
+
+            self._post_install(args.quiet)
         else:
             raise Exception("Binary archive not found!")
 
         end_time = time.time()
 
-        post_file_list = self._index_directory(tmp_root + orchestra_root, strip_prefix=tmp_root + orchestra_root)
+        post_file_list = self._index_directory(tmp_root + orchestra_root, relative_to=tmp_root + orchestra_root)
+        post_file_list.append(
+            os.path.relpath(self.config.installed_component_file_list_path(self.build.component.name), orchestra_root))
+        post_file_list.append(
+            os.path.relpath(self.config.installed_component_metadata_path(self.build.component.name), orchestra_root))
         new_files = [f for f in post_file_list if f not in pre_file_list]
 
         if args.create_binary_archives and self._binary_archive_filepath() is None:
@@ -104,7 +114,7 @@ class InstallAction(Action):
             test -L "${TMP_ROOT}${ORCHESTRA_ROOT}/lib"
             mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/bin"
             mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/usr/"{lib,include}
-            mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/share/"{info,doc,man}
+            mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/share/"{info,doc,man,orchestra}
             touch "${TMP_ROOT}${ORCHESTRA_ROOT}/share/info/dir"
             mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/libexec"
             """)
@@ -118,8 +128,8 @@ class InstallAction(Action):
         run_script(self.script, quiet=quiet, environment=self.environment)
 
     def _post_install(self, quiet):
-        logger.debug("Removing conflicting files")
-        self._remove_conflicting_files()
+        logger.debug("Drop absolute paths from pkg-config")
+        self._drop_absolute_pkgconfig_paths()
 
         # TODO: maybe this should be put into the configuration and not in Orchestra itself
         logger.info("Converting hardlinks to symbolic")
@@ -140,6 +150,16 @@ class InstallAction(Action):
             """)
         run_script(script, quiet=True, environment=self.environment)
 
+    def _drop_absolute_pkgconfig_paths(self):
+        script = dedent("""
+            if [ -e lib/pkgconfig ]; then
+                find lib/pkgconfig \\
+                    -name "*.pc" \\
+                    -exec sed -i 's|/*'"$ORCHESTRA_ROOT"'/*|${pcfiledir}/../..|g' {} ';'
+            fi
+            """)
+        run_script(script, quiet=True, environment=self.environment)
+
     def _hard_to_symbolic(self):
         duplicates = defaultdict(list)
         for root, dirnames, filenames in os.walk(f'{self.environment["TMP_ROOT"]}{self.environment["ORCHESTRA_ROOT"]}'):
@@ -147,7 +167,7 @@ class InstallAction(Action):
                 path = os.path.join(root, path)
                 info = os.lstat(path)
                 inode = info.st_ino
-                if inode == 0 or info.st_nlink < 2 or stat.S_ISREG(info.st_mode):
+                if inode == 0 or info.st_nlink < 2 or not stat.S_ISREG(info.st_mode):
                     continue
 
                 duplicates[inode].append(path)
@@ -198,10 +218,14 @@ class InstallAction(Action):
     def _create_binary_archive(self):
         archive_name = self.build.binary_archive_filename
         binary_archive_repo_name = list(self.config.binary_archives_remotes.keys())[0]
+        binary_archive_tmp_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/_tmp_{archive_name}"
+        binary_archive_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/{archive_name}"
         script = dedent(f"""
             mkdir -p "$BINARY_ARCHIVES"
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
-            tar caf "$BINARY_ARCHIVES/{binary_archive_repo_name}/{archive_name}" --owner=0 --group=0 "."
+            rm "{binary_archive_tmp_path}" || true
+            tar caf "{binary_archive_tmp_path}" --owner=0 --group=0 "."
+            mv "{binary_archive_tmp_path}" "{binary_archive_path}"
             """)
         run_script(script, quiet=True, environment=self.environment)
 
@@ -236,10 +260,22 @@ class InstallAction(Action):
         run_script(script, environment=self.environment, quiet=True)
 
     @staticmethod
-    def _index_directory(dirpath, strip_prefix=None):
-        paths = list(glob.glob(f"{dirpath}/**", recursive=True))
-        if strip_prefix:
-            paths = [remove_prefix(p, strip_prefix) for p in paths]
+    def _index_directory(root_dir_path, relative_to=None):
+        paths = []
+        for current_dir_path, child_dir_names, child_file_names in os.walk(root_dir_path):
+            for child_filename in child_file_names:
+                child_file_path = os.path.join(current_dir_path, child_filename)
+                if relative_to:
+                    child_file_path = os.path.relpath(child_file_path, relative_to)
+                paths.append(child_file_path)
+
+            for child_dir in child_dir_names:
+                child_dir_path = os.path.join(current_dir_path, child_dir)
+                if os.path.islink(child_dir_path):
+                    if relative_to:
+                        child_dir_path = os.path.relpath(child_dir_path, relative_to)
+                    paths.append(child_dir_path)
+
         return paths
 
     @property
@@ -292,27 +328,33 @@ class InstallAnyBuildAction(Action):
         return f"{self._original_build.component.name}~{self._original_build.name}"
 
 
-def remove_prefix(string, prefix):
-    if string.startswith(prefix):
-        return string[len(prefix):]
-    else:
-        return string[:]
-
-
 def uninstall(component_name, config):
     index_path = config.installed_component_file_list_path(component_name)
     metadata_path = config.installed_component_metadata_path(component_name)
+
+    # Index and metadata files should be removed last,
+    # so an interrupted uninstall can be resumed
+    postpone_removal_paths = [
+        os.path.relpath(index_path, config.orchestra_root),
+        os.path.relpath(metadata_path, config.orchestra_root)
+    ]
 
     with open(index_path) as f:
         paths = f.readlines()
 
     # Ensure depth first visit by reverse-sorting
-    paths.sort(reverse=True)
+    # paths.sort(reverse=True)
     paths = [path.strip() for path in paths]
 
     for path in paths:
+        # Ensure the path is relative to the root
         path = path.lstrip("/")
+
+        if path in postpone_removal_paths:
+            continue
+
         path_to_delete = os.path.join(config.global_env()['ORCHESTRA_ROOT'], path)
+
         if os.path.isfile(path_to_delete) or os.path.islink(path_to_delete):
             logger.debug(f"Deleting {path_to_delete}")
             os.remove(path_to_delete)
@@ -322,6 +364,11 @@ def uninstall(component_name, config):
             else:
                 logger.debug(f"Deleting directory {path_to_delete}")
                 os.rmdir(path_to_delete)
+
+        containing_directory = os.path.dirname(path_to_delete)
+        if os.path.exists(containing_directory) and len(os.listdir(containing_directory)) == 0:
+            logger.debug(f"Removing empty directory {containing_directory}")
+            os.rmdir(containing_directory)
 
     logger.debug(f"Deleting index file {index_path}")
     os.remove(index_path)

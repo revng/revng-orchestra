@@ -92,7 +92,7 @@ class Configuration:
         """
         Returns the path of the directory containing indices of the installed components
         """
-        return os.path.join(self.orchestra_dotdir, "installed_components")
+        return os.path.join(self.orchestra_root, "share", "orchestra")
 
     def global_env(self):
         return self._global_env.copy()
