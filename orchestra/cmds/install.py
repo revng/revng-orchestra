@@ -3,7 +3,7 @@ from ..executor import Executor
 
 
 def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("install", handler=handle_install)
+    cmd_parser = sub_argparser.add_parser("install", handler=handle_install, help="Build and install a component")
     cmd_parser.add_argument("component")
     cmd_parser.add_argument("--force", "-f", action="store_true", help="Force execution of the root action")
     cmd_parser.add_argument("--no-merge", action="store_true", help="Do not merge files into Orchestra root")

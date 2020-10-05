@@ -2,7 +2,7 @@ from ..model.configuration import Configuration
 
 
 def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("graph", handler=handle_graph)
+    cmd_parser = sub_argparser.add_parser("graph", handler=handle_graph, help="Print dependency graph (dot format)")
     cmd_parser.add_argument("component", nargs="?")
     cmd_parser.add_argument("--all-builds", action="store_true",
                             help="Include all builds instead of only the default one.")

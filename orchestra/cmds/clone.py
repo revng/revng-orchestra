@@ -3,7 +3,7 @@ from ..executor import Executor
 
 
 def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("clone", handler=handle_clone)
+    cmd_parser = sub_argparser.add_parser("clone", handler=handle_clone, help="Clone a component")
     cmd_parser.add_argument("component")
     cmd_parser.add_argument("--force", action="store_true", help="Force execution of the root action")
 

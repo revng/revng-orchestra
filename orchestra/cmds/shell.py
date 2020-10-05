@@ -1,18 +1,19 @@
 import os
-import sys
+import pty
 import select
+import sys
 import termios
 import tty
-import pty
 from subprocess import Popen
 
+from ..actions.util import run_script
 from ..model.configuration import Configuration
 from ..util import export_environment
-from ..actions.util import run_script
 
 
 def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("shell", handler=handle_shell)
+    cmd_parser = sub_argparser.add_parser("shell", handler=handle_shell,
+                                          help="Open a shell with the given component environment (experimental)")
     cmd_parser.add_argument("component", nargs="?")
 
 
@@ -63,7 +64,7 @@ def handle_shell(args, config: Configuration):
                 buf += o
                 o = b""
                 if b"READY" in buf:
-                    o = buf[buf.rfind(b"READY")+5:]
+                    o = buf[buf.rfind(b"READY") + 5:]
                     prelude_passed = True
             if o:
                 os.write(sys.stdout.fileno(), o)

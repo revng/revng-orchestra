@@ -2,7 +2,7 @@ from ..util import export_environment
 
 
 def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("environment", handler=handle_environment)
+    cmd_parser = sub_argparser.add_parser("environment", handler=handle_environment, help="Print environment variables")
     cmd_parser.add_argument("component", nargs="?")
 
 

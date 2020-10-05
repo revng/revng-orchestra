@@ -6,7 +6,7 @@ from ..actions.install import uninstall
 
 
 def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("uninstall", handler=handle_uninstall)
+    cmd_parser = sub_argparser.add_parser("uninstall", handler=handle_uninstall, help="Uninstall a component")
     cmd_parser.add_argument("component")
 
 

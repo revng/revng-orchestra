@@ -3,7 +3,7 @@ from ..util import get_installed_build
 
 
 def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("components", handler=handle_components)
+    cmd_parser = sub_argparser.add_parser("components", handler=handle_components, help="List components")
     cmd_parser.add_argument("component", nargs="?")
     cmd_parser.add_argument("--installed", action="store_true", help="Only print installed components")
     cmd_parser.add_argument("--not-installed", action="store_true", help="Only print not installed components")

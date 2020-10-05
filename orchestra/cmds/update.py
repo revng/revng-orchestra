@@ -8,7 +8,7 @@ from ..model.configuration import Configuration
 
 
 def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("update", handler=handle_update)
+    cmd_parser = sub_argparser.add_parser("update", handler=handle_update, help="Update components")
 
 
 def handle_update(args, config: Configuration):
