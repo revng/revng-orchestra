@@ -1,5 +1,6 @@
 import argparse
 
+from . import clean
 from . import clone
 from . import components
 from . import configure
@@ -30,6 +31,7 @@ def install_subcommands(argparser):
     update.install_subcommand(subparsers)
     configure.install_subcommand(subparsers)
     install.install_subcommand(subparsers)
+    clean.install_subcommand(subparsers)
     uninstall.install_subcommand(subparsers)
     graph.install_subcommand(subparsers)
     shell.install_subcommand(subparsers)
