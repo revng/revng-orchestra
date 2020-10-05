@@ -319,10 +319,8 @@ def set_build_hash(build: "bld.Build"):
     # TODO: are install dependencies required to be part of the information to hash?
     #  In theory they should not influence the artifacts
     all_builds.update({d.build for d in build.install.external_dependencies})
-    # TODO: should all other builds from the same component be filtered out or just the very same build?
-    # all_builds = {b for b in all_builds if b.component is not build.component}
-    # Filter out the same build
-    all_builds = [b for b in all_builds if b != build]
+    # Filter out builds from the same component
+    all_builds = [b for b in all_builds if b.component != build.component]
 
     # Ensure the recursive hash of all dependencies is computed
     for b in all_builds:
