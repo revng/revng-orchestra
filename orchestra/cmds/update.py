@@ -14,6 +14,12 @@ def install_subcommand(sub_argparser):
 
 def handle_update(args, config: Configuration):
     failed_pulls = []
+
+    logger.info("Updating Orchestra configuration")
+    result = git_pull(config.orchestra_dotdir)
+    if result.returncode:
+        failed_pulls.append(f"Orchestra configuration ({config.orchestra_dotdir})")
+
     logger.info("Updating binary archives")
     os.makedirs(config.binary_archives_dir, exist_ok=True)
     for name, url in config.binary_archives_remotes.items():
