@@ -1,6 +1,7 @@
 import os.path
 import subprocess
 from glob import glob
+from textwrap import dedent
 
 from loguru import logger
 
@@ -12,12 +13,15 @@ def install_subcommand(sub_argparser):
 
 
 def handle_update(args, config: Configuration):
+    failed_pulls = []
     logger.info("Updating binary archives")
     os.makedirs(config.binary_archives_dir, exist_ok=True)
     for name, url in config.binary_archives_remotes.items():
         binary_archive_path = os.path.join(config.binary_archives_dir, name)
         if os.path.exists(binary_archive_path):
-            pull_binary_archive(name, config)
+            result = pull_binary_archive(name, config)
+            if result.returncode:
+                failed_pulls.append(f"Binary archive {name} ({os.path.join(config.binary_archives_dir, name)})")
         else:
             clone_binary_archive(name, url, config)
 
@@ -32,15 +36,28 @@ def handle_update(args, config: Configuration):
         logger.info(f"Pulling {git_repo}")
         result = git_pull(git_repo)
         if result.returncode:
-            logger.error(f"Could not pull repository {git_repo}")
+            failed_pulls.append(f"Repository {git_repo}")
+
+    if failed_pulls:
+        formatted_failed_pulls = "\n".join([f"  {repo}" for repo in failed_pulls])
+        failed_git_pull_suggestion = dedent(f"""
+        Could not git pull --ff-only the following repositories:
+        {formatted_failed_pulls}
+        
+        Suggestions:
+            - check your network connection
+            - commit your work
+            - `git pull --rebase`, to pull remote changes and apply your commits on top
+            - `git push` your changes to the remotes
+        """)
+        logger.error(failed_git_pull_suggestion)
 
 
 def pull_binary_archive(name, config):
     binary_archive_path = os.path.join(config.binary_archives_dir, name)
     logger.info(f"Pulling binary archive {binary_archive_path}")
     result = git_pull(binary_archive_path)
-    if result.returncode:
-        logger.error(f"Could not pull binary archive {binary_archive_path}")
+    return result
 
 
 def clone_binary_archive(name, url, config):
