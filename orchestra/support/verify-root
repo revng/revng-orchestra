@@ -4,6 +4,7 @@ import argparse
 import os
 import re
 import sys
+from tqdm import tqdm
 from collections import defaultdict
 
 from elftools.elf.dynamic import DynamicSegment
@@ -150,7 +151,7 @@ class Root:
         used_glibc_versions = dict()
         invalid_runpaths = defaultdict(list)
 
-        for installed_file in sorted(self.installed_files):
+        for installed_file in tqdm(sorted(self.installed_files)):
             path = os.path.join(self.root_path, installed_file)
             if os.path.isfile(path) and is_executable(path) and is_elf(path):
                 with open(path, "rb") as elf_file:
@@ -281,10 +282,14 @@ def main():
 
     root = Root(root_path)
 
+    log("Loading package files...")
     root.load_package_files()
     duplicates_found = root.report_duplicates()
+    log("Collecting installed files...")
     root.collect_installed_files()
+    log("Searching orphans...")
     orphans_found = root.check_installed_files()
+    log("Verifying ELFs...")
     errors_in_elfs = root.verify_elfs()
 
     if duplicates_found or orphans_found or errors_in_elfs:
