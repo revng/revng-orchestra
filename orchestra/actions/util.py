@@ -43,7 +43,7 @@ def run_script(script,
         stdout = None
         stderr = None
 
-    logger.debug(f"Executing: {script}")
+    logger.debug(f"Executing script:\n{script}")
     result = subprocess.run(["/bin/bash", "-c", script_to_run], stdout=stdout, stderr=stderr)
     if check_returncode and result.returncode != 0:
         logger.error(f"Subprocess exited with exit code {result.returncode}")
