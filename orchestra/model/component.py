@@ -7,10 +7,12 @@ class Component:
     def __init__(self,
                  name: str,
                  default_build_name: str,
+                 skip_post_install=False,
                  ):
         self.name = name
         self.builds: Dict[str, 'build.Build'] = {}
         self.default_build_name = default_build_name
+        self.skip_post_install = skip_post_install
 
     def add_build(self, bld: 'build.Build'):
         self.builds[bld.name] = bld

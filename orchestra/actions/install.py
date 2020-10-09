@@ -49,7 +49,10 @@ class InstallAction(Action):
             logger.debug("Removing conflicting files")
             self._remove_conflicting_files()
 
-            self._post_install(args.quiet)
+            if self.build.component.skip_post_install:
+                logger.info("Skipping post install")
+            else:
+                self._post_install(args.quiet)
         else:
             raise Exception("Binary archive not found!")
 

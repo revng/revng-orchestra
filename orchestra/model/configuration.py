@@ -146,7 +146,8 @@ class Configuration:
                 build_names.sort()
                 default_build = build_names[0]
 
-            component = comp.Component(component_name, default_build)
+            skip_post_install = component_yaml.get("skip_post_install", False)
+            component = comp.Component(component_name, default_build, skip_post_install=skip_post_install)
             self.components[component_name] = component
 
             for build_name, build_yaml in component_yaml["builds"].items():

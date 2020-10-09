@@ -50,6 +50,7 @@ A component can specify the following properties:
 * `repository`: name of the repository to clone to get the project sources
 * `default_build`: name of the default build. If not specified the first build in alphabetic order is picked.
 * `add_to_path`: string prepended to $PATH. See the "Additional environment and PATH" section.
+* `skip_post_install`: If true, Orchestra will skip the post install phase (RPATH adjustment, etc) 
 
 ### Build properties
 
