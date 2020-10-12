@@ -91,7 +91,6 @@ class InstallAction(Action):
             with open(self.config.installed_component_metadata_path(self.build.component.name), "w") as f:
                 json.dump(metadata, f)
             with open(self.config.installed_component_file_list_path(self.build.component.name), "w") as f:
-                f.truncate(0)
                 new_files = [f"{f}\n" for f in new_files]
                 f.writelines(new_files)
 
