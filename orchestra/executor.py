@@ -36,7 +36,7 @@ class Executor:
                     self._schedule_next()
 
         if self._errors_occurred:
-            raise Exception("Errors occurred", self._errors_occurred)
+            raise Exception("Errors occurred")
 
     def _collect_actions(self, action: Action, force=False):
         if not force and action.is_satisfied(recursively=True):
