@@ -97,6 +97,11 @@ components:
                     - gcc_component            # Compiler is required only to build the component
 ```
 
+**ndebug**
+
+Boolean, defaults to true.
+Used to replace `#ifdef`-like macros referencing `NDEBUG`.
+
 ## Environment variables and configurable paths
 <a name="env-and-dirs"></a>
 

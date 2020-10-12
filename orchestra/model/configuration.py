@@ -151,7 +151,8 @@ class Configuration:
             self.components[component_name] = component
 
             for build_name, build_yaml in component_yaml["builds"].items():
-                build = bld.Build(build_name, component)
+                ndebug = build_yaml.get("ndebug", True)
+                build = bld.Build(build_name, component, ndebug=ndebug)
                 component.add_build(build)
 
                 repo = component_yaml.get("repository")

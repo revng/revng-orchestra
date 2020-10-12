@@ -8,7 +8,8 @@ class Build:
     def __init__(
             self,
             name: str,
-            comp: component.Component
+            comp: component.Component,
+            ndebug=True,
     ):
         self.name = name
         self.component = comp
@@ -18,6 +19,8 @@ class Build:
         self.clone: CloneAction = None
         self.configure: ConfigureAction = None
         self.install: InstallAction = None
+
+        self.ndebug = ndebug
 
     @property
     def qualified_name(self):

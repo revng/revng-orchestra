@@ -144,7 +144,7 @@ class InstallAction(Action):
 
         # TODO: this should be put into the configuration and not in Orchestra itself
         logger.info("Replacing NDEBUG preprocessor statements")
-        self._replace_ndebug(True, quiet)
+        self._replace_ndebug(self.build.ndebug, quiet)
 
     def _remove_conflicting_files(self):
         script = dedent("""
@@ -199,8 +199,8 @@ class InstallAction(Action):
             """)
         run_script(fix_rpath_script, quiet=quiet, environment=self.environment)
 
-    def _replace_ndebug(self, enable_debugging, quiet):
-        debug, ndebug = ("1", "0") if enable_debugging else ("0", "1")
+    def _replace_ndebug(self, disable_debugging, quiet):
+        debug, ndebug = ("0", "1") if disable_debugging else ("1", "0")
         patch_ndebug_script = dedent(rf"""
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             find include/ -name "*.h" \
