@@ -18,6 +18,9 @@ class Executor:
     def run(self, action, force=False):
         self._collect_actions(action, force=force)
 
+        if not self._pending_actions:
+            logger.info("No actions to perform")
+
         for _ in range(self.threads):
             self._schedule_next()
 
@@ -37,6 +40,8 @@ class Executor:
 
         if self._errors_occurred:
             raise Exception("Errors occurred")
+
+        logger.info("All done!")
 
     def _collect_actions(self, action: Action, force=False):
         if not force and action.is_satisfied(recursively=True):

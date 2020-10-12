@@ -74,7 +74,7 @@ class InstallAction(Action):
                 logger.info("Uninstalling previously installed build")
                 uninstall(self.build.component.name, self.config)
 
-            logger.info("Merging installation into Orchestra root directory")
+            logger.info("Merging installed files into Orchestra root directory")
             self._merge(args.quiet)
 
             # Write file metadata and index
