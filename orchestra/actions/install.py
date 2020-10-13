@@ -17,7 +17,7 @@ class InstallAction(Action):
     def __init__(self, build, script, config, from_binary_archives=False, fallback_to_build=False):
         name = "install"
         name += " from binary archives" if from_binary_archives else ""
-        name += " with fallback" if from_binary_archives and fallback_to_build else ""
+        name += " or build" if from_binary_archives and fallback_to_build else ""
         super().__init__(name, build, script, config)
         self.from_binary_archives = from_binary_archives
         self.fallback_to_build = fallback_to_build

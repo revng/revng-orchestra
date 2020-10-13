@@ -1,5 +1,6 @@
 from concurrent import futures
-from typing import List
+from typing import List, Dict
+import enlighten
 
 from loguru import logger
 
@@ -11,9 +12,9 @@ class Executor:
         self.args = args
         self.threads = 1
         self._pending_actions = set()
-        self._running_actions: List[futures.Future] = []
+        self._running_actions: Dict[futures.Future, Action] = {}
+        self._failed_actions: List[Action] = []
         self._pool = futures.ThreadPoolExecutor(max_workers=threads, thread_name_prefix="Builder")
-        self._errors_occurred = []
 
     def run(self, action, force=False):
         self._collect_actions(action, force=force)
@@ -21,27 +22,49 @@ class Executor:
         if not self._pending_actions:
             logger.info("No actions to perform")
 
+        total_pending = len(self._pending_actions)
+
         for _ in range(self.threads):
             self._schedule_next()
 
+        manager = enlighten.get_manager()
+        status_bar = manager.status_bar()
+        status_bar.color = "bright_white_on_lightslategray"
+
         while self._running_actions:
+            status_bar_args = {
+                "jobs": ", ".join(a.name_for_graph for a in self._running_actions.values()),
+                "current": total_pending - len(self._pending_actions),
+                "total": total_pending,
+            }
+            status_bar.status_format = "[{current}/{total}] Running {jobs}"
+            status_bar.update(**status_bar_args)
+            status_bar.refresh()
             done, not_done = futures.wait(self._running_actions, return_when=futures.FIRST_COMPLETED)
             for d in done:
-                self._running_actions.remove(d)
+                action = self._running_actions[d]
+                del self._running_actions[d]
                 exception = d.exception()
                 if exception:
-                    logger.opt(exception=exception).critical("An error occurred!")
+                    logger.error("An error occurred!")
                     if self._pending_actions:
                         logger.error(f"Waiting for other running actions to terminate: {self._pending_actions}")
                     self._pending_actions = set()
-                    self._errors_occurred.append(exception)
+                    self._failed_actions.append(action)
                 else:
                     self._schedule_next()
 
-        if self._errors_occurred:
-            raise Exception("Errors occurred")
+        if self._failed_actions:
+            msg = "Failed: " + ", ".join(a.name_for_graph for a in self._failed_actions)
+            status_bar.color = "white_on_red"
+            logger.error(msg)
+        else:
+            msg = "All done!"
+            status_bar.color = "white_on_darkgreen"
+            logger.info(msg)
 
-        logger.info("All done!")
+        status_bar.status_format = msg
+        status_bar.close()
 
     def _collect_actions(self, action: Action, force=False):
         if not force and action.is_satisfied(recursively=True):
@@ -57,11 +80,12 @@ class Executor:
         if not next_runnable_action:
             if self._pending_actions:
                 logger.error(f"Could not run any action! An action has failed or there is a circular dependency")
-                logger.error(f"Remaining actions: {self._pending_actions}")
+                self._failed_actions = list(self._pending_actions)
             return
 
         future = self._pool.submit(self._run_action, next_runnable_action)
-        self._running_actions.append(future)
+        self._running_actions[future] = next_runnable_action
+        return future
 
     def _get_next_runnable_action(self):
         for action in self._pending_actions:
