@@ -10,7 +10,7 @@ def install_subcommand(sub_argparser):
 
 def handle_clean(args, config: Configuration):
     build = config.get_build(args.component)
-    if input(f"Do you want to clean {build.qualified_name}? [y/N]").lower() != "y":
+    if input(f"Do you want to clean {build.qualified_name}? [y/N] ").lower() != "y":
         return
 
     build_dir = build.install.environment["BUILD_DIR"]
