@@ -19,9 +19,6 @@ def handle_clean(args, config: Configuration):
         logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
         exit(1)
 
-    if input(f"Do you want to clean {build.qualified_name}? [y/N] ").lower() != "y":
-        return
-
     build_dir = build.install.environment["BUILD_DIR"]
     shutil.rmtree(build_dir, ignore_errors=True)
 
