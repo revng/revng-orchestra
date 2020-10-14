@@ -27,6 +27,7 @@ setup(
     entry_points={
         "console_scripts": [
             "orchestra=orchestra:main",
+            "orc=orchestra:main",
         ]
     },
     zip_safe=False,
