@@ -11,13 +11,14 @@ class Executor:
     def __init__(self, args, threads=1):
         self.args = args
         self.threads = 1
-        self._pending_actions = set()
+        self._pending_actions: List[Action] = []
         self._running_actions: Dict[futures.Future, Action] = {}
         self._failed_actions: List[Action] = []
         self._pool = futures.ThreadPoolExecutor(max_workers=threads, thread_name_prefix="Builder")
 
     def run(self, action, force=False):
         self._collect_actions(action, force=force)
+        self._pending_actions.sort(key=lambda a: a.qualified_name)
 
         if not self._pending_actions:
             logger.info("No actions to perform")
@@ -49,7 +50,7 @@ class Executor:
                     logger.error("An error occurred!")
                     if self._pending_actions:
                         logger.error(f"Waiting for other running actions to terminate: {self._pending_actions}")
-                    self._pending_actions = set()
+                    self._pending_actions = []
                     self._failed_actions.append(action)
                 else:
                     self._schedule_next()
@@ -71,7 +72,7 @@ class Executor:
             return
 
         if action not in self._pending_actions:
-            self._pending_actions.add(action)
+            self._pending_actions.append(action)
             for dep in action.dependencies:
                 self._collect_actions(dep)
 
