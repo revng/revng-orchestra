@@ -47,7 +47,7 @@ class Configuration:
 
         self.binary_archives_dir = self.parsed_yaml.get("paths", {}).get("binary_archives")
         if not self.binary_archives_dir:
-            self.binary_archives_dir = os.path.realpath(os.path.join(self.orchestra_dotdir, "binary_archives"))
+            self.binary_archives_dir = os.path.realpath(os.path.join(self.orchestra_dotdir, "binary-archives"))
 
         self.tmproot = self.parsed_yaml.get("paths", {}).get("tmproot")
         if not self.tmproot:
