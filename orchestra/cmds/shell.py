@@ -6,6 +6,8 @@ import termios
 import tty
 from subprocess import Popen
 
+from loguru import logger
+
 from ..actions.util import run_script
 from ..model.configuration import Configuration
 from ..util import export_environment
@@ -23,6 +25,12 @@ def handle_shell(args, config: Configuration):
         env["PS1"] = "(orchestra) $PS1"
     else:
         build = config.get_build(args.component)
+
+        if not build:
+            suggested_component_name = config.get_suggested_component_name(args.component)
+            logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
+            exit(1)
+
         env = build.install.environment
         env["PS1"] = f"(orchestra - {build.qualified_name}) $PS1"
 

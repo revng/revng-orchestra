@@ -68,8 +68,7 @@ class Configuration:
         component_name, build_name = parse_component_name(comp_spec)
         component = self.components.get(component_name)
         if not component:
-            suggested_component_name = self.get_suggested_component_name(component_name)
-            raise Exception(f"Component {component_name} not found! Did you mean {suggested_component_name}?")
+            return None
         if build_name:
             build = component.builds[build_name]
         else:

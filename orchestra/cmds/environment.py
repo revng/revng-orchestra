@@ -1,3 +1,5 @@
+from loguru import logger
+
 from ..util import export_environment
 
 
@@ -11,4 +13,10 @@ def handle_environment(args, config):
         print(export_environment(config.global_env()))
     else:
         build = config.get_build(args.component)
+
+        if not build:
+            suggested_component_name = config.get_suggested_component_name(args.component)
+            logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
+            exit(1)
+
         print(export_environment(build.install.environment))

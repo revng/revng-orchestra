@@ -1,5 +1,8 @@
-from ..model.configuration import Configuration
 import shutil
+
+from loguru import logger
+
+from ..model.configuration import Configuration
 
 
 def install_subcommand(sub_argparser):
@@ -10,6 +13,12 @@ def install_subcommand(sub_argparser):
 
 def handle_clean(args, config: Configuration):
     build = config.get_build(args.component)
+
+    if not build:
+        suggested_component_name = config.get_suggested_component_name(args.component)
+        logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
+        exit(1)
+
     if input(f"Do you want to clean {build.qualified_name}? [y/N] ").lower() != "y":
         return
 

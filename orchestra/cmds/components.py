@@ -1,3 +1,5 @@
+from loguru import logger
+
 from ..model.configuration import Configuration
 from ..util import get_installed_build
 
@@ -13,6 +15,12 @@ def install_subcommand(sub_argparser):
 def handle_components(args, config: Configuration):
     if args.component:
         build = config.get_build(args.component)
+
+        if not build:
+            suggested_component_name = config.get_suggested_component_name(args.component)
+            logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
+            exit(1)
+
         components = {build.component.name: build.component}
     else:
         components = config.components

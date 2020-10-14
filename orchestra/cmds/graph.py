@@ -1,3 +1,5 @@
+from loguru import logger
+
 from ..model.configuration import Configuration
 
 
@@ -10,7 +12,14 @@ def install_subcommand(sub_argparser):
 
 def handle_graph(args, config: Configuration):
     if args.component:
-        actions = [config.get_build(args.component).install]
+        build = config.get_build(args.component)
+
+        if not build:
+            suggested_component_name = config.get_suggested_component_name(args.component)
+            logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
+            exit(1)
+
+        actions = [build.install]
     else:
         actions = set()
         for component in config.components.values():
