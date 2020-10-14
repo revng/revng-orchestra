@@ -289,12 +289,12 @@ def hash_config_dir(config_dir):
 
 def run_ytt(orchestra_dotdir, use_cache=True):
     config_dir = os.path.join(orchestra_dotdir, "config")
-    config_cache_file = os.path.join(orchestra_dotdir, "config_cache")
+    config_cache_file = os.path.join(orchestra_dotdir, "config_cache.yml")
     config_hash = hash_config_dir(config_dir)
 
     if use_cache and os.path.exists(config_cache_file):
         with open(config_cache_file, "r") as f:
-            cached_hash = f.readline().strip()
+            cached_hash = f.readline().replace("#!", "").strip()
             if config_hash == cached_hash:
                 return f.read()
 
@@ -305,7 +305,7 @@ def run_ytt(orchestra_dotdir, use_cache=True):
 
     if use_cache:
         with open(config_cache_file, "w") as f:
-            f.write(config_hash + "\n")
+            f.write(f"#! {config_hash}\n")
             f.write(expanded_yaml)
 
     return expanded_yaml
