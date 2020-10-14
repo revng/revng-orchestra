@@ -29,6 +29,10 @@ class CloneAction(Action):
         script += " || \\\n  ".join(checkout_cmds)
         return script
 
+    def _run(self, args):
+        """Executes the action"""
+        run_script(self.script, quiet=True, environment=self.environment)
+
     def _is_satisfied(self):
         return os.path.exists(self.environment["SOURCE_DIR"])
 
