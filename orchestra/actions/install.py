@@ -74,7 +74,7 @@ class InstallAction(Action):
                 logger.info("Uninstalling previously installed build")
                 uninstall(self.build.component.name, self.config)
 
-            logger.info("Merging installed files into Orchestra root directory")
+            logger.info("Merging installed files into orchestra root directory")
             self._merge(args.quiet)
 
             # Write file metadata and index
@@ -133,15 +133,15 @@ class InstallAction(Action):
         logger.debug("Drop absolute paths from pkg-config")
         self._drop_absolute_pkgconfig_paths()
 
-        # TODO: maybe this should be put into the configuration and not in Orchestra itself
+        # TODO: maybe this should be put into the configuration and not in orchestra itself
         logger.info("Converting hardlinks to symbolic")
         self._hard_to_symbolic()
 
-        # TODO: maybe this should be put into the configuration and not in Orchestra itself
+        # TODO: maybe this should be put into the configuration and not in orchestra itself
         logger.info("Fixing RPATHs")
         self._fix_rpath(quiet)
 
-        # TODO: this should be put into the configuration and not in Orchestra itself
+        # TODO: this should be put into the configuration and not in orchestra itself
         logger.info("Replacing NDEBUG preprocessor statements")
         self._replace_ndebug(self.build.ndebug, quiet)
 
