@@ -248,7 +248,7 @@ def fetch(git_repo, checkout_dir=None, verbose=0, only=[]):
             url = obj["actions"]["download"]["href"]
             head = obj["actions"]["download"]["header"]
             logged_url = url if verbose > 0 else url[:40]
-            logger.info(f"Downloading {path} ({size / (1024 ** 2)} MB) from {logged_url}...")
+            logger.info(f"Downloading {path} ({(size / (1024 ** 2)):.2f} MB) from {logged_url}...")
             h = urlretrieve(url, headers=head)
             while True:
                 buf = h.read(10240)
