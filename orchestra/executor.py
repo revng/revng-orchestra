@@ -16,8 +16,8 @@ class Executor:
         self._failed_actions: List[Action] = []
         self._pool = futures.ThreadPoolExecutor(max_workers=threads, thread_name_prefix="Builder")
 
-    def run(self, action, force=False):
-        self._collect_actions(action, force=force)
+    def run(self, action, no_force=False):
+        self._collect_actions(action, force=not no_force)
         self._pending_actions.sort(key=lambda a: a.qualified_name)
 
         if not self._pending_actions:
