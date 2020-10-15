@@ -47,7 +47,7 @@ def run_script(script,
     result = subprocess.run(["/bin/bash", "-c", script_to_run], stdout=stdout, stderr=stderr)
     if check_returncode and result.returncode != 0:
         logger.error(f"Subprocess exited with exit code {result.returncode}")
-        logger.error(f"Script executed: {script_to_run}")
+        logger.error(f"Script executed: {export_environment(environment)}{script}")
         if quiet:
             stdout_content = try_decode(result.stdout)
             stderr_content = try_decode(result.stderr)
