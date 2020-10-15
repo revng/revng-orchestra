@@ -154,6 +154,7 @@ class InstallAction(Action):
 
     def _drop_absolute_pkgconfig_paths(self):
         script = dedent("""
+            cd "${TMP_ROOT}${ORCHESTRA_ROOT}"
             if [ -e lib/pkgconfig ]; then
                 find lib/pkgconfig \\
                     -name "*.pc" \\
