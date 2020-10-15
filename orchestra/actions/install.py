@@ -40,13 +40,13 @@ class InstallAction(Action):
             self._install_from_binary_archives()
             source = "binary archive"
 
-            logger.debug("Removing conflicting files")
+            logger.info("Removing conflicting files")
             self._remove_conflicting_files()
         elif not self.from_binary_archives or self.fallback_to_build:
             self._install(args.quiet)
             source = "build"
 
-            logger.debug("Removing conflicting files")
+            logger.info("Removing conflicting files")
             self._remove_conflicting_files()
 
             if self.build.component.skip_post_install:
@@ -130,7 +130,7 @@ class InstallAction(Action):
         run_script(self.script, quiet=quiet, environment=self.environment)
 
     def _post_install(self, quiet):
-        logger.debug("Drop absolute paths from pkg-config")
+        logger.info("Dropping absolute paths from pkg-config")
         self._drop_absolute_pkgconfig_paths()
 
         # TODO: maybe this should be put into the configuration and not in orchestra itself
@@ -139,11 +139,11 @@ class InstallAction(Action):
 
         # TODO: maybe this should be put into the configuration and not in orchestra itself
         logger.info("Fixing RPATHs")
-        self._fix_rpath(quiet)
+        self._fix_rpath()
 
         # TODO: this should be put into the configuration and not in orchestra itself
         logger.info("Replacing NDEBUG preprocessor statements")
-        self._replace_ndebug(self.build.ndebug, quiet)
+        self._replace_ndebug(self.build.ndebug)
 
     def _remove_conflicting_files(self):
         script = dedent("""
@@ -180,7 +180,7 @@ class InstallAction(Action):
                 os.unlink(alternative)
                 os.symlink(os.path.relpath(base, os.path.dirname(alternative)), alternative)
 
-    def _fix_rpath(self, quiet):
+    def _fix_rpath(self):
         replace_dynstr = os.path.join(os.path.dirname(__file__), "..", "support", "elf-replace-dynstr.py")
         fix_rpath_script = dedent(f"""
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
@@ -196,9 +196,9 @@ class InstallAction(Action):
                 fi
             done
             """)
-        run_script(fix_rpath_script, quiet=quiet, environment=self.environment)
+        run_script(fix_rpath_script, quiet=True, environment=self.environment)
 
-    def _replace_ndebug(self, disable_debugging, quiet):
+    def _replace_ndebug(self, disable_debugging):
         debug, ndebug = ("0", "1") if disable_debugging else ("1", "0")
         patch_ndebug_script = dedent(rf"""
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
@@ -211,7 +211,7 @@ class InstallAction(Action):
                     -e 's|^\(\s*#\s*if\s\+.*\)defined(NDEBUG)|\1{ndebug}|' \
                     {{}} ';'
             """)
-        run_script(patch_ndebug_script, quiet=quiet, environment=self.environment)
+        run_script(patch_ndebug_script, quiet=True, environment=self.environment)
 
     def _merge(self, quiet):
         copy_command = f'cp -farl "$TMP_ROOT/$ORCHESTRA_ROOT/." "$ORCHESTRA_ROOT"'
