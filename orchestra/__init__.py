@@ -8,6 +8,7 @@ from orchestra.model.configuration import Configuration
 parser = argparse.ArgumentParser()
 # TODO: set default loglevel to INFO or WARNING
 parser.add_argument("--loglevel", "-v", default="DEBUG", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
+parser.add_argument("--pretend", "-n", action="store_true", help="Do not execute actions, only print what would be done")
 parser.add_argument("--quiet", "-q", action="store_true", help="Do not show output of executed commands")
 parser.add_argument("--no-config-cache", action="store_true", help="Do not cache generated yaml configuration")
 parser.add_argument("--from-source", "-B", action="store_true", help="Build all components from source")
