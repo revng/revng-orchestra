@@ -1,6 +1,7 @@
 import json
 import os.path
 import re
+import sys
 from collections import OrderedDict
 from typing import Union
 
@@ -97,3 +98,8 @@ def export_environment(variables: OrderedDict):
     for var, val in variables.items():
         env += f'export {var}="{val}"\n'
     return env
+
+
+def set_terminal_title(title):
+    if sys.stdout.isatty():
+        sys.stdout.write(f"\x1b]2;{title}\x07")

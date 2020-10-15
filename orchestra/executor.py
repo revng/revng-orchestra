@@ -5,6 +5,7 @@ import enlighten
 from loguru import logger
 
 from .actions.action import Action
+from .util import set_terminal_title
 
 
 class Executor:
@@ -33,14 +34,17 @@ class Executor:
         status_bar.color = "bright_white_on_lightslategray"
 
         while self._running_actions:
+            running_jobs_str = ", ".join(a.name_for_graph for a in self._running_actions.values())
             status_bar_args = {
-                "jobs": ", ".join(a.name_for_graph for a in self._running_actions.values()),
+                "jobs": running_jobs_str,
                 "current": total_pending - len(self._pending_actions),
                 "total": total_pending,
             }
+            set_terminal_title(f"Running {running_jobs_str}")
             status_bar.status_format = "[{current}/{total}] Running {jobs}"
             status_bar.update(**status_bar_args)
             status_bar.refresh()
+
             done, not_done = futures.wait(self._running_actions, return_when=futures.FIRST_COMPLETED)
             for d in done:
                 action = self._running_actions[d]
