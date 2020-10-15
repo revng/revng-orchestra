@@ -116,6 +116,7 @@ class Configuration:
         env["SOURCES_DIR"] = self.sources_dir
         env["BUILDS_DIR"] = self.builds_dir
         env["TMP_ROOTS"] = self.tmproot
+        env["RPATH_PLACEHOLDER"] = "////////////////////////////////////////////////$ORCHESTRA_ROOT"
 
         # TODO: the order of the variables stays the same even if the
         #  user overrides an environment variable from the config.
