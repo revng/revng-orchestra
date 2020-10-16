@@ -43,9 +43,6 @@ class CloneAction(Action):
     @lru_cache()
     def get_remote_head(self):
         remotes = [f"{base_url}/{self.repository}" for base_url in self.config.remotes.values()]
-        local_repo = os.path.join(self.environment["SOURCE_DIR"], ".git")
-        if os.path.exists(local_repo):
-            remotes.insert(0, local_repo)
 
         for remote in remotes:
             result = self._ls_remote(remote)
