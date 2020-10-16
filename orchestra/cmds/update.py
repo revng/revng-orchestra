@@ -10,15 +10,17 @@ from ..model.configuration import Configuration
 
 def install_subcommand(sub_argparser):
     cmd_parser = sub_argparser.add_parser("update", handler=handle_update, help="Update components")
+    cmd_parser.add_argument("--no-config", action="store_true", help="Don't pull orchestra config")
 
 
 def handle_update(args, config: Configuration):
     failed_pulls = []
 
-    logger.info("Updating orchestra configuration")
-    result = git_pull(config.orchestra_dotdir)
-    if result.returncode:
-        failed_pulls.append(f"orchestra configuration ({config.orchestra_dotdir})")
+    if args.no_config:
+        logger.info("Updating orchestra configuration")
+        result = git_pull(config.orchestra_dotdir)
+        if result.returncode:
+            failed_pulls.append(f"orchestra configuration ({config.orchestra_dotdir})")
 
     logger.info("Updating binary archives")
     os.makedirs(config.binary_archives_dir, exist_ok=True)
