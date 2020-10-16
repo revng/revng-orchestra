@@ -16,7 +16,7 @@ def install_subcommand(sub_argparser):
 def handle_update(args, config: Configuration):
     failed_pulls = []
 
-    if args.no_config:
+    if not args.no_config:
         logger.info("Updating orchestra configuration")
         result = git_pull(config.orchestra_dotdir)
         if result.returncode:
