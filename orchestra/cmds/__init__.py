@@ -4,6 +4,7 @@ from . import clean
 from . import clone
 from . import components
 from . import configure
+from . import dumpconfig
 from . import environment
 from . import graph
 from . import install
@@ -26,6 +27,7 @@ def install_subcommands(argparser):
         dest="command_name",
         parser_class=CustomArgumentParser)
     components.install_subcommand(subparsers)
+    dumpconfig.install_subcommand(subparsers)
     environment.install_subcommand(subparsers)
     clone.install_subcommand(subparsers)
     update.install_subcommand(subparsers)
