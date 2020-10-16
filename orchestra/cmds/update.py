@@ -38,6 +38,12 @@ def handle_update(args, config: Configuration):
     if os.path.exists(ls_remote_cache):
         os.remove(ls_remote_cache)
 
+    for _, component in config.components.items():
+        for _, build in component.builds.items():
+            if build.clone:
+                logger.debug(f"Updating ls-remote cached info for {build.qualified_name}")
+                build.clone.get_remote_head()
+
     logger.info("Updating repositories")
     for git_repo in glob(os.path.join(config.sources_dir, "**/.git"), recursive=True):
         git_repo = os.path.dirname(git_repo)

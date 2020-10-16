@@ -70,15 +70,16 @@ class CloneAction(Action):
             check_returncode=False
         ).stdout.decode("utf-8")
 
-        if os.path.exists(cache_filepath):
-            with open(cache_filepath, "rb") as f:
-                cached_data = json.loads(f.read())
-        else:
-            cached_data = {}
+        if data:
+            if os.path.exists(cache_filepath):
+                with open(cache_filepath, "rb") as f:
+                    cached_data = json.loads(f.read())
+            else:
+                cached_data = {}
 
-        cached_data[self.build.qualified_name] = data
-        # TODO: prevent race condition, if two clone actions run at the same time
-        with open(cache_filepath, "w") as f:
-            json.dump(cached_data, f)
+            cached_data[self.build.qualified_name] = data
+            # TODO: prevent race condition, if two clone actions run at the same time
+            with open(cache_filepath, "w") as f:
+                json.dump(cached_data, f)
 
         return data
