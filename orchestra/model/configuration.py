@@ -269,6 +269,7 @@ class Configuration:
         """)
         default_user_config += binary_archives
         default_user_config += dedent("""
+        #!@overlay/replace
         #! build_from_source:
           #! - component-name
         
