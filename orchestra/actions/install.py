@@ -10,7 +10,7 @@ from loguru import logger
 from .action import Action
 from .util import run_script
 from .. import git_lfs
-from ..util import is_installed, get_installed_build
+from ..util import is_installed, get_installed_build, get_installed_metadata
 
 
 class InstallAction(Action):
@@ -296,11 +296,22 @@ class InstallAction(Action):
 
 class InstallAnyBuildAction(Action):
     def __init__(self, build, config):
-        installed_build_name = get_installed_build(build.component.name, config)
-        if installed_build_name:
-            chosen_build = build.component.builds[installed_build_name]
-        else:
+        installed_metadata = get_installed_metadata(build.component.name, config)
+        if not installed_metadata:
+            # The component is not installed, use default build
             chosen_build = build
+        else:
+            # The component is installed, check that the recursive hash is still the same
+            installed_build_name = installed_metadata["build_name"]
+            installed_build_hash = installed_metadata["recursive_hash"]
+            installed_build = build.component.builds.get(installed_build_name)
+            if not installed_build or installed_build.recursive_hash != installed_build_hash:
+                # The installed build disappeared from the config
+                # or the hash changed -- fallback to default
+                chosen_build = build
+            else:
+                chosen_build = installed_build
+
         super().__init__("install any", chosen_build, None, config)
         self._original_build = build
 
