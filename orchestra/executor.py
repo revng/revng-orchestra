@@ -17,8 +17,8 @@ class Executor:
         self._failed_actions: List[Action] = []
         self._pool = futures.ThreadPoolExecutor(max_workers=threads, thread_name_prefix="Builder")
 
-    def run(self, action, no_force=False):
-        self._collect_actions(action, force=not no_force)
+    def run(self, action, no_force=False, no_deps=False):
+        self._collect_actions(action, force=not no_force, no_deps=no_deps)
         self._pending_actions.sort(key=lambda a: a.qualified_name)
 
         if not self._pending_actions:
@@ -71,12 +71,15 @@ class Executor:
         status_bar.status_format = msg
         status_bar.close()
 
-    def _collect_actions(self, action: Action, force=False):
+    def _collect_actions(self, action: Action, force=False, no_deps=False):
         if not force and action.is_satisfied(recursively=True):
             return
 
         if action not in self._pending_actions:
             self._pending_actions.append(action)
+            if no_deps:
+                return
+
             for dep in action.dependencies:
                 self._collect_actions(dep)
 

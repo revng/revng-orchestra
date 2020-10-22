@@ -8,6 +8,7 @@ def install_subcommand(sub_argparser):
     cmd_parser = sub_argparser.add_parser("configure", handler=handle_configure, help="Run configure script")
     cmd_parser.add_argument("component")
     cmd_parser.add_argument("--no-force", action="store_true", help="Don't force execution of the root action")
+    cmd_parser.add_argument("--no-deps", action="store_true", help="Only execute the requested action")
 
 
 def handle_configure(args, config: Configuration):
@@ -19,4 +20,4 @@ def handle_configure(args, config: Configuration):
         exit(1)
 
     executor = Executor(args)
-    executor.run(build.configure, no_force=args.no_force)
+    executor.run(build.configure, no_force=args.no_force, no_deps=args.no_deps)
