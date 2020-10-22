@@ -15,10 +15,6 @@ def log(message):
     sys.stderr.write(message + "\n")
 
 
-def ignore_toolchains(component):
-    return not component.startswith("toolchain")
-
-
 def read_file(path):
     with open(path, "r") as input_file:
         return [line.strip() for line in input_file]
@@ -121,7 +117,7 @@ class Root:
 
         return True
 
-    def prepare_file_list(self, files, prefix="", component_filter=lambda component: True):
+    def prepare_file_list(self, files, prefix=""):
         result = ""
         by_component = defaultdict(list)
         for file in files:
@@ -133,8 +129,6 @@ class Root:
                 by_component["(orphan)"].append(file)
 
         for component, files in sorted(by_component.items()):
-            if not component_filter(component):
-                continue
             result += "{}{}:\n".format(prefix, component)
             for file in files:
                 result += "{}  {}\n".format(prefix, file)
@@ -236,7 +230,7 @@ class Root:
         system_libraries = []
         for missing_library, users in missing_libraries.items():
             if missing_library in libraries_in_root:
-                file_list = self.prepare_file_list(users, "    ", ignore_toolchains)
+                file_list = self.prepare_file_list(users, "    ")
                 if file_list:
                     log("{} is available in root".format(missing_library))
                     log("  These are the instances:")
@@ -260,7 +254,7 @@ class Root:
 
         to_print = list()
         for version, users in sorted(by_version.items()):
-            file_list = self.prepare_file_list(users, "    ", ignore_toolchains)
+            file_list = self.prepare_file_list(users, "    ")
             if file_list:
                 to_print.append((version, users, file_list))
 
