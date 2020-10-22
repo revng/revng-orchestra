@@ -23,6 +23,7 @@ def handle_shell(args, config: Configuration):
     if not args.component:
         env = config.global_env()
         env["PS1"] = "(orchestra) $PS1"
+        cd_to = os.getcwd()
     else:
         build = config.get_build(args.component)
 
@@ -33,6 +34,10 @@ def handle_shell(args, config: Configuration):
 
         env = build.install.environment
         env["PS1"] = f"(orchestra - {build.qualified_name}) $PS1"
+        if os.path.exists(build.install.environment["BUILD_DIR"]):
+            cd_to = build.install.environment["BUILD_DIR"]
+        else:
+            cd_to = os.getcwd()
 
     user_shell = run_script("getent passwd $(whoami) | cut -d: -f7", quiet=True).stdout.decode("utf-8").strip()
 
@@ -53,7 +58,9 @@ def handle_shell(args, config: Configuration):
               stdin=slave_fd,
               stdout=slave_fd,
               stderr=slave_fd,
-              universal_newlines=True)
+              universal_newlines=True,
+              cwd=cd_to
+              )
 
     os.write(master_fd, env_setter_script.encode("utf-8"))
     os.write(master_fd, b"echo 'RE''ADY';\n")
