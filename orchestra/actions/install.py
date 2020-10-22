@@ -253,6 +253,13 @@ class InstallAction(Action):
         #   binary archives git-lfs repo (e.g. it has been locally created by the user)
         binary_archive_path = self._binary_archive_filepath()
         binary_archive_repo_dir = os.path.dirname(binary_archive_path)
+        while binary_archive_repo_dir != "/":
+            if ".git" in os.listdir(binary_archive_repo_dir):
+                break
+            binary_archive_repo_dir = os.path.dirname(binary_archive_repo_dir)
+        if binary_archive_repo_dir == "/":
+            logger.error("Binary archives are not a git repository!")
+            exit(1)
         git_lfs.fetch(binary_archive_repo_dir, only=[os.path.realpath(binary_archive_path)])
 
     def _install_from_binary_archives(self):
