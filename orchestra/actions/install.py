@@ -10,7 +10,7 @@ from loguru import logger
 from .action import Action
 from .util import run_script
 from .. import git_lfs
-from ..util import is_installed, get_installed_build, get_installed_metadata
+from ..util import is_installed, get_installed_metadata
 
 
 class InstallAction(Action):
@@ -225,6 +225,14 @@ class InstallAction(Action):
         binary_archive_tmp_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/_tmp_{archive_name}"
         binary_archive_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/linux-x86-64/{archive_dirname}/{archive_name}"
         binary_archive_containing_dir = os.path.dirname(binary_archive_path)
+        orchestra_config_branch = run_script(
+            'git -C "$ORCHESTRA_DOTDIR" rev-parse --abbrev-ref HEAD',
+            environment=self.environment,
+            quiet=True
+        ).stdout.decode("utf-8").strip()
+        build_branch = self.build.local_checked_out_branch() or "none"
+        symlinked_archive_name = f"{build_branch}_{orchestra_config_branch}.tar.gz"
+        symlinked_archive_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/linux-x86-64/{archive_dirname}/{symlinked_archive_name}"
         script = dedent(f"""
             mkdir -p "$BINARY_ARCHIVES"
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
@@ -232,6 +240,8 @@ class InstallAction(Action):
             tar caf "{binary_archive_tmp_path}" --owner=0 --group=0 "."
             mkdir -p "{binary_archive_containing_dir}"
             mv "{binary_archive_tmp_path}" "{binary_archive_path}"
+            if [ -e "{symlinked_archive_path}" ]; then rm "{symlinked_archive_path}"; fi
+            ln -s "{archive_name}" {symlinked_archive_path}
             """)
         run_script(script, quiet=True, environment=self.environment)
 

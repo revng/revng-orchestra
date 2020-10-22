@@ -4,6 +4,7 @@ from ..actions import CloneAction
 from ..actions import ConfigureAction
 from ..actions import InstallAction
 from . import component
+from ..actions.util import run_script
 
 
 class Build:
@@ -48,6 +49,18 @@ class Build:
             return None
 
         return self.clone.get_remote_head()
+
+    def local_checked_out_branch(self):
+        if self.clone is None:
+            return None
+
+        branch = run_script(
+            'git -C "$SOURCE_DIR" rev-parse --abbrev-ref HEAD',
+            quiet=True,
+            environment=self.clone.environment
+        ).stdout.decode("utf-8").strip()
+
+        return branch if branch else None
 
     def __str__(self):
         return f"Build {self.component.name}@{self.name}"
