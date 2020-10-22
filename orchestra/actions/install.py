@@ -345,9 +345,9 @@ class InstallAnyBuildAction(Action):
     @property
     def name_for_graph(self):
         if self.build == self._original_build:
-            return f"install {self.build.component.name} (prefer {self._original_build.name})"
+            return f"install\\n{self.build.component.name}\\n(prefer {self._original_build.name})"
         else:
-            return f"install {self.build.component.name} (prefer {self._original_build.name}, chosen {self.build.name})"
+            return f"install\\n{self.build.component.name}\\n(prefer {self._original_build.name}, chosen {self.build.name})"
 
     @property
     def name_for_components(self):
