@@ -78,6 +78,10 @@ class Action:
         return f"{self.build.qualified_name}[{self.name}]"
 
     @property
+    def name_for_info(self):
+        return f"{self.name} {self.build.component.name}@{self.build.name}"
+
+    @property
     def name_for_graph(self):
         return f"{self.name}\\n{self.build.component.name}@{self.build.name}"
 

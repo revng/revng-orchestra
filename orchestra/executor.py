@@ -34,7 +34,7 @@ class Executor:
         status_bar.color = "bright_white_on_lightslategray"
 
         while self._running_actions:
-            running_jobs_str = ", ".join(a.name_for_graph for a in self._running_actions.values())
+            running_jobs_str = ", ".join(a.name_for_info for a in self._running_actions.values())
             status_bar_args = {
                 "jobs": running_jobs_str,
                 "current": total_pending - len(self._pending_actions),
@@ -60,7 +60,7 @@ class Executor:
                     self._schedule_next()
 
         if self._failed_actions:
-            msg = "Failed: " + ", ".join(a.name_for_graph for a in self._failed_actions)
+            msg = "Failed: " + ", ".join(a.name_for_info for a in self._failed_actions)
             status_bar.color = "white_on_red"
             logger.error(msg)
         else:
