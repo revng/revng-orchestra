@@ -83,7 +83,7 @@ class Action:
 
     @property
     def name_for_graph(self):
-        return f"{self.name}\\n{self.build.component.name}@{self.build.name}"
+        return f"{self.name} {self.build.component.name}@{self.build.name}"
 
     @property
     def name_for_components(self):

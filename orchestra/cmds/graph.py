@@ -31,10 +31,6 @@ def handle_graph(args, config: Configuration):
 
     print("digraph dependency_graph {")
     print("  splines=ortho")
-    print("  nodesep=0.5")
-    print("  raksep=\"0.1 equally\"")
-    print("  rankdir=LR")
-    print("  concentrate=true")
     print_dependencies(actions)
     print("}")
 
