@@ -86,7 +86,7 @@ class InstallAction(Action):
                 "source": source,
                 "self_hash": self.build.self_hash,
                 "recursive_hash": self.build.recursive_hash,
-                "binary_archive_name": self.build.binary_archive_filename,
+                "binary_archive_path": os.path.join(self.build.binary_archive_dir, self.build.binary_archive_filename),
             }
             with open(self.config.installed_component_metadata_path(self.build.component.name), "w") as f:
                 json.dump(metadata, f)
@@ -219,15 +219,18 @@ class InstallAction(Action):
         run_script(copy_command, quiet=quiet, environment=self.environment)
 
     def _create_binary_archive(self):
+        archive_dirname = self.build.binary_archive_dir
         archive_name = self.build.binary_archive_filename
         binary_archive_repo_name = list(self.config.binary_archives_remotes.keys())[0]
         binary_archive_tmp_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/_tmp_{archive_name}"
-        binary_archive_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/{archive_name}"
+        binary_archive_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/linux-x86-64/{archive_dirname}/{archive_name}"
+        binary_archive_containing_dir = os.path.dirname(binary_archive_path)
         script = dedent(f"""
             mkdir -p "$BINARY_ARCHIVES"
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             rm "{binary_archive_tmp_path}" || true
             tar caf "{binary_archive_tmp_path}" --owner=0 --group=0 "."
+            mkdir -p "{binary_archive_containing_dir}"
             mv "{binary_archive_tmp_path}" "{binary_archive_path}"
             """)
         run_script(script, quiet=True, environment=self.environment)
@@ -235,7 +238,9 @@ class InstallAction(Action):
     def _binary_archive_filepath(self):
         archives_dir = self.environment["BINARY_ARCHIVES"]
         for name in self.config.binary_archives_remotes:
-            try_archive_path = os.path.join(archives_dir, name, self.build.binary_archive_filename)
+            archive_dir = self.build.binary_archive_dir
+            archive_name = self.build.binary_archive_filename
+            try_archive_path = os.path.join(archives_dir, name, "linux-x86-64", archive_dir, archive_name)
             if os.path.exists(try_archive_path):
                 return try_archive_path
         return None

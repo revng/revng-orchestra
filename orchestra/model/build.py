@@ -1,3 +1,5 @@
+import os.path
+
 from ..actions import CloneAction
 from ..actions import ConfigureAction
 from ..actions import InstallAction
@@ -31,9 +33,15 @@ class Build:
         return self.qualified_name.replace("@", "_").replace("/", "_")
 
     @property
+    def binary_archive_dir(self):
+        """Returns the relative dirname where the binary archives should be created/found."""
+        return os.path.join(self.component.name, self.name)
+
+    @property
     def binary_archive_filename(self):
+        """Returns the filename of the binary archive. Remember to os.path.join it with binary_archive_dir!"""
         component_commit = self.commit() or "none"
-        return f'{self.safe_name}_{component_commit}_{self.recursive_hash}.tar.gz'
+        return f'{component_commit}_{self.recursive_hash}.tar.gz'
 
     def commit(self):
         if self.clone is None:
