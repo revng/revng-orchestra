@@ -336,18 +336,19 @@ class InstallAnyBuildAction(Action):
 
         super().__init__("install any", chosen_build, None, config)
         self._original_build = build
+        self._has_run = False
 
     def _implicit_dependencies(self):
         return {self.build.install}
 
     def _run(self, args):
-        return
+        self._has_run = True
 
     def is_satisfied(self, recursively=False, already_checked=None):
         return any(
             build.install.is_satisfied(recursively=recursively, already_checked=already_checked)
             for build in self.build.component.builds.values()
-        )
+        ) and self._has_run
 
     def _is_satisfied(self):
         raise NotImplementedError("This method should not be called!")
