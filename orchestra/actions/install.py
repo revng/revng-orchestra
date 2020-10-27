@@ -237,7 +237,7 @@ class InstallAction(Action):
             mkdir -p "$BINARY_ARCHIVES"
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             rm "{binary_archive_tmp_path}" || true
-            tar caf "{binary_archive_tmp_path}" --owner=0 --group=0 "."
+            tar cvaf "{binary_archive_tmp_path}" --owner=0 --group=0 *
             mkdir -p "{binary_archive_containing_dir}"
             mv "{binary_archive_tmp_path}" "{binary_archive_path}"
             if [ -e "{symlinked_archive_path}" ]; then rm "{symlinked_archive_path}"; fi
