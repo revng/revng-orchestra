@@ -174,6 +174,8 @@ class Configuration:
                 )
 
                 serialized_build = json.dumps(build_yaml, sort_keys=True).encode("utf-8")
+                if build.clone:
+                    serialized_build = build.clone.get_remote_head().encode("utf-8") + serialized_build
                 build.self_hash = hashlib.sha1(serialized_build).hexdigest()
 
         # Second pass: resolve "external" dependencies
