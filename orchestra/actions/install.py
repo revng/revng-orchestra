@@ -90,6 +90,7 @@ class InstallAction(Action):
             }
             with open(self.config.installed_component_metadata_path(self.build.component.name), "w") as f:
                 json.dump(metadata, f)
+
             with open(self.config.installed_component_file_list_path(self.build.component.name), "w") as f:
                 new_files = [f"{f}\n" for f in new_files]
                 f.writelines(new_files)
@@ -144,6 +145,24 @@ class InstallAction(Action):
         # TODO: this should be put into the configuration and not in orchestra itself
         logger.info("Replacing NDEBUG preprocessor statements")
         self._replace_ndebug(self.build.ndebug)
+
+        if self.build.component.license:
+            logger.info("Copying license file")
+            source = self.build.component.license
+            destination = self.config.installed_component_license_path(self.build.component.name)
+            script = dedent(f"""
+                DESTINATION_DIR="$(dirname "{destination}")"
+                mkdir -p "$DESTINATION_DIR"
+                for DIR in "$BUILD_DIR" "$SOURCE_DIR"; do
+                  if test -e "$DIR/{source}"; then
+                    cp "$DIR/{source}" "$TMP_ROOT/{destination}"
+                    exit 0
+                  fi
+                done
+                echo "Couldn't find {source}"
+                exit 1
+                """)
+            run_script(script, environment=self.environment)
 
     def _remove_conflicting_files(self):
         script = dedent("""

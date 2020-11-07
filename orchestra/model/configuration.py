@@ -87,6 +87,12 @@ class Configuration:
         """
         return os.path.join(self.installed_component_metadata_dir(), component_name.replace("/", "_") + ".json")
 
+    def installed_component_license_path(self, component_name):
+        """
+        Returns the path of the file containing the license of an installed component
+        """
+        return os.path.join(self.installed_component_metadata_dir(), component_name.replace("/", "_") + ".license")
+
     def installed_component_metadata_dir(self):
         """
         Returns the path of the directory containing indices of the installed components
@@ -141,13 +147,14 @@ class Configuration:
         # First pass: create the component, its builds and actions
         for component_name, component_yaml in self.parsed_yaml["components"].items():
             default_build = component_yaml.get("default_build")
+            license = component_yaml.get("license")
             if not default_build:
                 build_names = list(component_yaml["builds"])
                 build_names.sort()
                 default_build = build_names[0]
 
             skip_post_install = component_yaml.get("skip_post_install", False)
-            component = comp.Component(component_name, default_build, skip_post_install=skip_post_install)
+            component = comp.Component(component_name, default_build, license, skip_post_install=skip_post_install)
             self.components[component_name] = component
 
             for build_name, build_yaml in component_yaml["builds"].items():
