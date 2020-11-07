@@ -51,6 +51,7 @@ class Executor:
                 del self._running_actions[d]
                 exception = d.exception()
                 if exception:
+                    raise exception
                     logger.error("An error occurred!")
                     if self._pending_actions:
                         logger.error(f"Waiting for other running actions to terminate: {self._pending_actions}")
