@@ -1,3 +1,4 @@
+import hashlib
 import os.path
 
 from ..actions import CloneAction
@@ -12,13 +13,13 @@ class Build:
             self,
             name: str,
             comp: component.Component,
+            serialized_build: str,
             ndebug=True,
             test=False,
     ):
         self.name = name
         self.component = comp
-        self.self_hash = None
-        self.recursive_hash = None
+        self.serialized_build = serialized_build
 
         self.configure: ConfigureAction = None
         self.install: InstallAction = None
@@ -29,6 +30,35 @@ class Build:
     @property
     def qualified_name(self):
         return f"{self.component.name}@{self.name}"
+
+    @property
+    def self_hash(self):
+        serialized_build = self.serialized_build
+        if self.component.clone:
+            commit = self.component.clone.get_remote_head()
+            if commit:
+                serialized_build = commit.encode("utf-8") + serialized_build
+        return hashlib.sha1(serialized_build).hexdigest()
+
+    @property
+    def recursive_hash(self):
+        # The recursive hash of a build depends on all its configure and install dependencies
+        all_builds = {d.build for d in self.configure.external_dependencies}
+        # TODO: are install dependencies required to be part of the information to hash?
+        #  In theory they should not influence the artifacts
+        all_builds.update({d.build for d in self.install.external_dependencies})
+        # Filter out builds from the same component
+        all_builds = [b for b in all_builds if b.component != self.component]
+
+        # sorted_dependencies = [(b.qualified_name, b) for b in all_builds]
+        # sorted_dependencies.sort()
+        all_builds.sort(key=lambda b: b.qualified_name)
+
+        to_hash = self.self_hash
+        for b in all_builds:
+            to_hash += b.recursive_hash
+
+        return hashlib.sha1(to_hash.encode("utf-8")).hexdigest()
 
     @property
     def safe_name(self):

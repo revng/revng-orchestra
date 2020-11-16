@@ -173,7 +173,14 @@ class Configuration:
             for build_name, build_yaml in component_yaml["builds"].items():
                 ndebug = build_yaml.get("ndebug", True)
                 test = build_yaml.get("test", False)
-                build = bld.Build(build_name, component, ndebug=ndebug, test=test)
+
+                # This will be used to compute the self_hash
+                serialized_build = json.dumps(build_yaml, sort_keys=True).encode("utf-8")
+                build = bld.Build(build_name,
+                                  component,
+                                  serialized_build,
+                                  ndebug=ndebug,
+                                  test=test)
                 component.add_build(build)
 
                 configure_script = build_yaml["configure"]
@@ -187,13 +194,6 @@ class Configuration:
                     from_binary_archives=not from_source,
                     fallback_to_build=self.fallback_to_build,
                 )
-
-                serialized_build = json.dumps(build_yaml, sort_keys=True).encode("utf-8")
-                if component.clone:
-                    commit = component.clone.get_remote_head()
-                    if commit:
-                        serialized_build = commit.encode("utf-8") + serialized_build
-                build.self_hash = hashlib.sha1(serialized_build).hexdigest()
 
         # Second pass: resolve "external" dependencies
         for component_name, component_yaml in self.parsed_yaml["components"].items():
@@ -228,8 +228,6 @@ class Configuration:
                             and not self.from_source \
                             and not build_only:
                         build.install.external_dependencies.add(dep_action)
-
-                set_build_hash(build)
 
     @staticmethod
     def locate_orchestra_dotdir(relpath=""):
@@ -355,30 +353,3 @@ def run_ytt(orchestra_dotdir, use_cache=True):
             f.write(expanded_yaml)
 
     return expanded_yaml
-
-
-def set_build_hash(build: "bld.Build"):
-    if build.recursive_hash is not None:
-        return
-
-    # The recursive hash of a build depends on all its configure and install dependencies
-    all_builds = {d.build for d in build.configure.external_dependencies}
-    # TODO: are install dependencies required to be part of the information to hash?
-    #  In theory they should not influence the artifacts
-    all_builds.update({d.build for d in build.install.external_dependencies})
-    # Filter out builds from the same component
-    all_builds = [b for b in all_builds if b.component != build.component]
-
-    # Ensure the recursive hash of all dependencies is computed
-    for b in all_builds:
-        set_build_hash(b)
-
-    # sorted_dependencies = [(b.qualified_name, b) for b in all_builds]
-    # sorted_dependencies.sort()
-    all_builds.sort(key=lambda b: b.qualified_name)
-
-    to_hash = build.self_hash
-    for b in all_builds:
-        to_hash += b.recursive_hash
-
-    build.recursive_hash = hashlib.sha1(to_hash.encode("utf-8")).hexdigest()

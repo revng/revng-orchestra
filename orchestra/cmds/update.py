@@ -78,7 +78,8 @@ def pull_binary_archive(name, config):
 def clone_binary_archive(name, url, config):
     logger.info(f"Trying to clone binary archive from remote {name} ({url})")
     binary_archive_path = os.path.join(config.binary_archives_dir, name)
-    env = os.environ
+    env = dict(os.environ)
+    env["GIT_SSH_COMMAND"] = "ssh -oControlPath=~/.ssh/ssh-mux-%r@%h:%p -oControlMaster=auto -o ControlPersist=10"
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
     result = subprocess.run(["git", "clone", url, binary_archive_path], env=env)
     if result.returncode:
