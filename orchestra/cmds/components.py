@@ -11,7 +11,7 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("--not-installed", action="store_true", help="Only print not installed components")
     cmd_parser.add_argument("--deps", action="store_true", help="Print dependencies")
     cmd_parser.add_argument("--hashes", action="store_true", help="Show hashes")
-
+    cmd_parser.add_argument("--repository-url", help="Show components from this repository URL")
 
 def handle_components(args):
     config = Configuration(args)
@@ -28,6 +28,17 @@ def handle_components(args):
         components = config.components
 
     for component_name, component in components.items():
+        # Filter by repository URL
+        if args.repository_url:
+            if not component.clone:
+                continue
+            repository = component.clone.repository
+            if not any(remote_base_url
+                       for remote_base_url
+                       in config.remotes.values()
+                       if args.repository_url ==  f"{remote_base_url}/{repository}"):
+                continue
+
         installed_build = get_installed_build(component_name, config)
         if args.installed and installed_build \
                 or args.not_installed and installed_build is None \
