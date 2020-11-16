@@ -1,6 +1,7 @@
 import argparse
 import sys
 from loguru import logger
+from tqdm import tqdm
 
 from orchestra.cmds import install_subcommands
 from orchestra.model.configuration import Configuration
@@ -15,12 +16,17 @@ parser.add_argument("--fallback-build", "-b", action="store_true", help="Build i
 
 subparsers = install_subcommands(parser)
 
+class TqdmWrapper:
+    def write(self, message):
+        tqdm.write(message.strip())
+        sys.stdout.flush()
+        sys.stderr.flush()
 
 def main():
     args = parser.parse_args()
 
     logger.remove(0)
-    logger.add(sys.stderr, level=args.loglevel, colorize=True, format="<level>[+] {level}</level> - {message}")
+    logger.add(TqdmWrapper(), level=args.loglevel, colorize=True, format="<level>[+] {level}</level> - {message}")
 
     cmd_parser = subparsers.choices.get(args.command_name)
     if not cmd_parser:

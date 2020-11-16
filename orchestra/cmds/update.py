@@ -5,6 +5,8 @@ from textwrap import dedent
 
 from loguru import logger
 
+from tqdm import tqdm
+
 from ..model.configuration import Configuration
 
 
@@ -39,26 +41,43 @@ def handle_update(args):
     if os.path.exists(ls_remote_cache):
         os.remove(ls_remote_cache)
 
-    for _, component in config.components.items():
-        for _, build in component.builds.items():
-            if build.clone:
-                logger.debug(f"Updating ls-remote cached info for {build.qualified_name}")
-                build.clone.get_remote_head()
+    logger.info("Updating ls-remote cached info")
+    clonable_components = [component
+                           for _, component
+                           in config.components.items()
+                           if component.clone]
+    for component in tqdm(clonable_components, unit="components"):
+        logger.info(f"Fetching the latest remote commit for {component.name}")
+        component.clone.get_remote_head()
 
-    logger.info("Updating repositories")
-    for git_repo in glob(os.path.join(config.sources_dir, "**/.git"), recursive=True):
-        git_repo = os.path.dirname(git_repo)
-        logger.info(f"Pulling {git_repo}")
-        result = git_pull(git_repo)
-        if result.returncode:
-            failed_pulls.append(f"Repository {git_repo}")
+    to_pull = []
+    for _, component in config.components.items():
+        if not component.clone:
+            continue
+
+        source_path = os.path.join(config.sources_dir, component.name)
+        if not os.path.exists(source_path):
+            continue
+
+        to_pull.append(component)
+
+    if to_pull:
+        logger.info("Updating repositories")
+        for component in tqdm(to_pull, unit="components"):
+            source_path = os.path.join(config.sources_dir, component.name)
+            assert os.path.exists(os.path.join(source_path, ".git"))
+
+            logger.info(f"Pulling {component.name}")
+            result = git_pull(source_path)
+            if result.returncode:
+                failed_pulls.append(f"Repository {component.name}")
 
     if failed_pulls:
         formatted_failed_pulls = "\n".join([f"  {repo}" for repo in failed_pulls])
         failed_git_pull_suggestion = dedent(f"""
         Could not git pull --ff-only the following repositories:
         {formatted_failed_pulls}
-        
+
         Suggestions:
             - check your network connection
             - commit your work
@@ -70,7 +89,7 @@ def handle_update(args):
 
 def pull_binary_archive(name, config):
     binary_archive_path = os.path.join(config.binary_archives_dir, name)
-    logger.info(f"Pulling binary archive {binary_archive_path}")
+    logger.info(f"Pulling binary archive {name}")
     result = git_pull(binary_archive_path)
     return result
 
@@ -89,4 +108,9 @@ def clone_binary_archive(name, url, config):
 def git_pull(directory):
     env = os.environ
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
-    return subprocess.run(["git", "-C", directory, "pull", "--ff-only"], env=env)
+    result = subprocess.run(["git", "-C", directory, "pull", "--ff-only"],
+                            env=env,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
+    logger.info(result.stdout.decode("utf8").strip())
+    return result
