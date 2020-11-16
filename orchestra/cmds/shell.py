@@ -19,7 +19,8 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("component", nargs="?")
 
 
-def handle_shell(args, config: Configuration):
+def handle_shell(args):
+    config = Configuration(args)
     if not args.component:
         env = config.global_env()
         env["PS1"] = "(orchestra) $PS1"

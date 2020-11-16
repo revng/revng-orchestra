@@ -13,7 +13,8 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("--no-config", action="store_true", help="Don't pull orchestra config")
 
 
-def handle_update(args, config: Configuration):
+def handle_update(args):
+    config = Configuration(args)
     failed_pulls = []
 
     if not args.no_config:

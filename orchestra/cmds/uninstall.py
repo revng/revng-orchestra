@@ -10,7 +10,8 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("component")
 
 
-def handle_uninstall(args, config: Configuration):
+def handle_uninstall(args):
+    config = Configuration(args)
     component_name, build_name = parse_component_name(args.component)
     if not is_installed(config, component_name, build_name):
         logger.error(f"Component {args.component} is not installed")

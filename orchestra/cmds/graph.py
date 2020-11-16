@@ -10,7 +10,8 @@ def install_subcommand(sub_argparser):
                             help="Include all builds instead of only the default one.")
 
 
-def handle_graph(args, config: Configuration):
+def handle_graph(args):
+    config = Configuration(args)
     if args.component:
         build = config.get_build(args.component)
 

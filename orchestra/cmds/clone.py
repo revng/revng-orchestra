@@ -10,7 +10,8 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("--no-force", action="store_true", help="Don't force execution of the root action")
 
 
-def handle_clone(args, config: Configuration):
+def handle_clone(args):
+    config = Configuration(args)
     build = config.get_build(args.component)
 
     if not build:

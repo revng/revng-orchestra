@@ -11,7 +11,8 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("--no-deps", action="store_true", help="Only execute the requested action")
 
 
-def handle_configure(args, config: Configuration):
+def handle_configure(args):
+    config = Configuration(args)
     build = config.get_build(args.component)
 
     if not build:

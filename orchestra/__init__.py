@@ -27,6 +27,4 @@ def main():
         parser.print_help()
         exit(1)
 
-    configuration = Configuration(args)
-
-    cmd_parser.handler(args, configuration)
+    cmd_parser.handler(args)

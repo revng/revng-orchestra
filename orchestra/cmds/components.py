@@ -13,7 +13,8 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("--hashes", action="store_true", help="Show hashes")
 
 
-def handle_components(args, config: Configuration):
+def handle_components(args):
+    config = Configuration(args)
     if args.component:
         build = config.get_build(args.component)
 

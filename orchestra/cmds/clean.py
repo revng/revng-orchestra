@@ -11,7 +11,8 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("--include-sources", "-s", action="store_true", help="Also delete source dir")
 
 
-def handle_clean(args, config: Configuration):
+def handle_clean(args):
+    config = Configuration(args)
     build = config.get_build(args.component)
 
     if not build:

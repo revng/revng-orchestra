@@ -1,5 +1,6 @@
 from loguru import logger
 
+from ..model.configuration import Configuration
 from ..util import export_environment
 
 
@@ -8,7 +9,8 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("component", nargs="?")
 
 
-def handle_environment(args, config):
+def handle_environment(args):
+    config = Configuration(args)
     if not args.component:
         print(export_environment(config.global_env()))
     else:

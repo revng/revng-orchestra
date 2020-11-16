@@ -9,5 +9,6 @@ def install_subcommand(sub_argparser):
     cmd_parser = sub_argparser.add_parser("dumpconfig", handler=handle_dumpconfig, help="Dump yaml configuration")
 
 
-def handle_dumpconfig(args, config: Configuration):
+def handle_dumpconfig(args):
+    config = Configuration(args)
     print(config.generated_yaml)

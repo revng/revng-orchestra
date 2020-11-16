@@ -25,7 +25,7 @@ class Configuration:
         self.from_source = args.from_source
         self.fallback_to_build = args.fallback_build
 
-        self.orchestra_dotdir = self._locate_orchestra_dotdir()
+        self.orchestra_dotdir = Configuration.locate_orchestra_dotdir()
         if not self.orchestra_dotdir:
             raise Exception("Directory .orchestra not found!")
 
@@ -221,7 +221,8 @@ class Configuration:
 
                 set_build_hash(build)
 
-    def _locate_orchestra_dotdir(self, relpath=""):
+    @staticmethod
+    def locate_orchestra_dotdir(relpath=""):
         cwd = os.getcwd()
         search_path = os.path.realpath(os.path.join(cwd, relpath))
         if ".orchestra" in os.listdir(search_path):
@@ -230,10 +231,15 @@ class Configuration:
         if search_path == "/":
             return None
 
-        return self._locate_orchestra_dotdir(os.path.join(relpath, ".."))
+        return Configuration.locate_orchestra_dotdir(os.path.join(relpath, ".."))
+
+    @staticmethod
+    def locate_user_options():
+        orchestra_dotdir = Configuration.locate_orchestra_dotdir()
+        return os.path.join(orchestra_dotdir, "config", "user_options.yml")
 
     def _create_default_user_options(self):
-        remotes_config_file = os.path.join(self.orchestra_dotdir, "config", "user_options.yml")
+        remotes_config_file = Configuration.locate_user_options()
         if os.path.exists(remotes_config_file):
             return
 

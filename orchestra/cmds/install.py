@@ -14,7 +14,8 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("--keep-tmproot", action="store_true", help="Do not remove temporary root directories")
 
 
-def handle_install(args, config: Configuration):
+def handle_install(args):
+    config = Configuration(args)
     build = config.get_build(args.component)
 
     if not build:
