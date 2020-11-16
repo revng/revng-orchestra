@@ -242,7 +242,15 @@ class InstallAction(ActionForBuild):
     def _create_binary_archive(self):
         archive_dirname = self.build.binary_archive_dir
         archive_name = self.build.binary_archive_filename
-        binary_archive_repo_name = list(self.config.binary_archives_remotes.keys())[0]
+
+        # Select the binary archives repository to employ
+        if self.component.binary_archives:
+            binary_archive_repo_name = self.component.binary_archives
+            if binary_archive_repo_name not in self.config.binary_archives_remotes.keys():
+                raise Exception(f"The {self.component.name} component wants to push to an unknown binary-archives repository ({binary_archive_repo_name})")
+        else:
+            binary_archive_repo_name = list(self.config.binary_archives_remotes.keys())[0]
+
         binary_archive_tmp_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/_tmp_{archive_name}"
         binary_archive_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/linux-x86-64/{archive_dirname}/{archive_name}"
         binary_archive_containing_dir = os.path.dirname(binary_archive_path)

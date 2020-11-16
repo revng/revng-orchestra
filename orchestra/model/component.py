@@ -9,6 +9,7 @@ class Component:
                  name: str,
                  default_build_name: str,
                  license: str,
+                 binary_archives: str,
                  skip_post_install=False,
                  ):
         self.name = name
@@ -17,6 +18,7 @@ class Component:
         self.skip_post_install = skip_post_install
         self.license = license
         self.clone: CloneAction = None
+        self.binary_archives = binary_archives
 
     def add_build(self, bld: 'build.Build'):
         self.builds[bld.name] = bld

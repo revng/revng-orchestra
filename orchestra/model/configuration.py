@@ -154,7 +154,12 @@ class Configuration:
                 default_build = build_names[0]
 
             skip_post_install = component_yaml.get("skip_post_install", False)
-            component = comp.Component(component_name, default_build, license, skip_post_install=skip_post_install)
+            binary_archives = component_yaml.get("binary_archives", None)
+            component = comp.Component(component_name,
+                                       default_build,
+                                       license,
+                                       binary_archives,
+                                       skip_post_install=skip_post_install)
 
             repo = component_yaml.get("repository")
             if repo:
