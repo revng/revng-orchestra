@@ -9,6 +9,7 @@ class Component:
                  name: str,
                  default_build_name: str,
                  license: str,
+                 from_source: bool,
                  binary_archives: str,
                  skip_post_install=False,
                  ):
@@ -17,6 +18,7 @@ class Component:
         self.default_build_name = default_build_name
         self.skip_post_install = skip_post_install
         self.license = license
+        self.from_source = from_source
         self.clone: CloneAction = None
         self.binary_archives = binary_archives
 

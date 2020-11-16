@@ -154,10 +154,12 @@ class Configuration:
                 default_build = build_names[0]
 
             skip_post_install = component_yaml.get("skip_post_install", False)
+            from_source = component_yaml.get("build_from_source", False) or self.from_source
             binary_archives = component_yaml.get("binary_archives", None)
             component = comp.Component(component_name,
                                        default_build,
                                        license,
+                                       from_source,
                                        binary_archives,
                                        skip_post_install=skip_post_install)
 
@@ -177,7 +179,6 @@ class Configuration:
                 configure_script = build_yaml["configure"]
                 build.configure = ConfigureAction(build, configure_script, self)
 
-                from_source = component_yaml.get("build_from_source", False) or self.from_source
                 install_script = build_yaml["install"]
                 build.install = InstallAction(
                     build,
