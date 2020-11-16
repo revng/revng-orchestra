@@ -141,6 +141,8 @@ class Configuration:
         path += "${PATH:+:${PATH}}"
         env["PATH"] = path
 
+        env["GIT_ASKPASS"] = "/bin/true"
+
         return env
 
     def _parse_components(self):
