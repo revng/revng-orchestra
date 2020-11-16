@@ -8,11 +8,9 @@ from .util import run_script
 # Only used for type hints, package-relative import not possible due to circular reference
 import orchestra.model.configuration
 
-
 class Action:
-    def __init__(self, name, build, script, config):
+    def __init__(self, name, script, config):
         self.name = name
-        self.build = build
         self.config: "orchestra.model.configuration.Configuration" = config
         self.external_dependencies: Set[Action] = set()
         self._script = script
@@ -67,30 +65,63 @@ class Action:
     @property
     def environment(self) -> OrderedDict:
         """Returns additional environment variables provided to the script to be run"""
-        env = self.config.global_env()
-        env["SOURCE_DIR"] = f"""{self.config.sources_dir}/{self.build.component.name}"""
-        env["BUILD_DIR"] = f"""{self.config.builds_dir}/{self.build.component.name}/{self.build.name}"""
+        return self.config.global_env()
+
+    @property
+    def _target_name(self):
+        raise NotImplementedException("Action subclasses must implement _target_name")
+
+    @property
+    def qualified_name(self):
+        return self._target_name + f"[{self.name}]"
+
+    @property
+    def name_for_info(self):
+        return f"{self.name} {self._target_name}"
+
+    @property
+    def name_for_graph(self):
+        return self.name_for_info
+
+    @property
+    def name_for_components(self):
+        return self._target_name
+
+    def __str__(self):
+        return f"Action {self.name} of {self.name_for_info}"
+
+    def __repr__(self):
+        return self.__str__()
+
+class ActionForComponent(Action):
+    def __init__(self, name, component, script, config):
+        super().__init__(name, script, config)
+        self.component = component
+
+    @property
+    def environment(self) -> OrderedDict:
+        env = super().environment
+        env["SOURCE_DIR"] = os.path.join(self.config.sources_dir, self.component.name)
+        return env
+
+    @property
+    def _target_name(self):
+        return self.component.name
+
+class ActionForBuild(ActionForComponent):
+    def __init__(self, name, build, script, config):
+        super().__init__(name, build.component, script, config)
+        self.build = build
+
+    @property
+    def environment(self) -> OrderedDict:
+        env = super().environment
+        env["BUILD_DIR"] = os.path.join(self.config.builds_dir,
+                                        self.build.component.name,
+                                        self.build.name)
         env["TMP_ROOT"] = os.path.join(env["TMP_ROOTS"], self.build.safe_name)
         return env
 
     @property
-    def qualified_name(self):
-        return f"{self.build.qualified_name}[{self.name}]"
-
-    @property
-    def name_for_info(self):
-        return f"{self.name} {self.build.component.name}@{self.build.name}"
-
-    @property
-    def name_for_graph(self):
-        return f"{self.name} {self.build.component.name}@{self.build.name}"
-
-    @property
-    def name_for_components(self):
-        return f"{self.build.qualified_name}"
-
-    def __str__(self):
-        return f"Action {self.name} of {self.build.component.name}@{self.build.name}"
-
-    def __repr__(self):
-        return f"Action {self.name} of {self.build.component.name}@{self.build.name}"
+    def _target_name(self):
+        return self.build.qualified_name

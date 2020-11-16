@@ -3,13 +3,13 @@ import os.path
 import re
 from functools import lru_cache
 
-from .action import Action
+from .action import ActionForComponent
 from .util import run_script
 
 
-class CloneAction(Action):
-    def __init__(self, build, repository, config):
-        super().__init__("clone", build, None, config)
+class CloneAction(ActionForComponent):
+    def __init__(self, component, repository, config):
+        super().__init__("clone", component, None, config)
         self.repository = repository
 
     @property

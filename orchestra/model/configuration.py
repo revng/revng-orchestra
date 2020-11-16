@@ -155,17 +155,18 @@ class Configuration:
 
             skip_post_install = component_yaml.get("skip_post_install", False)
             component = comp.Component(component_name, default_build, license, skip_post_install=skip_post_install)
+
+            repo = component_yaml.get("repository")
+            if repo:
+                clone_action = CloneAction(component, repo, self)
+                component.clone = clone_action
+
             self.components[component_name] = component
 
             for build_name, build_yaml in component_yaml["builds"].items():
                 ndebug = build_yaml.get("ndebug", True)
                 build = bld.Build(build_name, component, ndebug=ndebug)
                 component.add_build(build)
-
-                repo = component_yaml.get("repository")
-                if repo:
-                    clone_action = CloneAction(build, repo, self)
-                    build.clone = clone_action
 
                 configure_script = build_yaml["configure"]
                 build.configure = ConfigureAction(build, configure_script, self)
@@ -181,8 +182,10 @@ class Configuration:
                 )
 
                 serialized_build = json.dumps(build_yaml, sort_keys=True).encode("utf-8")
-                if build.clone:
-                    serialized_build = build.clone.get_remote_head().encode("utf-8") + serialized_build
+                if component.clone:
+                    commit = component.clone.get_remote_head()
+                    if commit:
+                        serialized_build = commit.encode("utf-8") + serialized_build
                 build.self_hash = hashlib.sha1(serialized_build).hexdigest()
 
         # Second pass: resolve "external" dependencies

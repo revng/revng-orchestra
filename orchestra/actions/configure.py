@@ -2,11 +2,11 @@ import os
 
 from loguru import logger
 
-from .action import Action
+from .action import ActionForBuild
 from .util import run_script
 
 
-class ConfigureAction(Action):
+class ConfigureAction(ActionForBuild):
     def __init__(self, build, script, config):
         super().__init__("configure", build, script, config)
 
@@ -30,7 +30,7 @@ class ConfigureAction(Action):
         return os.path.join(self.environment["BUILD_DIR"], ".configure_successful")
 
     def _implicit_dependencies(self):
-        if self.build.clone:
-            return {self.build.clone}
+        if self.build.component.clone:
+            return {self.build.component.clone}
         else:
             return set()

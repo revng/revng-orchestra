@@ -7,13 +7,13 @@ from textwrap import dedent
 
 from loguru import logger
 
-from .action import Action
+from .action import ActionForBuild
 from .util import run_script
 from .. import git_lfs
 from ..util import is_installed, get_installed_metadata
 
 
-class InstallAction(Action):
+class InstallAction(ActionForBuild):
     def __init__(self, build, script, config, from_binary_archives=False, fallback_to_build=False):
         name = "install"
         name += " from binary archives" if from_binary_archives else ""
@@ -249,7 +249,7 @@ class InstallAction(Action):
             environment=self.environment,
             quiet=True
         ).stdout.decode("utf-8").strip()
-        build_branch = self.build.local_checked_out_branch() or "none"
+        build_branch = self.build.component.local_checked_out_branch() or "none"
         symlinked_archive_name = f"{build_branch}_{orchestra_config_branch}.tar.gz"
         symlinked_archive_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/linux-x86-64/{archive_dirname}/{symlinked_archive_name}"
         script = dedent(f"""
@@ -335,7 +335,7 @@ class InstallAction(Action):
             return {self.build.configure}
 
 
-class InstallAnyBuildAction(Action):
+class InstallAnyBuildAction(ActionForBuild):
     def __init__(self, build, config):
         installed_metadata = get_installed_metadata(build.component.name, config)
         if not installed_metadata:
