@@ -12,6 +12,7 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("--no-merge", action="store_true", help="Do not merge files into orchestra root")
     cmd_parser.add_argument("--create-binary-archives", action="store_true", help="Create binary archives")
     cmd_parser.add_argument("--keep-tmproot", action="store_true", help="Do not remove temporary root directories")
+    cmd_parser.add_argument("--test", action="store_true", help="Run the test suite")
 
 
 def handle_install(args):

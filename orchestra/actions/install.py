@@ -14,7 +14,7 @@ from ..util import is_installed, get_installed_metadata, OrchestraException
 
 
 class InstallAction(ActionForBuild):
-    def __init__(self, build, script, config, from_binary_archives=False, fallback_to_build=False):
+    def __init__(self, build, script, config, from_binary_archives=False, fallback_to_build=False, run_tests=False):
         name = "install"
         name += " from binary archives" if from_binary_archives else ""
         name += " or build" if from_binary_archives and fallback_to_build else ""
@@ -43,7 +43,7 @@ class InstallAction(ActionForBuild):
             logger.info("Removing conflicting files")
             self._remove_conflicting_files()
         elif not self.from_binary_archives or self.fallback_to_build:
-            self._install(args.quiet)
+            self._install(args.quiet, args.test)
             source = "build"
 
             logger.info("Removing conflicting files")
@@ -126,9 +126,11 @@ class InstallAction(ActionForBuild):
     def _cleanup_tmproot(self):
         run_script('rm -rf "$TMP_ROOT"', environment=self.environment, quiet=True)
 
-    def _install(self, quiet):
+    def _install(self, quiet, test):
         logger.info("Executing install script")
-        run_script(self.script, quiet=quiet, environment=self.environment)
+        env = dict(self.environment)
+        env["RUN_TESTS"] = "1" if (self.build.test and test) else "0"
+        run_script(self.script, quiet=quiet, environment=env)
 
     def _post_install(self, quiet):
         logger.info("Dropping absolute paths from pkg-config")

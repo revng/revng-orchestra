@@ -165,7 +165,8 @@ class Configuration:
 
             for build_name, build_yaml in component_yaml["builds"].items():
                 ndebug = build_yaml.get("ndebug", True)
-                build = bld.Build(build_name, component, ndebug=ndebug)
+                test = build_yaml.get("test", False)
+                build = bld.Build(build_name, component, ndebug=ndebug, test=test)
                 component.add_build(build)
 
                 configure_script = build_yaml["configure"]

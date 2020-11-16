@@ -13,6 +13,7 @@ class Build:
             name: str,
             comp: component.Component,
             ndebug=True,
+            test=False,
     ):
         self.name = name
         self.component = comp
@@ -23,6 +24,7 @@ class Build:
         self.install: InstallAction = None
 
         self.ndebug = ndebug
+        self.test = test
 
     @property
     def qualified_name(self):
