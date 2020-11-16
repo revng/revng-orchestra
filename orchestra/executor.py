@@ -5,7 +5,7 @@ import enlighten
 from loguru import logger
 
 from .actions.action import Action
-from .util import set_terminal_title
+from .util import set_terminal_title, OrchestraException
 
 
 class Executor:
@@ -51,23 +51,23 @@ class Executor:
                 del self._running_actions[d]
                 exception = d.exception()
                 if exception:
-                    raise exception
-                    logger.error("An error occurred!")
-                    if self._pending_actions:
-                        logger.error(f"Waiting for other running actions to terminate: {self._pending_actions}")
-                    self._pending_actions = []
-                    self._failed_actions.append(action)
+                    if isinstance(exception, OrchestraException):
+                        logger.error(str(exception))
+                        if self._pending_actions:
+                            logger.error(f"Waiting for other running actions to terminate: {self._pending_actions}")
+                            self._pending_actions = []
+                        self._failed_actions.append(action)
+                    else:
+                        raise exception
                 else:
                     self._schedule_next()
 
         if self._failed_actions:
             msg = "Failed: " + ", ".join(a.name_for_info for a in self._failed_actions)
             status_bar.color = "white_on_red"
-            logger.error(msg)
         else:
             msg = "All done!"
             status_bar.color = "white_on_darkgreen"
-            logger.info(msg)
 
         status_bar.status_format = msg
         status_bar.close()

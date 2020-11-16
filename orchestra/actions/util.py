@@ -2,14 +2,13 @@ import subprocess
 from collections import OrderedDict
 from loguru import logger
 
-from ..util import export_environment
+from ..util import export_environment, OrchestraException
 
 bash_prelude = """
 set -o errexit
 set -o nounset
 set -o pipefail
 """
-
 
 def run_script(script,
                quiet=False,
@@ -40,20 +39,14 @@ def run_script(script,
         stdout = subprocess.PIPE
         stderr = subprocess.PIPE
     else:
+        logger.info(f"The following script is going to be executed:\n" + script.strip())
+        logger.info(f"Script output:")
         stdout = None
         stderr = None
 
-    logger.debug(f"Executing script:\n{script}")
     result = subprocess.run(["/bin/bash", "-c", script_to_run], stdout=stdout, stderr=stderr)
     if check_returncode and result.returncode != 0:
-        logger.error(f"Subprocess exited with exit code {result.returncode}")
-        logger.error(f"Script executed: {export_environment(environment)}{script}")
-        if quiet:
-            stdout_content = try_decode(result.stdout)
-            stderr_content = try_decode(result.stderr)
-            logger.error(f"STDOUT: {stdout_content}")
-            logger.error(f"STDERR: {stderr_content}")
-        raise Exception("Script failed", result)
+        raise OrchestraException(f"Script failed with return code {result.returncode}")
 
     return result
 

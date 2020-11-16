@@ -10,7 +10,7 @@ from loguru import logger
 from .action import ActionForBuild
 from .util import run_script
 from .. import git_lfs
-from ..util import is_installed, get_installed_metadata
+from ..util import is_installed, get_installed_metadata, OrchestraException
 
 
 class InstallAction(ActionForBuild):
@@ -54,7 +54,7 @@ class InstallAction(ActionForBuild):
             else:
                 self._post_install(args.quiet)
         else:
-            raise Exception("Binary archive not found!")
+            raise OrchestraException("Binary archive not found!")
 
         end_time = time.time()
 
@@ -293,7 +293,7 @@ class InstallAction(ActionForBuild):
 
     def _install_from_binary_archives(self):
         if not self._binary_archive_exists():
-            raise Exception("Binary archive not found!")
+            raise OrchestraException("Binary archive not found!")
 
         archive_filepath = self._binary_archive_filepath()
         script = dedent(f"""
