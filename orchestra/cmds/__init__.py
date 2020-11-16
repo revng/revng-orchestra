@@ -11,6 +11,7 @@ from . import install
 from . import shell
 from . import uninstall
 from . import update
+from . import ls
 
 
 class CustomArgumentParser(argparse.ArgumentParser):
@@ -37,4 +38,5 @@ def install_subcommands(argparser):
     uninstall.install_subcommand(subparsers)
     graph.install_subcommand(subparsers)
     shell.install_subcommand(subparsers)
+    ls.install_subcommand(subparsers)
     return subparsers
