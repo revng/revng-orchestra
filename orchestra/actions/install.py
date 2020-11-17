@@ -121,10 +121,10 @@ class InstallAction(ActionForBuild):
             touch "${TMP_ROOT}${ORCHESTRA_ROOT}/share/info/dir"
             mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/libexec"
             """)
-        run_script(script, environment=self.environment, quiet=True)
+        run_script(script, environment=self.environment)
 
     def _cleanup_tmproot(self):
-        run_script('rm -rf "$TMP_ROOT"', environment=self.environment, quiet=True)
+        run_script('rm -rf "$TMP_ROOT"', environment=self.environment)
 
     def _install(self, quiet, test):
         logger.info("Executing install script")
@@ -171,7 +171,7 @@ class InstallAction(ActionForBuild):
             rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/info" 
             rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/locale" 
             """)
-        run_script(script, quiet=True, environment=self.environment)
+        run_script(script, environment=self.environment)
 
     def _drop_absolute_pkgconfig_paths(self):
         script = dedent("""
@@ -182,7 +182,7 @@ class InstallAction(ActionForBuild):
                     -exec sed -i 's|/*'"$ORCHESTRA_ROOT"'/*|${pcfiledir}/../..|g' {} ';'
             fi
             """)
-        run_script(script, quiet=True, environment=self.environment)
+        run_script(script, environment=self.environment)
 
     def _hard_to_symbolic(self):
         duplicates = defaultdict(list)
@@ -218,7 +218,7 @@ class InstallAction(ActionForBuild):
                 fi
             done
             """)
-        run_script(fix_rpath_script, quiet=True, environment=self.environment)
+        run_script(fix_rpath_script, environment=self.environment)
 
     def _replace_ndebug(self, disable_debugging):
         debug, ndebug = ("0", "1") if disable_debugging else ("1", "0")
@@ -233,7 +233,7 @@ class InstallAction(ActionForBuild):
                     -e 's|^\(\s*#\s*if\s\+.*\)defined(NDEBUG)|\1{ndebug}|' \
                     {{}} ';'
             """)
-        run_script(patch_ndebug_script, quiet=True, environment=self.environment)
+        run_script(patch_ndebug_script, environment=self.environment)
 
     def _merge(self, quiet):
         copy_command = f'cp -farl "$TMP_ROOT/$ORCHESTRA_ROOT/." "$ORCHESTRA_ROOT"'
@@ -256,8 +256,8 @@ class InstallAction(ActionForBuild):
         binary_archive_containing_dir = os.path.dirname(binary_archive_path)
         orchestra_config_branch = run_script(
             'git -C "$ORCHESTRA_DOTDIR" rev-parse --abbrev-ref HEAD',
-            environment=self.environment,
-            quiet=True
+            quiet=True,
+            environment=self.environment
         ).stdout.decode("utf-8").strip()
         build_branch = self.build.component.local_checked_out_branch() or "none"
         symlinked_archive_name = f"{build_branch}_{orchestra_config_branch}.tar.gz"
@@ -272,7 +272,7 @@ class InstallAction(ActionForBuild):
             if [ -e "{symlinked_archive_path}" ]; then rm "{symlinked_archive_path}"; fi
             ln -s "{archive_name}" {symlinked_archive_path}
             """)
-        run_script(script, quiet=True, environment=self.environment)
+        run_script(script, environment=self.environment)
 
     def _binary_archive_filepath(self):
         archives_dir = self.environment["BINARY_ARCHIVES"]
@@ -311,7 +311,7 @@ class InstallAction(ActionForBuild):
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             tar xaf "{archive_filepath}"
             """)
-        run_script(script, environment=self.environment, quiet=True)
+        run_script(script, environment=self.environment)
 
     @staticmethod
     def _index_directory(root_dir_path, relative_to=None):
