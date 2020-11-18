@@ -95,7 +95,9 @@ def get_lfs_api_token(host, path):
     """
     header_info = {}
     query_cmd = "ssh " + host + " git-lfs-authenticate " + path + " download"
-    output = check_output(query_cmd.split()).strip().decode("utf8")
+    # TODO: we're suppressing stderr
+    output = check_output(query_cmd.split(),
+                          stderr=PIPE).strip().decode("utf8")
     if output:
         query_resp = json.loads(output)
         header_info = query_resp["header"]
