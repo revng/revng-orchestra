@@ -30,9 +30,9 @@ def main():
     parser.add_argument("padding", metavar="PADDING", nargs="?", default="\x00", help="padding (default NUL).")
     args = parser.parse_args()
 
+    fail = False
     if len(args.replace) > len(args.search):
-        log_error("Search string is shorter than replacement.")
-        return 1
+        fail = True
 
     if len(args.replace) < len(args.search):
         args.replace = args.replace + args.padding * (len(args.search) - len(args.replace))
@@ -74,6 +74,9 @@ def main():
 
         new = original.replace(args.search, args.replace)
         if new != original:
+            if fail:
+                log("Search string is shorter than replacement.")
+                return 1
             log("Patching")
             elf_file.seek(offset)
             elf_file.write(new)
