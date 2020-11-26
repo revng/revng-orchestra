@@ -42,6 +42,7 @@ class InstallAction(ActionForBuild):
 
             logger.info("Removing conflicting files")
             self._remove_conflicting_files()
+            self._create_binary_archive(True)
         elif not self.from_binary_archives or self.fallback_to_build:
             self._install(args.quiet, args.test)
             source = "build"
@@ -53,6 +54,7 @@ class InstallAction(ActionForBuild):
                 logger.info("Skipping post install")
             else:
                 self._post_install(args.quiet)
+            self._create_binary_archive(not args.create_binary_archives)
         else:
             raise OrchestraException("Binary archive not found!")
 
@@ -64,10 +66,6 @@ class InstallAction(ActionForBuild):
         post_file_list.append(
             os.path.relpath(self.config.installed_component_metadata_path(self.build.component.name), orchestra_root))
         new_files = [f for f in post_file_list if f not in pre_file_list]
-
-        if args.create_binary_archives and self._binary_archive_filepath() is None:
-            logger.info("Creating binary archive")
-            self._create_binary_archive()
 
         if not args.no_merge:
             if is_installed(self.config, self.build.component.name):
@@ -239,7 +237,7 @@ class InstallAction(ActionForBuild):
         copy_command = f'cp -farl "$TMP_ROOT/$ORCHESTRA_ROOT/." "$ORCHESTRA_ROOT"'
         run_script(copy_command, quiet=quiet, environment=self.environment)
 
-    def _create_binary_archive(self):
+    def _create_binary_archive(self, update_symlink_only):
         archive_dirname = self.build.binary_archive_dir
         archive_name = self.build.binary_archive_filename
 
@@ -262,15 +260,27 @@ class InstallAction(ActionForBuild):
         build_branch = (self.build.component.local_checked_out_branch() or "none").replace("/", "-")
         symlinked_archive_name = f"{build_branch}_{orchestra_config_branch}.tar.gz"
         symlinked_archive_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/linux-x86-64/{archive_dirname}/{symlinked_archive_name}"
+
+        # Should we actually create the archive?
+        if not update_symlink_only:
+            logger.info("Creating binary archive")
+            script = dedent(f"""
+                mkdir -p "$BINARY_ARCHIVES"
+                cd "$TMP_ROOT$ORCHESTRA_ROOT"
+                rm -f "{binary_archive_tmp_path}"
+                tar cvaf "{binary_archive_tmp_path}" --owner=0 --group=0 *
+                mkdir -p "{binary_archive_containing_dir}"
+                mv "{binary_archive_tmp_path}" "{binary_archive_path}"
+                """)
+            run_script(script, environment=self.environment)
+
+        # In any case, update the symlink
+        logger.info("Updating binary archive symlink")
         script = dedent(f"""
-            mkdir -p "$BINARY_ARCHIVES"
-            cd "$TMP_ROOT$ORCHESTRA_ROOT"
-            rm "{binary_archive_tmp_path}" || true
-            tar cvaf "{binary_archive_tmp_path}" --owner=0 --group=0 *
-            mkdir -p "{binary_archive_containing_dir}"
-            mv "{binary_archive_tmp_path}" "{binary_archive_path}"
-            if [ -e "{symlinked_archive_path}" ]; then rm "{symlinked_archive_path}"; fi
-            ln -s "{archive_name}" {symlinked_archive_path}
+            if test -e "{binary_archive_path}"; then
+              rm -f "{symlinked_archive_path}"
+              ln -s "{archive_name}" "{symlinked_archive_path}"
+            fi
             """)
         run_script(script, environment=self.environment)
 
