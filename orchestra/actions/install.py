@@ -166,8 +166,8 @@ class InstallAction(ActionForBuild):
 
     def _remove_conflicting_files(self):
         script = dedent("""
-            rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/info" 
-            rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/locale" 
+            if test -d "$TMP_ROOT/$ORCHESTRA_ROOT/share/info"; then rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/info"; fi
+            if test -d "$TMP_ROOT/$ORCHESTRA_ROOT/share/locale"; then rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/locale"; fi
             """)
         run_script(script, environment=self.environment)
 

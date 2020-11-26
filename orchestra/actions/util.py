@@ -44,7 +44,7 @@ def run_script(script,
         stdout = None
         stderr = None
 
-    result = subprocess.run(["/bin/bash", "-c", script_to_run], stdout=stdout, stderr=stderr)
+    result = subprocess.run(["/bin/bash", "-cx", script_to_run], stdout=stdout, stderr=stderr)
     if check_returncode and result.returncode != 0:
         raise OrchestraException(f"Script failed with return code {result.returncode}")
 
