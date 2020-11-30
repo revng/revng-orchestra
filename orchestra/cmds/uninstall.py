@@ -15,6 +15,6 @@ def handle_uninstall(args):
     component_name, build_name = parse_component_name(args.component)
     if not is_installed(config, component_name, build_name):
         logger.error(f"Component {args.component} is not installed")
-        exit(1)
+        return 1
 
     uninstall(component_name, config)

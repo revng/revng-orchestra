@@ -2,7 +2,7 @@ from ..model.configuration import Configuration
 
 
 def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("dumpconfig", handler=handle_dumpconfig, help="Dump yaml configuration")
+    sub_argparser.add_parser("dumpconfig", handler=handle_dumpconfig, help="Dump yaml configuration")
 
 
 def handle_dumpconfig(args):

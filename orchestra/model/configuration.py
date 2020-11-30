@@ -1,12 +1,13 @@
+import hashlib
 import json
 import os
 import re
 import subprocess
 from collections import OrderedDict
 from itertools import repeat
+from tempfile import TemporaryDirectory
 from textwrap import dedent
 from typing import Dict
-from tempfile import TemporaryDirectory
 
 import yaml
 from fuzzywuzzy import fuzz
@@ -14,7 +15,7 @@ from loguru import logger
 
 from . import build as bld
 from . import component as comp
-from ..actions import CloneAction, ConfigureAction, InstallAction, InstallAnyBuildAction
+from ..actions import CloneAction, ConfigureAction, InstallAction, AnyOfAction
 from ..actions.util import run_script
 from ..util import parse_component_name, parse_dependency
 
@@ -56,8 +57,10 @@ def follow_redirects(url, max=3):
 class Configuration:
     def __init__(self, fallback_to_build=False, force_from_source=False, use_config_cache=True):
         self.components: Dict[str, comp.Component] = {}
-        self.from_source = force_from_source
+        # Allows to trigger a build from source if binary archives are not found
         self.fallback_to_build = fallback_to_build
+        # Forces all components to be built from source
+        self.build_all_from_source = force_from_source
 
         self.orchestra_dotdir = Configuration.locate_orchestra_dotdir()
         if not self.orchestra_dotdir:
@@ -181,90 +184,99 @@ class Configuration:
         return env
 
     def _parse_components(self):
-        # First pass: create the component, its builds and actions
+        # First pass: create the components, their builds and actions
         for component_name, component_yaml in self.parsed_yaml["components"].items():
-            default_build = component_yaml.get("default_build")
-            license = component_yaml.get("license")
-            if not default_build:
-                build_names = list(component_yaml["builds"])
-                build_names.sort()
-                default_build = build_names[0]
-
-            skip_post_install = component_yaml.get("skip_post_install", False)
-            from_source = component_yaml.get("build_from_source", False) or self.from_source
+            from_source = component_yaml.get("build_from_source", False) or self.build_all_from_source
             binary_archives = component_yaml.get("binary_archives", None)
+            skip_post_install = component_yaml.get("skip_post_install", False)
+            license = component_yaml.get("license")
+            repo = component_yaml.get("repository")
             component = comp.Component(component_name,
-                                       default_build,
                                        license,
                                        from_source,
                                        binary_archives,
                                        skip_post_install=skip_post_install)
 
-            repo = component_yaml.get("repository")
             if repo:
                 clone_action = CloneAction(component, repo, self)
                 component.clone = clone_action
 
             self.components[component_name] = component
 
+            # The default build is either specified, or the first in alphabetical order
+            default_build_name = component_yaml.get("default_build")
+            if default_build_name is None:
+                build_names = list(component_yaml["builds"])
+                build_names.sort()
+                default_build_name = build_names[0]
+
             for build_name, build_yaml in component_yaml["builds"].items():
                 ndebug = build_yaml.get("ndebug", True)
                 test = build_yaml.get("test", False)
+                is_default_build = build_name == default_build_name
 
                 # This will be used to compute the self_hash
                 serialized_build = json.dumps(build_yaml, sort_keys=True).encode("utf-8")
                 build = bld.Build(build_name,
                                   component,
-                                  serialized_build,
                                   ndebug=ndebug,
                                   test=test)
-                component.add_build(build)
+                component.add_build(build, default=is_default_build)
 
                 configure_script = build_yaml["configure"]
                 build.configure = ConfigureAction(build, configure_script, self)
 
                 install_script = build_yaml["install"]
+                force_build = component_yaml.get("build_from_source", False) or self.build_all_from_source
+                allow_build = self.fallback_to_build or force_build
+                allow_binary_archive = not force_build
                 build.install = InstallAction(
                     build,
                     install_script,
                     self,
-                    from_binary_archives=not from_source,
-                    fallback_to_build=self.fallback_to_build,
+                    allow_build=allow_build,
+                    allow_binary_archive=allow_binary_archive
                 )
+            set_self_hash(component, component_yaml)
 
-        # Second pass: resolve "external" dependencies
+        # Second pass: parse dependencies
         for component_name, component_yaml in self.parsed_yaml["components"].items():
             component = self.components[component_name]
 
             for build_name, build_yaml in component_yaml["builds"].items():
                 build = component.builds[build_name]
 
-                dependencies = build_yaml.get("dependencies", [])
-                build_dependencies = build_yaml.get("build_dependencies", [])
+                # -- Populate explicit dependencies
+                explicit_dependencies = build_yaml.get("dependencies", [])
+                explicit_build_dependencies = build_yaml.get("build_dependencies", [])
                 # List of (dependency_name: str, build_only: bool)
-                all_dependencies = []
-                all_dependencies += list(zip(dependencies, repeat(False)))
-                all_dependencies += list(zip(build_dependencies, repeat(True)))
+                all_explicit_dependencies = []
+                all_explicit_dependencies += list(zip(explicit_dependencies, repeat(False)))
+                all_explicit_dependencies += list(zip(explicit_build_dependencies, repeat(True)))
 
-                for dep, build_only in all_dependencies:
-                    dep_comp_name, dep_build_name, exact_build_required = parse_dependency(dep)
-                    dep_comp = self.components[dep_comp_name]
+                for dependency_specifier, is_build_only in all_explicit_dependencies:
+                    dependency_component_name, dependency_build_name, exact_build_required = parse_dependency(
+                        dependency_specifier)
+                    dependency_component = self.components[dependency_component_name]
 
-                    if dep_build_name:
-                        dep_build = dep_comp.builds[dep_build_name]
+                    if dependency_build_name:
+                        preferred_build = dependency_component.builds[dependency_build_name]
                     else:
-                        dep_build = dep_comp.default_build
+                        preferred_build = dependency_component.default_build
 
-                    if exact_build_required:
-                        dep_action = dep_build.install
+                    if not exact_build_required:
+                        alternatives = [b.install for b in dependency_component.builds.values()]
+                        dependency_action = AnyOfAction(alternatives, preferred_build.install)
                     else:
-                        dep_action = InstallAnyBuildAction(dep_build, self)
+                        dependency_action = preferred_build.install
 
-                    build.configure.external_dependencies.add(dep_action)
-                    if not component_yaml.get("build_from_source") \
-                            and not self.from_source \
-                            and not build_only:
-                        build.install.external_dependencies.add(dep_action)
+                    build.configure.add_explicit_dependency(dependency_action)
+                    if not is_build_only:
+                        build.install.add_explicit_dependency(dependency_action)
+
+        # Third pass: initialize recursive hash
+        for component in self.components.values():
+            set_recursive_hash(component)
 
     @staticmethod
     def locate_orchestra_dotdir(relpath=""):
@@ -395,3 +407,46 @@ def run_ytt(orchestra_dotdir, use_cache=True):
             f.write(expanded_yaml)
 
     return expanded_yaml
+
+
+def set_self_hash(component: comp.Component, component_yaml):
+    to_hash = b""
+    build_names = list(component_yaml["builds"].keys())
+    build_names.sort()
+    for build_name in build_names:
+        build_yaml = component_yaml["builds"][build_name]
+        serialized_build_yaml = json.dumps(build_yaml, sort_keys=True).encode("utf-8")
+        to_hash += serialized_build_yaml
+    component.self_hash = hashlib.sha1(to_hash).hexdigest()
+
+
+def set_recursive_hash(component: comp.Component):
+    if component.recursive_hash is not None:
+        return
+
+    dependency_actions = set()
+    for build in component.builds.values():
+        collect_dependencies(build.install, dependency_actions)
+
+    dependency_components = set()
+    for action in dependency_actions:
+        if isinstance(action, AnyOfAction):
+            continue
+        dependency_components.add(action.component)
+
+    dependency_components = list(dependency_components)
+    dependency_components.sort(key=str)
+
+    to_hash = ""
+    for d in dependency_components:
+        to_hash += d.self_hash
+    component.recursive_hash = hashlib.sha1(to_hash.encode("utf-8")).hexdigest()
+
+
+def collect_dependencies(root_action, collected_actions):
+    if root_action in collected_actions:
+        return collected_actions
+
+    collected_actions.add(root_action)
+    for d in root_action.dependencies:
+        collect_dependencies(d, collected_actions)

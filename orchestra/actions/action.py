@@ -12,12 +12,13 @@ class Action:
     def __init__(self, name, script, config):
         self.name = name
         self.config: "orchestra.model.configuration.Configuration" = config
-        self.external_dependencies: Set[Action] = set()
+        self._explicit_dependencies: Set[Action] = set()
         self._script = script
 
     def run(self, args):
         logger.info(f"Executing {self}")
-        self._run(args)
+        if not args.pretend:
+            self._run(args)
 
     def _run(self, args):
         """Executes the action"""
@@ -28,34 +29,18 @@ class Action:
         """Unless _run is overridden, should return the script to run"""
         return self._script
 
+    def add_explicit_dependency(self, dependency):
+        self._explicit_dependencies.add(dependency)
+
     @property
     def dependencies(self):
-        return self.external_dependencies.union(self._implicit_dependencies())
+        return self._explicit_dependencies.union(self._implicit_dependencies())
 
     def _implicit_dependencies(self):
         return set()
 
-    def is_satisfied(self, recursively=False, already_checked=None):
-        if already_checked is None:
-            already_checked = set()
-
-        if not self._is_satisfied():
-            return False
-
-        elif not recursively:
-            return True
-        else:
-            already_checked.add(self)
-            for d in self.dependencies:
-                if d in already_checked:
-                    continue
-                d_satisfied = d.is_satisfied(recursively=recursively, already_checked=already_checked)
-                if not d_satisfied:
-                    return False
-            return True
-
-    def _is_satisfied(self):
-        """Returns true if the action is satisfied, false if it needs to run."""
+    def is_satisfied(self):
+        """Returns true if the action is satisfied."""
         raise NotImplementedError()
 
     def can_run(self):

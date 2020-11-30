@@ -26,7 +26,9 @@ def handle_configure(args):
     if not build:
         suggested_component_name = config.get_suggested_component_name(args.component)
         logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
-        exit(1)
+        return 1
 
-    executor = Executor(args)
-    return executor.run(build.configure, no_force=args.no_force, no_deps=args.no_deps)
+    executor = Executor(args, [build.configure], no_deps=args.no_deps)
+    failed = executor.run()
+    exitcode = 1 if failed else 0
+    return exitcode

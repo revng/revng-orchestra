@@ -18,7 +18,7 @@ def handle_ls(args):
 
     if args.git_sources + args.binary_archives != 1:
         logger.error("Please specify one and one flag only")
-        exit(1)
+        return 1
 
     if args.git_sources:
         for component in config.components.values():

@@ -1,13 +1,14 @@
 from typing import Dict
 
 from . import build
+from ..actions import CloneAction
 
 from ..actions.util import run_script
+
 
 class Component:
     def __init__(self,
                  name: str,
-                 default_build_name: str,
                  license: str,
                  from_source: bool,
                  binary_archives: str,
@@ -15,19 +16,25 @@ class Component:
                  ):
         self.name = name
         self.builds: Dict[str, 'build.Build'] = {}
-        self.default_build_name = default_build_name
         self.skip_post_install = skip_post_install
         self.license = license
         self.from_source = from_source
         self.clone: CloneAction = None
         self.binary_archives = binary_archives
+        self.self_hash = None
+        self.recursive_hash = None
+        self._default_build = None
 
-    def add_build(self, bld: 'build.Build'):
+    def add_build(self, bld: 'build.Build', default=False):
         self.builds[bld.name] = bld
+        if default:
+            self._default_build = bld
 
     @property
     def default_build(self):
-        return self.builds[self.default_build_name]
+        if self._default_build is None:
+            raise ValueError(f"The default build for component {self.name} was not set")
+        return self._default_build
 
     def commit(self):
         if self.clone is None:

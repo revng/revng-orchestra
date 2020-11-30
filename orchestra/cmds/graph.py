@@ -1,6 +1,8 @@
+import networkx as nx
 from loguru import logger
 
 from .common import build_options
+from ..executor import Executor
 from ..model.configuration import Configuration
 
 
@@ -12,7 +14,19 @@ def install_subcommand(sub_argparser):
                                           )
     cmd_parser.add_argument("component", nargs="?")
     cmd_parser.add_argument("--all-builds", action="store_true",
-                            help="Include all builds instead of only the default one.")
+                            help="Include all builds instead of only the default one.\n"
+                                 "Can't be used with --solved")
+
+    cmd_parser.add_argument("--solved", "-s", action="store_true",
+                            help="Print the solved dependency graph that would be used to schedule actions")
+    cmd_parser.add_argument("--no-remove-unreachable", action="store_true",
+                            help="Don't remove unreachable actions")
+    cmd_parser.add_argument("--no-simplify-anyof", action="store_true",
+                            help="Don't remove choices")
+    cmd_parser.add_argument("--no-remove-satisfied-leaves", action="store_true",
+                            help="Don't remove satisfied leaves")
+    cmd_parser.add_argument("--no-transitive-reduction", action="store_true",
+                            help="Don't perform transitive reduction")
 
 
 def handle_graph(args):
@@ -26,7 +40,7 @@ def handle_graph(args):
         if not build:
             suggested_component_name = config.get_suggested_component_name(args.component)
             logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
-            exit(1)
+            return 1
 
         actions = [build.install]
     else:
@@ -38,38 +52,18 @@ def handle_graph(args):
             else:
                 actions.add(component.default_build.install)
 
-    print("digraph dependency_graph {")
-    print("  splines=ortho")
-    print_dependencies(actions)
-    print("}")
+    executor = Executor(args, actions)
 
-
-def print_dependencies(actions):
-    # TODO: this code needs to deduplicate rows and handle potential dependency cycles
-    #  It is ugly and should be improved
-    def _print_dependencies(action, already_visited_actions, rows):
-        if action in already_visited_actions:
-            return
-
-        if action.is_satisfied(recursively=True):
-            color = "green"
-        elif action.can_run():
-            color = "orange"
-        else:
-            color = "red"
-
-        rows.add(f'  "{action.name_for_graph}"[ shape=box, style=filled, color={color} ];')
-        for d in action.dependencies:
-            rows.add(f'  "{d.name_for_graph}" -> "{action.name_for_graph}";')
-
-        already_visited_actions.add(action)
-
-        for d in action.dependencies:
-            _print_dependencies(d, already_visited_actions, rows)
-
-    already_visited_actions = set()
-    rows = set()
-    for action in actions:
-        _print_dependencies(action, already_visited_actions, rows)
-    for r in sorted(rows):
-        print(r)
+    if not args.solved:
+        graph = executor._create_initial_dependency_graph()
+    else:
+        graph = executor._create_dependency_graph(
+            remove_unreachable=not args.no_remove_unreachable,
+            simplify_anyof=not args.no_simplify_anyof,
+            remove_satisfied=not args.no_remove_satisfied_leaves,
+            transitive_reduction=not args.no_transitive_reduction
+        )
+    graphviz_format = nx.nx_agraph.to_agraph(graph)
+    graphviz_format.graph_attr["splines"] = "ortho"
+    graphviz_format.node_attr["shape"] = "box"
+    print(graphviz_format)
