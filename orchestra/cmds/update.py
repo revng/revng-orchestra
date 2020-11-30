@@ -48,7 +48,7 @@ def handle_update(args):
                            if component.clone]
     for component in tqdm(clonable_components, unit="components"):
         logger.info(f"Fetching the latest remote commit for {component.name}")
-        component.clone.get_remote_head()
+        _, _ = component.clone.get_remote_head()
 
     to_pull = []
     for _, component in config.components.items():

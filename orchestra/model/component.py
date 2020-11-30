@@ -32,20 +32,14 @@ class Component:
     def commit(self):
         if self.clone is None:
             return None
+        branch, commit = self.clone.get_remote_head()
+        return commit
 
-        return self.clone.get_remote_head()
-
-    def local_checked_out_branch(self):
+    def branch(self):
         if self.clone is None:
             return None
-
-        branch = run_script(
-            'git -C "$SOURCE_DIR" rev-parse --abbrev-ref HEAD',
-            quiet=True,
-            environment=self.clone.environment
-        ).stdout.decode("utf-8").strip()
-
-        return branch if branch else None
+        branch, commit = self.clone.get_remote_head()
+        return branch
 
     def __str__(self):
         return f"Component {self.name}"

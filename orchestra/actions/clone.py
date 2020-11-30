@@ -45,9 +45,9 @@ class CloneAction(ActionForComponent):
             source_dir = self.environment["SOURCE_DIR"]
             if os.path.exists(source_dir):
                 result = self._ls_remote(self.environment["SOURCE_DIR"])
-                commit = self._commit_from_ls_remote(result)
+                branch, commit = self._commit_from_ls_remote(result)
                 if commit:
-                    return commit
+                    return branch, commit
 
         cache_filepath = os.path.join(self.config.orchestra_dotdir, "remote_refs_cache.json")
 
@@ -55,7 +55,7 @@ class CloneAction(ActionForComponent):
             with open(cache_filepath, "rb") as f:
                 cached_data = json.loads(f.read())
                 if self.component.name in cached_data:
-                    return cached_data[self.component.name]
+                    return tuple(cached_data[self.component.name])
 
         remotes = [f"{base_url}/{self.repository}"
                    for base_url
@@ -63,7 +63,7 @@ class CloneAction(ActionForComponent):
         for remote in remotes:
             result = self._ls_remote(remote)
 
-            commit = self._commit_from_ls_remote(result)
+            branch, commit = self._commit_from_ls_remote(result)
 
             if result:
                 if os.path.exists(cache_filepath):
@@ -72,14 +72,14 @@ class CloneAction(ActionForComponent):
                 else:
                     cached_data = {}
 
-                cached_data[self.component.name] = commit
+                cached_data[self.component.name] = [branch, commit]
                 # TODO: prevent race condition, if two clone actions run at the same time
                 with open(cache_filepath, "w") as f:
                     json.dump(cached_data, f)
 
             if commit:
-                return commit
-        return None
+                return branch, commit
+        return None, None
 
     def _commit_from_ls_remote(self, result):
         parse_regex = re.compile(r"(?P<commit>[a-f0-9]*)\W*refs/heads/(?P<branch>.*)")
@@ -88,8 +88,8 @@ class CloneAction(ActionForComponent):
                            in parse_regex.findall(result)}
         for branch in self.branches():
             if branch in remote_branches:
-                return remote_branches[branch]
-        return None
+                return branch, remote_branches[branch]
+        return None, None
 
     def _ls_remote(self, remote):
         env = dict(self.environment)

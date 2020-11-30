@@ -257,7 +257,7 @@ class InstallAction(ActionForBuild):
             quiet=True,
             environment=self.environment
         ).stdout.decode("utf-8").strip().replace("/", "-")
-        build_branch = (self.build.component.local_checked_out_branch() or "none").replace("/", "-")
+        build_branch = (self.build.component.branch() or "none").replace("/", "-")
         symlinked_archive_name = f"{build_branch}_{orchestra_config_branch}.tar.gz"
         symlinked_archive_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/linux-x86-64/{archive_dirname}/{symlinked_archive_name}"
 
