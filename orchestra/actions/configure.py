@@ -10,7 +10,8 @@ class ConfigureAction(ActionForBuild):
     def __init__(self, build, script, config):
         super().__init__("configure", build, script, config)
 
-    def _is_satisfied(self):
+    def is_satisfied(self):
+        # TODO: invalidate configure if self_hash (or even recursive_hash?) has changed
         return os.path.exists(self._configure_successful_path)
 
     def _run(self, args):

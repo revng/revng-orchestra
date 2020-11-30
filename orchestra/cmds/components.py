@@ -38,7 +38,7 @@ def handle_components(args):
         if not build:
             suggested_component_name = config.get_suggested_component_name(args.component)
             logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
-            exit(1)
+            return 1
 
         components = {build.component.name: build.component}
     else:
@@ -73,31 +73,36 @@ def handle_components(args):
         if args.installed and installed_build \
                 or args.not_installed and installed_build is None \
                 or not args.installed and not args.not_installed:
-            print(f"Component {component_name}")
+
+            component_infos = []
+            if args.hashes:
+                component_infos.append(f"hash: {component.self_hash}")
+                component_infos.append(f"recursive hash: {component.recursive_hash}")
+            component_infos_s = stringify_infos(component_infos)
+
+            print(f"Component {component_name} {component_infos_s}")
             for build_name, build in component.builds.items():
-                infos = []
+                build_infos = []
                 if installed_build == build_name:
-                    infos.append("installed")
+                    build_infos.append("installed")
                 if build is component.default_build:
-                    infos.append("default")
+                    build_infos.append("default")
 
                 if build.configure and args.deps:
                     dependencies = [dep for dep in build.configure.dependencies]
                     if dependencies:
-                        infos.append(f"config deps: {' '.join(d.name_for_components for d in dependencies)}")
+                        build_infos.append(f"config deps: {' '.join(d.name_for_components for d in dependencies)}")
 
                 if build.install and args.deps:
-                    dependencies = [dep for dep in build.install.dependencies if dep.build is not build]
+                    dependencies = [dep for dep in build.install.dependencies]
                     if dependencies:
-                        infos.append(f"install deps: {' '.join(d.name_for_components for d in dependencies)}")
+                        build_infos.append(f"install deps: {' '.join(d.name_for_components for d in dependencies)}")
 
-                if args.hashes:
-                    infos.append(f"hash: {build.self_hash}")
-                    infos.append(f"recursive hash: {build.recursive_hash}")
+                build_infos_s = stringify_infos(build_infos)
+                print(f"  Build {build_name} {build_infos_s}")
 
-                infos_s = " ".join(f"[{i}]" for i in infos)
-
-                s = f"  Build {build_name} {infos_s}"
-
-                print(s)
             print()
+
+
+def stringify_infos(infos):
+    return " ".join(f"[{i}]" for i in infos)

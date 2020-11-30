@@ -13,7 +13,6 @@ def install_subcommand(sub_argparser):
                                           )
     cmd_parser.add_argument("component", help="Name of the component to install")
     cmd_parser.add_argument("--no-deps", action="store_true", help="Only execute the requested action")
-    cmd_parser.add_argument("--no-force", action="store_true", help="Don't force execution of the root action")
     cmd_parser.add_argument("--no-merge", action="store_true", help="Do not merge files into orchestra root")
     cmd_parser.add_argument("--create-binary-archives", action="store_true", help="Create binary archives")
     cmd_parser.add_argument("--keep-tmproot", action="store_true", help="Do not remove temporary root directories")
@@ -30,7 +29,9 @@ def handle_install(args):
     if not build:
         suggested_component_name = config.get_suggested_component_name(args.component)
         logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
-        exit(1)
+        return 1
 
-    executor = Executor(args)
-    return executor.run(build.install, no_force=args.no_force, no_deps=args.no_deps)
+    executor = Executor(args, [build.install], no_deps=args.no_deps)
+    failed = executor.run()
+    exitcode = 1 if failed else 0
+    return exitcode

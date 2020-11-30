@@ -8,19 +8,27 @@ from textwrap import dedent
 from loguru import logger
 
 from .action import ActionForBuild
-from .util import run_script
+from .uninstall import uninstall
+from .util import run_script, OrchestraException
 from .. import git_lfs
-from ..util import is_installed, get_installed_metadata, OrchestraException
+from ..util import is_installed
 
 
 class InstallAction(ActionForBuild):
-    def __init__(self, build, script, config, from_binary_archives=False, fallback_to_build=False, run_tests=False):
-        name = "install"
-        name += " from binary archives" if from_binary_archives else ""
-        name += " or build" if from_binary_archives and fallback_to_build else ""
-        super().__init__(name, build, script, config)
-        self.from_binary_archives = from_binary_archives
-        self.fallback_to_build = fallback_to_build
+    def __init__(self, build, script, config, allow_build=True, allow_binary_archive=True, run_tests=False):
+        if not allow_build and not allow_binary_archive:
+            raise Exception(f"You must allow at least one option between "
+                            f"building and installing from binary archives for {build.name}")
+        sources = []
+        if allow_build:
+            sources.append("build")
+        if allow_binary_archive:
+            sources.append("binary archives")
+        sources_str = " or ".join(sources)
+
+        super().__init__(f"install ({sources_str})", build, script, config)
+        self.allow_build = allow_build
+        self.allow_binary_archive = allow_binary_archive
 
     def _run(self, args):
         tmp_root = self.environment["TMP_ROOT"]
@@ -31,38 +39,19 @@ class InstallAction(ActionForBuild):
 
         pre_file_list = self._index_directory(tmp_root + orchestra_root, relative_to=tmp_root + orchestra_root)
 
-        start_time = time.time()
-
-        if self.from_binary_archives and self._binary_archive_exists():
-            logger.info("Fetching binary archive")
-            self._fetch_binary_archive()
-            logger.info("Extracting binary archive")
-            self._install_from_binary_archives()
-            source = "binary archive"
-
-            logger.info("Removing conflicting files")
-            self._remove_conflicting_files()
-            self.update_binary_archive_symlink()
-        elif not self.from_binary_archives or self.fallback_to_build:
-            self._install(args.quiet, args.test)
-            source = "build"
-
-            logger.info("Removing conflicting files")
-            self._remove_conflicting_files()
-
-            if self.build.component.skip_post_install:
-                logger.info("Skipping post install")
-            else:
-                self._post_install(args.quiet)
-
-            if args.create_binary_archives:
+        install_start_time = time.time()
+        if self.allow_binary_archive and self._binary_archive_exists():
+            self._install_from_binary_archive(args)
+            source = "binary archives"
+        elif self.allow_build:
+            self._build_and_install(args)
+            if getattr(args, "create_binary_archives", False):
                 self._create_binary_archive()
-
-            self.update_binary_archive_symlink()
+                self.update_binary_archive_symlink()
+            source = "build"
         else:
-            raise OrchestraException("Binary archive not found!")
-
-        end_time = time.time()
+            raise OrchestraException(f"Could not find binary archive nor build: {self.build.qualified_name}")
+        install_end_time = time.time()
 
         post_file_list = self._index_directory(tmp_root + orchestra_root, relative_to=tmp_root + orchestra_root)
         post_file_list.append(
@@ -84,10 +73,10 @@ class InstallAction(ActionForBuild):
             metadata = {
                 "component_name": self.build.component.name,
                 "build_name": self.build.name,
-                "install_time": end_time - start_time,
+                "install_time": install_end_time - install_start_time,
                 "source": source,
-                "self_hash": self.build.self_hash,
-                "recursive_hash": self.build.recursive_hash,
+                "self_hash": self.build.component.self_hash,
+                "recursive_hash": self.build.component.recursive_hash,
                 "binary_archive_path": os.path.join(self.build.binary_archive_dir, self.build.binary_archive_filename),
             }
             with open(self.config.installed_component_metadata_path(self.build.component.name), "w") as f:
@@ -100,14 +89,6 @@ class InstallAction(ActionForBuild):
         if not args.keep_tmproot:
             logger.info("Cleaning up tmproot")
             self._cleanup_tmproot()
-
-    def _is_satisfied(self):
-        return is_installed(
-            self.config,
-            self.build.component.name,
-            wanted_build=self.build.name,
-            wanted_recursive_hash=self.build.recursive_hash
-        )
 
     def _prepare_tmproot(self):
         script = dedent("""
@@ -125,14 +106,59 @@ class InstallAction(ActionForBuild):
             """)
         run_script(script, environment=self.environment)
 
-    def _cleanup_tmproot(self):
-        run_script('rm -rf "$TMP_ROOT"', environment=self.environment)
+    def _install_from_binary_archive(self, args):
+        # TODO: handle nonexisting binary archives
+        logger.info("Fetching binary archive")
+        self._fetch_binary_archive()
+        logger.info("Extracting binary archive")
+        self._extract_binary_archive()
 
-    def _install(self, quiet, test):
+        logger.info("Removing conflicting files")
+        self._remove_conflicting_files()
+
+    def _fetch_binary_archive(self):
+        # TODO: better edge-case handling, when the binary archive exists but is not committed into the
+        #   binary archives git-lfs repo (e.g. it has been locally created by the user)
+        binary_archive_path = self._binary_archive_filepath()
+        binary_archive_repo_dir = os.path.dirname(binary_archive_path)
+        while binary_archive_repo_dir != "/":
+            if ".git" in os.listdir(binary_archive_repo_dir):
+                break
+            binary_archive_repo_dir = os.path.dirname(binary_archive_repo_dir)
+        if binary_archive_repo_dir == "/":
+            logger.error("Binary archives are not a git repository!")
+            exit(1)
+        git_lfs.fetch(binary_archive_repo_dir, only=[os.path.realpath(binary_archive_path)])
+
+    def _extract_binary_archive(self):
+        if not self._binary_archive_exists():
+            raise Exception("Binary archive not found!")
+
+        archive_filepath = self._binary_archive_filepath()
+        script = dedent(f"""
+            mkdir -p "$TMP_ROOT$ORCHESTRA_ROOT"
+            cd "$TMP_ROOT$ORCHESTRA_ROOT"
+            tar xaf "{archive_filepath}"
+            """)
+        run_script(script, environment=self.environment, quiet=True)
+
+    def _implicit_dependencies(self):
+        if self.allow_binary_archive and self._binary_archive_exists():
+            return set()
+        else:
+            return {self.build.configure}
+
+    def _build_and_install(self, args):
         logger.info("Executing install script")
-        env = dict(self.environment)
-        env["RUN_TESTS"] = "1" if (self.build.test and test) else "0"
-        run_script(self.script, quiet=quiet, environment=env)
+        run_script(self.script, quiet=args.quiet, environment=self.environment)
+
+        logger.info("Removing conflicting files")
+        self._remove_conflicting_files()
+
+        if self.build.component.skip_post_install:
+            logger.info("Skipping post install")
+        else:
+            self._post_install(args.quiet)
 
     def _post_install(self, quiet):
         logger.info("Dropping absolute paths from pkg-config")
@@ -255,8 +281,8 @@ class InstallAction(ActionForBuild):
         if self.component.binary_archives:
             binary_archive_repo_name = self.component.binary_archives
             if binary_archive_repo_name not in self.config.binary_archives_remotes.keys():
-                raise Exception(f"The {self.component.name} component wants to push to an unknown binary-archives repository ({binary_archive_repo_name})")
-            return binary_archive_repo_name
+                raise Exception(f"The {self.component.name} component wants to "
+                                f"push to an unknown binary-archives repository ({binary_archive_repo_name})")
         else:
             return list(self.config.binary_archives_remotes.keys())[0]
 
@@ -302,7 +328,7 @@ class InstallAction(ActionForBuild):
 
         def create_symlink(branch, commit):
             branch = branch.replace("/", "-")
-            target_name = f"{commit}_{self.build.recursive_hash}.tar.gz"
+            target_name = f"{commit}_{self.build.component.recursive_hash}.tar.gz"
             target = os.path.join(archive_path, target_name)
             if os.path.exists(target):
                 symlink = os.path.join(archive_path, f"{branch}_{orchestra_config_branch}.tar.gz")
@@ -315,45 +341,6 @@ class InstallAction(ActionForBuild):
                 create_symlink(branch, commit)
         else:
             create_symlink("none", "none")
-
-    def _binary_archive_filepath(self):
-        archives_dir = self.environment["BINARY_ARCHIVES"]
-        for name in self.config.binary_archives_remotes:
-            archive_dir = self.build.binary_archive_dir
-            archive_name = self.build.binary_archive_filename
-            try_archive_path = os.path.join(archives_dir, name, "linux-x86-64", archive_dir, archive_name)
-            if os.path.exists(try_archive_path):
-                return try_archive_path
-        return None
-
-    def _binary_archive_exists(self):
-        return self._binary_archive_filepath() is not None
-
-    def _fetch_binary_archive(self):
-        # TODO: better edge-case handling, when the binary archive exists but is not committed into the
-        #   binary archives git-lfs repo (e.g. it has been locally created by the user)
-        binary_archive_path = self._binary_archive_filepath()
-        binary_archive_repo_dir = os.path.dirname(binary_archive_path)
-        while binary_archive_repo_dir != "/":
-            if ".git" in os.listdir(binary_archive_repo_dir):
-                break
-            binary_archive_repo_dir = os.path.dirname(binary_archive_repo_dir)
-        if binary_archive_repo_dir == "/":
-            logger.error("Binary archives are not a git repository!")
-            exit(1)
-        git_lfs.fetch(binary_archive_repo_dir, only=[os.path.realpath(binary_archive_path)])
-
-    def _install_from_binary_archives(self):
-        if not self._binary_archive_exists():
-            raise OrchestraException("Binary archive not found!")
-
-        archive_filepath = self._binary_archive_filepath()
-        script = dedent(f"""
-            mkdir -p "$TMP_ROOT$ORCHESTRA_ROOT"
-            cd "$TMP_ROOT$ORCHESTRA_ROOT"
-            tar xaf "{archive_filepath}"
-            """)
-        run_script(script, environment=self.environment)
 
     @staticmethod
     def _index_directory(root_dir_path, relative_to=None):
@@ -374,119 +361,32 @@ class InstallAction(ActionForBuild):
 
         return paths
 
+    def _cleanup_tmproot(self):
+        run_script('rm -rf "$TMP_ROOT"', environment=self.environment, quiet=True)
+
+    def _binary_archive_filepath(self):
+        archives_dir = self.environment["BINARY_ARCHIVES"]
+        for name in self.config.binary_archives_remotes:
+            archive_dir = self.build.binary_archive_dir
+            archive_name = self.build.binary_archive_filename
+            try_archive_path = os.path.join(archives_dir, name, "linux-x86-64", archive_dir, archive_name)
+            if os.path.exists(try_archive_path):
+                return try_archive_path
+        return None
+
+    def _binary_archive_exists(self):
+        return self._binary_archive_filepath() is not None
+
     @property
     def environment(self) -> OrderedDict:
         env = super().environment
         env["DESTDIR"] = env["TMP_ROOT"]
         return env
 
-    def _implicit_dependencies(self):
-        if self.from_binary_archives and (self._binary_archive_exists() or not self.fallback_to_build):
-            return set()
-        else:
-            return {self.build.configure}
-
-
-class InstallAnyBuildAction(ActionForBuild):
-    def __init__(self, build, config):
-        installed_metadata = get_installed_metadata(build.component.name, config)
-        if not installed_metadata:
-            # The component is not installed, use default build
-            chosen_build = build
-        else:
-            # The component is installed, check that the recursive hash is still the same
-            installed_build_name = installed_metadata["build_name"]
-            installed_build_hash = installed_metadata["recursive_hash"]
-            installed_build = build.component.builds.get(installed_build_name)
-            if not installed_build or installed_build.recursive_hash != installed_build_hash:
-                # The installed build disappeared from the config
-                # or the hash changed -- fallback to default
-                chosen_build = build
-            else:
-                chosen_build = installed_build
-
-        super().__init__("install any", chosen_build, None, config)
-        self._original_build = build
-        self._has_run = False
-
-    def _implicit_dependencies(self):
-        return {self.build.install}
-
-    def _run(self, args):
-        self._has_run = True
-
-    def is_satisfied(self, recursively=False, already_checked=None):
-        return any(
-            build.install.is_satisfied(recursively=recursively, already_checked=already_checked)
-            for build in self.build.component.builds.values()
-        ) and self._has_run
-
-    def _is_satisfied(self):
-        raise NotImplementedError("This method should not be called!")
-
-    @property
-    def name_for_info(self):
-        if self.build == self._original_build:
-            return f"install {self.build.component.name} (prefer {self._original_build.name})"
-        else:
-            return f"install {self.build.component.name} (prefer {self._original_build.name}, chosen {self.build.name})"
-
-    @property
-    def name_for_graph(self):
-        if self.build == self._original_build:
-            return f"install {self.build.component.name} (prefer {self._original_build.name})"
-        else:
-            return f"install {self.build.component.name} (prefer {self._original_build.name}, chosen {self.build.name})"
-
-    @property
-    def name_for_components(self):
-        return f"{self._original_build.component.name}~{self._original_build.name}"
-
-
-def uninstall(component_name, config):
-    index_path = config.installed_component_file_list_path(component_name)
-    metadata_path = config.installed_component_metadata_path(component_name)
-
-    # Index and metadata files should be removed last,
-    # so an interrupted uninstall can be resumed
-    postpone_removal_paths = [
-        os.path.relpath(index_path, config.orchestra_root),
-        os.path.relpath(metadata_path, config.orchestra_root)
-    ]
-
-    with open(index_path) as f:
-        paths = f.readlines()
-
-    # Ensure depth first visit by reverse-sorting
-    # paths.sort(reverse=True)
-    paths = [path.strip() for path in paths]
-
-    for path in paths:
-        # Ensure the path is relative to the root
-        path = path.lstrip("/")
-
-        if path in postpone_removal_paths:
-            continue
-
-        path_to_delete = os.path.join(config.global_env()['ORCHESTRA_ROOT'], path)
-
-        if os.path.isfile(path_to_delete) or os.path.islink(path_to_delete):
-            logger.debug(f"Deleting {path_to_delete}")
-            os.remove(path_to_delete)
-        elif os.path.isdir(path_to_delete):
-            if os.listdir(path_to_delete):
-                logger.debug(f"Not removing directory {path_to_delete} as it is not empty")
-            else:
-                logger.debug(f"Deleting directory {path_to_delete}")
-                os.rmdir(path_to_delete)
-
-        containing_directory = os.path.dirname(path_to_delete)
-        if os.path.exists(containing_directory) and len(os.listdir(containing_directory)) == 0:
-            logger.debug(f"Removing empty directory {containing_directory}")
-            os.rmdir(containing_directory)
-
-    logger.debug(f"Deleting index file {index_path}")
-    os.remove(index_path)
-
-    logger.debug(f"Deleting metadata file {metadata_path}")
-    os.remove(metadata_path)
+    def is_satisfied(self):
+        return is_installed(
+            self.config,
+            self.build.component.name,
+            wanted_build=self.build.name,
+            wanted_recursive_hash=self.build.component.recursive_hash
+        )

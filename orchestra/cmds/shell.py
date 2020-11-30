@@ -32,7 +32,7 @@ def handle_shell(args):
         if not build:
             suggested_component_name = config.get_suggested_component_name(args.component)
             logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
-            exit(1)
+            return 1
 
         env = build.install.environment
         ps1_prefix = f"(orchestra - {build.qualified_name}) "

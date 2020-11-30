@@ -23,7 +23,7 @@ def handle_clean(args):
     if not build:
         suggested_component_name = config.get_suggested_component_name(args.component)
         logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
-        exit(1)
+        return 1
 
     build_dir = build.install.environment["BUILD_DIR"]
     logger.info(f"Cleaning build dir for {build.qualified_name} ({build_dir})")
