@@ -65,12 +65,15 @@ class Executor:
         if self._failed_actions:
             msg = "Failed: " + ", ".join(a.name_for_info for a in self._failed_actions)
             status_bar.color = "white_on_red"
+            result = 1
         else:
             msg = "All done!"
             status_bar.color = "white_on_darkgreen"
+            result = 0
 
         status_bar.status_format = msg
         status_bar.close()
+        return result
 
     def _collect_actions(self, action: Action, force=False, no_deps=False):
         if not force and action.is_satisfied(recursively=True):

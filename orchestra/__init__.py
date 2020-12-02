@@ -33,4 +33,4 @@ def main():
         parser.print_help()
         exit(1)
 
-    cmd_parser.handler(args)
+    return cmd_parser.handler(args)

@@ -25,4 +25,4 @@ def handle_install(args):
         exit(1)
 
     executor = Executor(args)
-    executor.run(build.install, no_force=args.no_force, no_deps=args.no_deps)
+    return executor.run(build.install, no_force=args.no_force, no_deps=args.no_deps)
