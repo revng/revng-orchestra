@@ -1,8 +1,20 @@
 from loguru import logger
+from urllib.parse import urlparse
 
 from ..model.configuration import Configuration
 from ..util import get_installed_build
 
+def normalize_repository_url(url):
+    # Drop credentials
+    if url.startswith("https://") or  url.startswith("http://"):
+        url = urlparse(url)
+        url = url._replace(netloc=url.hostname).geturl()
+
+    # Add .git suffix
+    if not url.endswith(".git"):
+        url = url + ".git"
+
+    return url
 
 def install_subcommand(sub_argparser):
     cmd_parser = sub_argparser.add_parser("components", handler=handle_components, help="List components")
@@ -27,16 +39,20 @@ def handle_components(args):
     else:
         components = config.components
 
+    repository_filter = None
+    if args.repository_url:
+        repository_filter = normalize_repository_url(args.repository_url)
+
     for component_name, component in components.items():
         # Filter by repository URL
-        if args.repository_url:
+        if repository_filter:
             if not component.clone:
                 continue
             repository = component.clone.repository
             if not any(remote_base_url
                        for remote_base_url
                        in config.remotes.values()
-                       if args.repository_url ==  f"{remote_base_url}/{repository}"):
+                       if normalize_repository_url(f"{remote_base_url}/{repository}") == repository_filter):
                 continue
 
         installed_build = get_installed_build(component_name, config)
