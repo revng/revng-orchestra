@@ -1,5 +1,6 @@
 from loguru import logger
 from urllib.parse import urlparse
+from fnmatch import fnmatch
 
 from ..model.configuration import Configuration
 from ..util import get_installed_build
@@ -24,6 +25,7 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("--deps", action="store_true", help="Print dependencies")
     cmd_parser.add_argument("--hashes", action="store_true", help="Show hashes")
     cmd_parser.add_argument("--repository-url", help="Show components from this repository URL")
+    cmd_parser.add_argument("--branch", help="Show components using this branch (jolly expression)")
 
 def handle_components(args):
     config = Configuration(args)
@@ -53,6 +55,15 @@ def handle_components(args):
                        for remote_base_url
                        in config.remotes.values()
                        if normalize_repository_url(f"{remote_base_url}/{repository}") == repository_filter):
+                continue
+
+        # Filter by branch
+        if args.branch:
+            if not component.clone:
+                continue
+
+            branch, _ = component.clone.get_remote_head()
+            if not fnmatch(branch, args.branch):
                 continue
 
         installed_build = get_installed_build(component_name, config)
