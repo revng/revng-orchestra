@@ -12,6 +12,7 @@ from . import shell
 from . import uninstall
 from . import update
 from . import ls
+from . import fix_binary_archives_symlinks
 
 
 class CustomArgumentParser(argparse.ArgumentParser):
@@ -39,4 +40,5 @@ def install_subcommands(argparser):
     graph.install_subcommand(subparsers)
     shell.install_subcommand(subparsers)
     ls.install_subcommand(subparsers)
+    fix_binary_archives_symlinks.install_subcommand(subparsers)
     return subparsers
