@@ -71,6 +71,7 @@ class Configuration:
 
         self.remotes = self._get_remotes()
         self.binary_archives_remotes = self._get_binary_archives_remotes()
+        self.branches = self._get_branches()
 
         self.orchestra_root = self.parsed_yaml.get("paths", {}).get("orchestra_root")
         if not self.orchestra_root:
@@ -358,6 +359,13 @@ class Configuration:
             for name, url in remote.items():
                 remotes[name] = url
         return remotes
+
+    def _get_branches(self):
+        branches = self.parsed_yaml.get("branches", [])
+        assert type(branches) is list
+        for branch in branches:
+            assert type(branch) is str, "branches must be a list of strings"
+        return branches
 
 
 def hash_config_dir(config_dir):

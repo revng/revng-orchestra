@@ -22,7 +22,7 @@ class CloneAction(ActionForComponent):
         script += 'git -C "$SOURCE_DIR" branch -m orchestra-temporary\n'
 
         checkout_cmds = []
-        for branch in self.branches():
+        for branch in self.config.branches:
             checkout_cmds.append(f'git -C "$SOURCE_DIR" checkout -b "{branch}" "origin/{branch}"')
         checkout_cmds.append("true")
         script += " || \\\n  ".join(checkout_cmds)
@@ -34,10 +34,6 @@ class CloneAction(ActionForComponent):
 
     def _is_satisfied(self):
         return os.path.exists(self.environment["SOURCE_DIR"])
-
-    @staticmethod
-    def branches():
-        return ["develop", "master"]
 
     def get_remote_head(self):
         # First, check local checkout
@@ -86,7 +82,7 @@ class CloneAction(ActionForComponent):
         remote_branches = {branch: commit
                            for commit, branch
                            in parse_regex.findall(result)}
-        for branch in self.branches():
+        for branch in self.config.branches:
             if branch in remote_branches:
                 return branch, remote_branches[branch]
         return None, None
