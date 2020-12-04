@@ -275,30 +275,37 @@ class InstallAction(ActionForBuild):
         run_script(script, environment=self.environment)
 
     def update_binary_archive_symlink(self):
-        # In any case, update the symlink
         logger.info("Updating binary archive symlink")
-        archive_name = self.build.binary_archive_filename
-        archive_dirname = self.build.binary_archive_dir
-        binary_archive_path = self._binary_archive_path()
+
         binary_archive_repo_name = self._binary_archive_repo_name()
+        archive_dirname = self.build.binary_archive_dir
 
         orchestra_config_branch = run_script(
             'git -C "$ORCHESTRA_DOTDIR" rev-parse --abbrev-ref HEAD',
             quiet=True,
             environment=self.environment
         ).stdout.decode("utf-8").strip().replace("/", "-")
-        build_branch = (self.build.component.branch() or "none").replace("/", "-")
 
-        symlinked_archive_name = f"{build_branch}_{orchestra_config_branch}.tar.gz"
-        symlinked_archive_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/linux-x86-64/{archive_dirname}/{symlinked_archive_name}"
+        archive_path = os.path.join(self.environment["BINARY_ARCHIVES"],
+                                    binary_archive_repo_name,
+                                    "linux-x86-64",
+                                    archive_dirname)
 
-        script = dedent(f"""
-            if test -e "{binary_archive_path}"; then
-              rm -f "{symlinked_archive_path}"
-              ln -s "{archive_name}" "{symlinked_archive_path}"
-            fi
-            """)
-        run_script(script, environment=self.environment)
+        def create_symlink(branch, commit):
+            branch = branch.replace("/", "-")
+            target_name = f"{commit}_{self.build.recursive_hash}.tar.gz"
+            target = os.path.join(archive_path, target_name)
+            if os.path.exists(target):
+                symlink = os.path.join(archive_path, f"{branch}_{orchestra_config_branch}.tar.gz")
+                if os.path.exists(symlink):
+                    os.unlink(symlink)
+                os.symlink(target_name, symlink)
+
+        if self.component.clone:
+            for branch, commit in self.component.clone.branches().items():
+                create_symlink(branch, commit)
+        else:
+            create_symlink("none", "none")
 
     def _binary_archive_filepath(self):
         archives_dir = self.environment["BINARY_ARCHIVES"]
