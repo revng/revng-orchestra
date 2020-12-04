@@ -32,13 +32,13 @@ class Component:
     def commit(self):
         if self.clone is None:
             return None
-        branch, commit = self.clone.get_remote_head()
+        branch, commit = self.clone.branch()
         return commit
 
     def branch(self):
         if self.clone is None:
             return None
-        branch, commit = self.clone.get_remote_head()
+        branch, commit = self.clone.branch()
         return branch
 
     def __str__(self):

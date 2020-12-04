@@ -35,66 +35,69 @@ class CloneAction(ActionForComponent):
     def _is_satisfied(self):
         return os.path.exists(self.environment["SOURCE_DIR"])
 
-    def get_remote_head(self):
+    def branches(self):
         # First, check local checkout
         if self.component.from_source:
             source_dir = self.environment["SOURCE_DIR"]
             if os.path.exists(source_dir):
-                result = self._ls_remote(self.environment["SOURCE_DIR"])
-                branch, commit = self._commit_from_ls_remote(result)
-                if commit:
-                    return branch, commit
+                return self._branches_from_remote(source_dir)
 
-        cache_filepath = os.path.join(self.config.orchestra_dotdir, "remote_refs_cache.json")
+        cache_filepath = os.path.join(self.config.orchestra_dotdir,
+                                      "remote_refs_cache.json")
 
+        # Check the cache
         if os.path.exists(cache_filepath):
             with open(cache_filepath, "rb") as f:
                 cached_data = json.loads(f.read())
                 if self.component.name in cached_data:
-                    return tuple(cached_data[self.component.name])
+                    return cached_data[self.component.name]
 
+        # Check all the remotes
         remotes = [f"{base_url}/{self.repository}"
                    for base_url
                    in self.config.remotes.values()]
         for remote in remotes:
-            result = self._ls_remote(remote)
-
-            branch, commit = self._commit_from_ls_remote(result)
-
+            result = self._branches_from_remote(remote)
             if result:
+                # We have a result, cache and return it
                 if os.path.exists(cache_filepath):
                     with open(cache_filepath, "rb") as f:
                         cached_data = json.loads(f.read())
                 else:
                     cached_data = {}
 
-                cached_data[self.component.name] = [branch, commit]
+                cached_data[self.component.name] = result
+
                 # TODO: prevent race condition, if two clone actions run at the same time
                 with open(cache_filepath, "w") as f:
                     json.dump(cached_data, f)
 
-            if commit:
-                return branch, commit
+                return result
+
+        return None
+
+    def branch(self):
+        branches = self.branches()
+        if branches:
+            for branch in self.config.branches:
+                if branch in branches:
+                    return branch, branches[branch]
+
         return None, None
 
-    def _commit_from_ls_remote(self, result):
-        parse_regex = re.compile(r"(?P<commit>[a-f0-9]*)\W*refs/heads/(?P<branch>.*)")
-        remote_branches = {branch: commit
-                           for commit, branch
-                           in parse_regex.findall(result)}
-        for branch in self.config.branches:
-            if branch in remote_branches:
-                return branch, remote_branches[branch]
-        return None, None
-
-    def _ls_remote(self, remote):
+    def _branches_from_remote(self, remote):
         env = dict(self.environment)
         env["GIT_SSH_COMMAND"] = "ssh -oControlPath=~/.ssh/ssh-mux-%r@%h:%p -oControlMaster=auto -o ControlPersist=10"
-        data = run_script(
+
+        result = run_script(
             f'git ls-remote -h --refs "{remote}"',
             quiet=True,
             environment=env,
             check_returncode=False
         ).stdout.decode("utf-8")
 
-        return data
+        parse_regex = re.compile(r"(?P<commit>[a-f0-9]*)\W*refs/heads/(?P<branch>.*)")
+
+        return {branch: commit
+                for commit, branch
+                in parse_regex.findall(result)}

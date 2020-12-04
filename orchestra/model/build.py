@@ -35,7 +35,7 @@ class Build:
     def self_hash(self):
         serialized_build = self.serialized_build
         if self.component.clone:
-            branch, commit = self.component.clone.get_remote_head()
+            branch, commit = self.component.clone.branch()
             if commit:
                 serialized_build = commit.encode("utf-8") + serialized_build
         return hashlib.sha1(serialized_build).hexdigest()
