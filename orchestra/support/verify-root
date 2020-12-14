@@ -66,9 +66,8 @@ class Root:
         for directory, subdirectories, files in os.walk(self.package_files_path):
             for file in files:
                 # Skip metadata files
-                if file.endswith(".json"):
-                    continue
-                self.load_file(os.path.join(directory, file))
+                if file.endswith(".idx"):
+                    self.load_file(os.path.join(directory, file))
 
     def report_duplicates(self):
         header = False
