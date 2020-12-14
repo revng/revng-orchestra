@@ -138,6 +138,9 @@ class InstallAction(ActionForBuild):
         logger.info("Dropping absolute paths from pkg-config")
         self._drop_absolute_pkgconfig_paths()
 
+        logger.info("Purging libtools' files")
+        self._purge_libtools_files()
+
         # TODO: maybe this should be put into the configuration and not in orchestra itself
         logger.info("Converting hardlinks to symbolic")
         self._hard_to_symbolic()
@@ -183,6 +186,12 @@ class InstallAction(ActionForBuild):
                     -name "*.pc" \\
                     -exec sed -i 's|/*'"$ORCHESTRA_ROOT"'/*|${pcfiledir}/../..|g' {} ';'
             fi
+            """)
+        run_script(script, environment=self.environment)
+
+    def _purge_libtools_files(self):
+        script = dedent("""
+            find "${TMP_ROOT}${ORCHESTRA_ROOT}" -name "*.la" -type f -delete
             """)
         run_script(script, environment=self.environment)
 
