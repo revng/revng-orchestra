@@ -49,7 +49,7 @@ class Root:
         self.reverse_file_map = defaultdict(list)
         self.root_path = root_path
         self.package_files_path = os.path.join(self.root_path, "share", "orchestra")
-        self.all_files = set(["lib"])
+        self.all_files = {"lib"}
 
     def load_file(self, path):
         files = read_file(path)
