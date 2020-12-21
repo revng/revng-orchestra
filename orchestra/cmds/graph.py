@@ -1,17 +1,25 @@
 from loguru import logger
 
+from .common import build_options
 from ..model.configuration import Configuration
 
 
 def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("graph", handler=handle_graph, help="Print dependency graph (dot format)")
+    cmd_parser = sub_argparser.add_parser("graph",
+                                          handler=handle_graph,
+                                          help="Print dependency graph (dot format)",
+                                          parents=[build_options]
+                                          )
     cmd_parser.add_argument("component", nargs="?")
     cmd_parser.add_argument("--all-builds", action="store_true",
                             help="Include all builds instead of only the default one.")
 
 
 def handle_graph(args):
-    config = Configuration(args)
+    config = Configuration(fallback_to_build=args.fallback_build,
+                           force_from_source=args.from_source,
+                           use_config_cache=args.config_cache,
+                           )
     if args.component:
         build = config.get_build(args.component)
 

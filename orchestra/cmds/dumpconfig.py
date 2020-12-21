@@ -1,8 +1,4 @@
-from loguru import logger
-
 from ..model.configuration import Configuration
-from ..util import parse_component_name, is_installed
-from ..actions.install import uninstall
 
 
 def install_subcommand(sub_argparser):
@@ -10,5 +6,5 @@ def install_subcommand(sub_argparser):
 
 
 def handle_dumpconfig(args):
-    config = Configuration(args)
+    config = Configuration(use_config_cache=args.config_cache)
     print(config.generated_yaml)

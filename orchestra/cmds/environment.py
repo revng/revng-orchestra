@@ -10,7 +10,7 @@ def install_subcommand(sub_argparser):
 
 
 def handle_environment(args):
-    config = Configuration(args)
+    config = Configuration(use_config_cache=args.config_cache)
     if not args.component:
         print(export_environment(config.global_env()))
     else:

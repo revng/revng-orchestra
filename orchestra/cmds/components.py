@@ -5,9 +5,10 @@ from fnmatch import fnmatch
 from ..model.configuration import Configuration
 from ..util import get_installed_build
 
+
 def normalize_repository_url(url):
     # Drop credentials
-    if url.startswith("https://") or  url.startswith("http://"):
+    if url.startswith("https://") or url.startswith("http://"):
         url = urlparse(url)
         url = url._replace(netloc=url.hostname).geturl()
 
@@ -16,6 +17,7 @@ def normalize_repository_url(url):
         url = url + ".git"
 
     return url
+
 
 def install_subcommand(sub_argparser):
     cmd_parser = sub_argparser.add_parser("components", handler=handle_components, help="List components")
@@ -27,8 +29,9 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("--repository-url", help="Show components from this repository URL")
     cmd_parser.add_argument("--branch", help="Show components using this branch (jolly expression)")
 
+
 def handle_components(args):
-    config = Configuration(args)
+    config = Configuration(use_config_cache=args.config_cache)
     if args.component:
         build = config.get_build(args.component)
 

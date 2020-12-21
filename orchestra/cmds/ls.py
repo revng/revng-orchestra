@@ -12,8 +12,9 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("--git-sources", action="store_true", help="Print directories containing git repositories")
     cmd_parser.add_argument("--binary-archives", action="store_true", help="Print binary archives directories")
 
+
 def handle_ls(args):
-    config = Configuration(args)
+    config = Configuration(use_config_cache=args.config_cache)
 
     if args.git_sources + args.binary_archives != 1:
         logger.error("Please specify one and one flag only")

@@ -1,6 +1,5 @@
 import os.path
 import subprocess
-from glob import glob
 from textwrap import dedent
 
 from loguru import logger
@@ -16,7 +15,7 @@ def install_subcommand(sub_argparser):
 
 
 def handle_update(args):
-    config = Configuration(args)
+    config = Configuration(use_config_cache=args.config_cache)
     failed_pulls = []
 
     if not args.no_config:

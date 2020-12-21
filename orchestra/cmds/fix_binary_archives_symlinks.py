@@ -1,7 +1,3 @@
-import os
-
-from loguru import logger
-
 from ..model.configuration import Configuration
 
 
@@ -10,8 +6,9 @@ def install_subcommand(sub_argparser):
                                           handler=handle_fix_binary_archives_symlinks,
                                           help="Fix symlinks in binary archives")
 
+
 def handle_fix_binary_archives_symlinks(args):
-    config = Configuration(args)
+    config = Configuration(use_config_cache=args.config_cache)
 
     for _, component in config.components.items():
         for _, build in component.builds.items():

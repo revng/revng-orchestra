@@ -1,4 +1,3 @@
-import hashlib
 import json
 import os
 import re
@@ -18,6 +17,7 @@ from . import component as comp
 from ..actions import CloneAction, ConfigureAction, InstallAction, InstallAnyBuildAction
 from ..actions.util import run_script
 from ..util import parse_component_name, parse_dependency
+
 
 def follow_redirects(url, max=3):
     if max == 0:
@@ -54,11 +54,10 @@ def follow_redirects(url, max=3):
 
 
 class Configuration:
-    def __init__(self, args):
-        self.args = args
+    def __init__(self, fallback_to_build=False, force_from_source=False, use_config_cache=True):
         self.components: Dict[str, comp.Component] = {}
-        self.from_source = args.from_source
-        self.fallback_to_build = args.fallback_build
+        self.from_source = force_from_source
+        self.fallback_to_build = fallback_to_build
 
         self.orchestra_dotdir = Configuration.locate_orchestra_dotdir()
         if not self.orchestra_dotdir:
@@ -66,7 +65,7 @@ class Configuration:
 
         self._create_default_user_options()
 
-        self.generated_yaml = run_ytt(self.orchestra_dotdir, use_cache=not args.no_config_cache)
+        self.generated_yaml = run_ytt(self.orchestra_dotdir, use_cache=use_config_cache)
         self.parsed_yaml = yaml.safe_load(self.generated_yaml)
 
         self.remotes = self._get_remotes()
