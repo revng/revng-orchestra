@@ -8,6 +8,7 @@ from .util import run_script
 # Only used for type hints, package-relative import not possible due to circular reference
 import orchestra.model.configuration
 
+
 class Action:
     def __init__(self, name, script, config):
         self.name = name
@@ -85,6 +86,7 @@ class Action:
     def __repr__(self):
         return self.__str__()
 
+
 class ActionForComponent(Action):
     def __init__(self, name, component, script, config):
         super().__init__(name, script, config)
@@ -99,6 +101,7 @@ class ActionForComponent(Action):
     @property
     def _target_name(self):
         return self.component.name
+
 
 class ActionForBuild(ActionForComponent):
     def __init__(self, name, build, script, config):
