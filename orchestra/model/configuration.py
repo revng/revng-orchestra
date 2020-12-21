@@ -67,9 +67,7 @@ class Configuration:
             raise Exception("Directory .orchestra not found!")
 
         self._create_default_user_options()
-
-        self.generated_yaml = run_ytt(self.orchestra_dotdir, use_cache=use_config_cache)
-        self.parsed_yaml = yaml.safe_load(self.generated_yaml)
+        self.parsed_yaml = self.load_configuration(use_cache=use_config_cache)
 
         self.remotes = self._get_remotes()
         self.binary_archives_remotes = self._get_binary_archives_remotes()
@@ -378,35 +376,44 @@ class Configuration:
             assert type(branch) is str, "branches must be a list of strings"
         return branches
 
+    def load_configuration(self, use_cache=True):
+        config_dir = os.path.join(self.orchestra_dotdir, "config")
+        config_cache_file = os.path.join(self.orchestra_dotdir, "config_cache.json")
+        yaml_config_cache_file = os.path.join(self.orchestra_dotdir, "config_cache.yml")
+        config_hash = self.hash_config_dir()
+
+        if use_cache and os.path.exists(config_cache_file):
+            with open(config_cache_file) as f:
+                cached_config = json.load(f)
+                if config_hash == cached_config.get("config_hash"):
+                    return cached_config["config"]
+
+        ytt = os.path.join(os.path.dirname(__file__), "..", "support", "ytt")
+        env = os.environ.copy()
+        env["GOCG"] = "off"
+        expanded_yaml = subprocess.check_output(f"'{ytt}' -f {config_dir}", shell=True, env=env).decode("utf-8")
+        parsed_config = yaml.safe_load(expanded_yaml)
+
+        if use_cache:
+            with open(config_cache_file, "w") as f:
+                json.dump({"config_hash": config_hash, "config": parsed_config}, f)
+
+            with open(yaml_config_cache_file, "w") as f:
+                f.write(expanded_yaml)
+
+        return parsed_config
+
+    def hash_config_dir(self):
+        config_dir = os.path.join(self.orchestra_dotdir, "config")
+        hash_script = f"""find "{config_dir}" -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum"""
+        config_hash = subprocess.check_output(hash_script, shell=True).decode("utf-8").strip().partition(" ")[0]
+        return config_hash
+
 
 def hash_config_dir(config_dir):
     hash_script = f"""find "{config_dir}" -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum"""
     config_hash = subprocess.check_output(hash_script, shell=True).decode("utf-8").strip().partition(" ")[0]
     return config_hash
-
-
-def run_ytt(orchestra_dotdir, use_cache=True):
-    config_dir = os.path.join(orchestra_dotdir, "config")
-    config_cache_file = os.path.join(orchestra_dotdir, "config_cache.yml")
-    config_hash = hash_config_dir(config_dir)
-
-    if use_cache and os.path.exists(config_cache_file):
-        with open(config_cache_file, "r") as f:
-            cached_hash = f.readline().replace("#!", "").strip()
-            if config_hash == cached_hash:
-                return f.read()
-
-    ytt = os.path.join(os.path.dirname(__file__), "..", "support", "ytt")
-    env = os.environ.copy()
-    env["GOCG"] = "off"
-    expanded_yaml = subprocess.check_output(f"'{ytt}' -f {config_dir}", shell=True, env=env).decode("utf-8")
-
-    if use_cache:
-        with open(config_cache_file, "w") as f:
-            f.write(f"#! {config_hash}\n")
-            f.write(expanded_yaml)
-
-    return expanded_yaml
 
 
 def set_self_hash(component: comp.Component, component_yaml):
