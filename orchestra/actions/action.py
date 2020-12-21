@@ -61,7 +61,7 @@ class Action:
 
     @property
     def _target_name(self):
-        raise NotImplementedException("Action subclasses must implement _target_name")
+        raise NotImplementedError("Action subclasses must implement _target_name")
 
     @property
     def qualified_name(self):
