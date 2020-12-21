@@ -214,7 +214,6 @@ class Configuration:
                 is_default_build = build_name == default_build_name
 
                 # This will be used to compute the self_hash
-                serialized_build = json.dumps(build_yaml, sort_keys=True).encode("utf-8")
                 build = bld.Build(build_name,
                                   component,
                                   ndebug=ndebug,
