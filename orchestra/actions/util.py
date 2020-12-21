@@ -10,11 +10,13 @@ set -o nounset
 set -o pipefail
 """
 
+
 def run_script(script,
                quiet=False,
                environment: OrderedDict = None,
                strict_flags=True,
                check_returncode=True,
+               cwd=None,
                ):
     """Helper for running shell scripts.
     :param script: the script to run
@@ -23,6 +25,7 @@ def run_script(script,
     :param environment: will be exported at the beginning of the script
     :param strict_flags: if True, a prelude is prepended to the script to help catch errors
     :param check_returncode: if True an exception is raised unless the script returns 0
+    :param cwd: if not None, the command is executed in the specified path
     :return: a subprocess.CompletedProcess instance
     """
     if strict_flags:
@@ -44,7 +47,7 @@ def run_script(script,
         stdout = None
         stderr = None
 
-    result = subprocess.run(["/bin/bash", "-c", script_to_run], stdout=stdout, stderr=stderr)
+    result = subprocess.run(["/bin/bash", "-c", script_to_run], stdout=stdout, stderr=stderr, cwd=cwd)
     if check_returncode and result.returncode != 0:
         raise OrchestraException(f"Script failed with return code {result.returncode}")
 
