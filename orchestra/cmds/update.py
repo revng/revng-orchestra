@@ -1,11 +1,10 @@
 import os.path
-import subprocess
 from textwrap import dedent
 
 from loguru import logger
-
 from tqdm import tqdm
 
+from ..actions.util import run_internal_subprocess
 from ..model.configuration import Configuration
 
 
@@ -96,20 +95,22 @@ def pull_binary_archive(name, config):
 def clone_binary_archive(name, url, config):
     logger.info(f"Trying to clone binary archive from remote {name} ({url})")
     binary_archive_path = os.path.join(config.binary_archives_dir, name)
-    env = dict(os.environ)
+    env = os.environ.copy()
     env["GIT_SSH_COMMAND"] = "ssh -oControlPath=~/.ssh/ssh-mux-%r@%h:%p -oControlMaster=auto -o ControlPersist=10"
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
-    result = subprocess.run(["git", "clone", url, binary_archive_path], env=env)
+    result = run_internal_subprocess(
+        ["git", "clone", url, binary_archive_path],
+        environment=env,
+    )
     if result.returncode:
         logger.info(f"Could not clone binary archive from remote {name}!")
 
 
 def git_pull(directory):
-    env = os.environ
+    env = os.environ.copy()
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
-    result = subprocess.run(["git", "-C", directory, "pull", "--ff-only"],
-                            env=env,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-    logger.info(result.stdout.decode("utf8").strip())
+    result = run_internal_subprocess(
+        ["git", "-C", directory, "pull", "--ff-only"],
+        environment=env,
+    )
     return result

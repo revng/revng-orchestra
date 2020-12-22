@@ -4,7 +4,7 @@ from typing import Set
 
 from loguru import logger
 
-from .util import run_script
+from .util import run_user_script, run_internal_script, get_script_output
 # Only used for type hints, package-relative import not possible due to circular reference
 import orchestra.model.configuration
 
@@ -23,7 +23,7 @@ class Action:
 
     def _run(self, args):
         """Executes the action"""
-        run_script(self.script, quiet=args.quiet, environment=self.environment)
+        self._run_user_script(self.script)
 
     @property
     def script(self):
@@ -85,6 +85,15 @@ class Action:
 
     def __repr__(self):
         return self.__str__()
+
+    def _run_user_script(self, script):
+        return run_user_script(script, environment=self.environment)
+
+    def _run_internal_script(self, script):
+        return run_internal_script(script, environment=self.environment)
+
+    def _get_script_output(self, script):
+        return get_script_output(script, environment=self.environment)
 
 
 class ActionForComponent(Action):

@@ -5,7 +5,7 @@ from textwrap import dedent
 
 from loguru import logger
 
-from ..actions.util import run_script
+from ..actions.util import get_script_output, _run_script
 from ..model.configuration import Configuration
 
 
@@ -49,14 +49,21 @@ def handle_shell(args):
 
     if command:
         script_to_run = " ".join(shlex.quote(c) for c in command)
-        p = run_script(script_to_run, environment=env, strict_flags=False, check_returncode=False, cwd=cd_to)
-        exit(p.returncode)
+        p = _run_script(
+            script_to_run,
+            environment=env,
+            strict_flags=False,
+            cwd=cd_to,
+            loglevel="DEBUG"
+        )
+        return p.returncode
 
-    user_shell = run_script("getent passwd $(whoami) | cut -d: -f7", quiet=True).stdout.decode("utf-8").strip()
+    user_shell = get_script_output("getent passwd $(whoami) | cut -d: -f7").strip()
+
     env["OLD_HOME"] = os.environ["HOME"]
     env["HOME"] = os.path.join(os.path.dirname(__file__), "..", "support", "shell-home")
     env["PS1_PREFIX"] = ps1_prefix
-    script = dedent(f"""
-    {user_shell}
-    """)
-    run_script(script, environment=env, cwd=cd_to)
+    script = dedent(f"exec {user_shell}")
+
+    result = _run_script(script, environment=env, loglevel="DEBUG", cwd=cd_to)
+    return result.returncode

@@ -4,7 +4,6 @@ from . import build
 from ..actions import CloneAction
 
 
-
 class Component:
     def __init__(self,
                  name: str,

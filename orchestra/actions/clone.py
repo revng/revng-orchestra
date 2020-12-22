@@ -2,8 +2,9 @@ import json
 import os.path
 import re
 
+from collections import OrderedDict
+
 from .action import ActionForComponent
-from .util import run_script
 
 
 class CloneAction(ActionForComponent):
@@ -27,10 +28,6 @@ class CloneAction(ActionForComponent):
         checkout_cmds.append("true")
         script += " || \\\n  ".join(checkout_cmds)
         return script
-
-    def _run(self, args):
-        """Executes the action"""
-        run_script(self.script, quiet=True, environment=self.environment)
 
     def is_satisfied(self):
         return os.path.exists(self.environment["SOURCE_DIR"])
@@ -86,18 +83,15 @@ class CloneAction(ActionForComponent):
         return None, None
 
     def _branches_from_remote(self, remote):
-        env = dict(self.environment)
-        env["GIT_SSH_COMMAND"] = "ssh -oControlPath=~/.ssh/ssh-mux-%r@%h:%p -oControlMaster=auto -o ControlPersist=10"
-
-        result = run_script(
-            f'git ls-remote -h --refs "{remote}"',
-            quiet=True,
-            environment=env,
-            check_returncode=False
-        ).stdout.decode("utf-8")
+        result = self._get_script_output(f'git ls-remote -h --refs "{remote}"')
 
         parse_regex = re.compile(r"(?P<commit>[a-f0-9]*)\W*refs/heads/(?P<branch>.*)")
 
         return {branch: commit
                 for commit, branch
                 in parse_regex.findall(result)}
+
+    def environment(self) -> OrderedDict:
+        env = super().environment
+        env["GIT_SSH_COMMAND"] = "ssh -oControlPath=~/.ssh/ssh-mux-%r@%h:%p -oControlMaster=auto -o ControlPersist=10"
+        return env

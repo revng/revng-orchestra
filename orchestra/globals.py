@@ -1,0 +1,2 @@
+global loglevel
+loglevel = "INFO"
