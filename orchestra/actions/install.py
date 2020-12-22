@@ -9,8 +9,9 @@ from loguru import logger
 
 from .action import ActionForBuild
 from .uninstall import uninstall
-from .util import run_script, OrchestraException
+from .util import run_user_script
 from .. import git_lfs
+from ..util import OrchestraException
 from ..util import is_installed
 
 
@@ -19,8 +20,7 @@ class InstallAction(ActionForBuild):
                  build, script, config,
                  allow_build=True,
                  allow_binary_archive=True,
-                 create_binary_archive=False,
-                 run_tests=False
+                 create_binary_archive=False
                  ):
         if not allow_build and not allow_binary_archive:
             raise Exception(f"You must allow at least one option between "
@@ -76,7 +76,7 @@ class InstallAction(ActionForBuild):
                 uninstall(self.build.component.name, self.config)
 
             logger.info("Merging installed files into orchestra root directory")
-            self._merge(args.quiet)
+            self._merge()
 
             # Write file metadata and index
             os.makedirs(self.config.installed_component_metadata_dir(), exist_ok=True)
@@ -114,7 +114,7 @@ class InstallAction(ActionForBuild):
             touch "${TMP_ROOT}${ORCHESTRA_ROOT}/share/info/dir"
             mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/libexec"
             """)
-        run_script(script, environment=self.environment)
+        self._run_internal_script(script)
 
     def _install_from_binary_archive(self, args):
         # TODO: handle nonexisting binary archives
@@ -150,7 +150,7 @@ class InstallAction(ActionForBuild):
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             tar xaf "{archive_filepath}"
             """)
-        run_script(script, environment=self.environment, quiet=True)
+        self._run_internal_script(script)
 
     def _implicit_dependencies(self):
         if self.allow_binary_archive and self._binary_archive_exists() or not self.allow_build:
@@ -162,11 +162,11 @@ class InstallAction(ActionForBuild):
         return {self.build.configure}
 
     def _build_and_install(self, args):
-        env = dict(self.environment)
+        env = self.environment
         env["RUN_TESTS"] = "1" if (self.build.test and args.test) else "0"
 
         logger.info("Executing install script")
-        run_script(self.script, quiet=args.quiet, environment=env)
+        run_user_script(self.script, environment=env)
 
         logger.info("Removing conflicting files")
         self._remove_conflicting_files()
@@ -174,9 +174,9 @@ class InstallAction(ActionForBuild):
         if self.build.component.skip_post_install:
             logger.info("Skipping post install")
         else:
-            self._post_install(args.quiet)
+            self._post_install()
 
-    def _post_install(self, quiet):
+    def _post_install(self):
         logger.info("Dropping absolute paths from pkg-config")
         self._drop_absolute_pkgconfig_paths()
 
@@ -211,14 +211,14 @@ class InstallAction(ActionForBuild):
                 echo "Couldn't find {source}"
                 exit 1
                 """)
-            run_script(script, environment=self.environment)
+            self._run_internal_script(script)
 
     def _remove_conflicting_files(self):
         script = dedent("""
             if test -d "$TMP_ROOT/$ORCHESTRA_ROOT/share/info"; then rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/info"; fi
             if test -d "$TMP_ROOT/$ORCHESTRA_ROOT/share/locale"; then rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/locale"; fi
             """)
-        run_script(script, environment=self.environment)
+        self._run_internal_script(script)
 
     def _drop_absolute_pkgconfig_paths(self):
         script = dedent("""
@@ -229,13 +229,13 @@ class InstallAction(ActionForBuild):
                     -exec sed -i 's|/*'"$ORCHESTRA_ROOT"'/*|${pcfiledir}/../..|g' {} ';'
             fi
             """)
-        run_script(script, environment=self.environment)
+        self._run_internal_script(script)
 
     def _purge_libtools_files(self):
         script = dedent("""
             find "${TMP_ROOT}${ORCHESTRA_ROOT}" -name "*.la" -type f -delete
             """)
-        run_script(script, environment=self.environment)
+        self._run_internal_script(script)
 
     def _hard_to_symbolic(self):
         duplicates = defaultdict(list)
@@ -271,7 +271,7 @@ class InstallAction(ActionForBuild):
                 fi
             done
             """)
-        run_script(fix_rpath_script, environment=self.environment)
+        self._run_internal_script(fix_rpath_script)
 
     def _replace_ndebug(self, disable_debugging):
         debug, ndebug = ("0", "1") if disable_debugging else ("1", "0")
@@ -286,11 +286,11 @@ class InstallAction(ActionForBuild):
                     -e 's|^\(\s*#\s*if\s\+.*\)defined(NDEBUG)|\1{ndebug}|' \
                     {{}} ';'
             """)
-        run_script(patch_ndebug_script, environment=self.environment)
+        self._run_internal_script(patch_ndebug_script)
 
-    def _merge(self, quiet):
+    def _merge(self):
         copy_command = f'cp -farl "$TMP_ROOT/$ORCHESTRA_ROOT/." "$ORCHESTRA_ROOT"'
-        run_script(copy_command, quiet=quiet, environment=self.environment)
+        self._run_internal_script(copy_command)
 
     def _binary_archive_repo_name(self):
         # Select the binary archives repository to employ
@@ -324,7 +324,7 @@ class InstallAction(ActionForBuild):
             mkdir -p "{binary_archive_containing_dir}"
             mv "{binary_archive_tmp_path}" "{binary_archive_path}"
             """)
-        run_script(script, environment=self.environment)
+        self._run_internal_script(script)
 
     def update_binary_archive_symlink(self):
         logger.info("Updating binary archive symlink")
@@ -332,11 +332,9 @@ class InstallAction(ActionForBuild):
         binary_archive_repo_name = self._binary_archive_repo_name()
         archive_dirname = self.build.binary_archive_dir
 
-        orchestra_config_branch = run_script(
+        orchestra_config_branch = self._get_script_output(
             'git -C "$ORCHESTRA_DOTDIR" rev-parse --abbrev-ref HEAD',
-            quiet=True,
-            environment=self.environment
-        ).stdout.decode("utf-8").strip().replace("/", "-")
+        ).strip().replace("/", "-")
 
         archive_path = os.path.join(self.environment["BINARY_ARCHIVES"],
                                     binary_archive_repo_name,
@@ -379,7 +377,7 @@ class InstallAction(ActionForBuild):
         return paths
 
     def _cleanup_tmproot(self):
-        run_script('rm -rf "$TMP_ROOT"', environment=self.environment, quiet=True)
+        self._run_internal_script('rm -rf "$TMP_ROOT"')
 
     def _binary_archive_filepath(self):
         archives_dir = self.environment["BINARY_ARCHIVES"]

@@ -3,6 +3,7 @@ from loguru import logger
 from tqdm import tqdm
 
 from orchestra.cmds.main import main_parser, main_subparsers
+import orchestra.globals
 
 
 class TqdmWrapper:
@@ -17,6 +18,7 @@ def main():
 
     logger.remove(0)
     logger.add(TqdmWrapper(), level=args.loglevel, colorize=True, format="<level>[+] {level}</level> - {message}")
+    orchestra.globals.loglevel = args.loglevel
 
     cmd_parser = main_subparsers.choices.get(args.command_name)
     if not cmd_parser:

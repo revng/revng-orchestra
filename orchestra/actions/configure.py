@@ -1,9 +1,9 @@
+from pathlib import Path
 import os
 
 from loguru import logger
 
 from .action import ActionForBuild
-from .util import run_script
 
 
 class ConfigureAction(ActionForBuild):
@@ -22,9 +22,8 @@ class ConfigureAction(ActionForBuild):
             logger.warning("Previous configure probably failed, running configure script in a dirty environment")
             logger.warning(f"You might want to delete the build directory (use `orchestra clean`)")
 
-        result = run_script(self.script, quiet=args.quiet, environment=self.environment)
-        if result.returncode == 0:
-            open(self._configure_successful_path, "w").close()
+        self._run_user_script(self.script)
+        Path(self._configure_successful_path).touch()
 
     @property
     def _configure_successful_path(self):

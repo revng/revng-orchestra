@@ -1,12 +1,11 @@
 import os.path
-import subprocess
 from textwrap import dedent
 
 from loguru import logger
-
 from tqdm import tqdm
 
 from ..model.configuration import Configuration
+from ..actions.util import try_run_internal_subprocess
 
 
 def install_subcommand(sub_argparser):
@@ -17,11 +16,11 @@ def install_subcommand(sub_argparser):
 def handle_update(args):
     config = Configuration(use_config_cache=args.config_cache)
     failed_pulls = []
+    failed_clones = []
 
     if not args.no_config:
         logger.info("Updating orchestra configuration")
-        result = git_pull(config.orchestra_dotdir)
-        if result.returncode:
+        if not git_pull(config.orchestra_dotdir):
             failed_pulls.append(f"orchestra configuration ({config.orchestra_dotdir})")
 
     logger.info("Updating binary archives")
@@ -29,11 +28,13 @@ def handle_update(args):
     for name, url in config.binary_archives_remotes.items():
         binary_archive_path = os.path.join(config.binary_archives_dir, name)
         if os.path.exists(binary_archive_path):
-            result = pull_binary_archive(name, config)
-            if result.returncode:
+            logger.info(f"Pulling binary archive {name}")
+            if not pull_binary_archive(name, config):
                 failed_pulls.append(f"Binary archive {name} ({os.path.join(config.binary_archives_dir, name)})")
         else:
-            clone_binary_archive(name, url, config)
+            logger.info(f"Trying to clone binary archive from remote {name} ({url})")
+            if not clone_binary_archive(name, url, config):
+                failed_clones.append(f"Binary archive {name} ({url})!")
 
     logger.info("Resetting ls-remote cached info")
     ls_remote_cache = os.path.join(config.orchestra_dotdir, "remote_refs_cache.json")
@@ -67,8 +68,7 @@ def handle_update(args):
             assert os.path.exists(os.path.join(source_path, ".git"))
 
             logger.info(f"Pulling {component.name}")
-            result = git_pull(source_path)
-            if result.returncode:
+            if not git_pull(source_path):
                 failed_pulls.append(f"Repository {component.name}")
 
     if failed_pulls:
@@ -85,31 +85,48 @@ def handle_update(args):
         """)
         logger.error(failed_git_pull_suggestion)
 
+    if failed_clones:
+        formatted_failed_clones = "\n".join([f"  {repo}" for repo in failed_clones])
+        failed_git_clone_suggestion = dedent(f"""
+                Could not clone the following repositories:
+                {formatted_failed_clones}
 
-def pull_binary_archive(name, config):
-    binary_archive_path = os.path.join(config.binary_archives_dir, name)
-    logger.info(f"Pulling binary archive {name}")
-    result = git_pull(binary_archive_path)
-    return result
+                Suggestions:
+                    - check your network connection
+                    - check your ssh and git configuration (try manually cloning the repositories)
+                """)
+        logger.error(failed_git_clone_suggestion)
+
+    if failed_pulls or failed_clones:
+        return 1
 
 
 def clone_binary_archive(name, url, config):
-    logger.info(f"Trying to clone binary archive from remote {name} ({url})")
+    """Clones a binary archive. Returns a boolean value representing the operation success."""
     binary_archive_path = os.path.join(config.binary_archives_dir, name)
-    env = dict(os.environ)
+    env = os.environ.copy()
     env["GIT_SSH_COMMAND"] = "ssh -oControlPath=~/.ssh/ssh-mux-%r@%h:%p -oControlMaster=auto -o ControlPersist=10"
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
-    result = subprocess.run(["git", "clone", url, binary_archive_path], env=env)
-    if result.returncode:
-        logger.info(f"Could not clone binary archive from remote {name}!")
+    returncode = try_run_internal_subprocess(
+        ["git", "clone", url, binary_archive_path],
+        environment=env,
+    )
+    return returncode == 0
+
+
+def pull_binary_archive(name, config):
+    binary_archive_path = os.path.join(config.binary_archives_dir, name)
+    return git_pull(binary_archive_path)
 
 
 def git_pull(directory):
-    env = os.environ
+    """Runs git pull --ff-only on the given directory.
+    Returns a boolean value representing the operation success."""
+    env = os.environ.copy()
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
-    result = subprocess.run(["git", "-C", directory, "pull", "--ff-only"],
-                            env=env,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-    logger.info(result.stdout.decode("utf8").strip())
-    return result
+    returncode = try_run_internal_subprocess(
+        ["git", "pull", "--ff-only"],
+        environment=env,
+        cwd=directory
+    )
+    return returncode == 0

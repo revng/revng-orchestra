@@ -27,8 +27,6 @@ main_parser = argparse.ArgumentParser()
 logging_group = main_parser.add_argument_group(title="Logging options")
 logging_group.add_argument("--loglevel", "-v", default="INFO",
                            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
-logging_group.add_argument("--quiet", "-q", action="store_true",
-                           help="Do not show output of executed commands")
 
 config_group = main_parser.add_argument_group(title="Configuration options")
 config_group.add_argument("--no-config-cache", dest="config_cache", default=True, action="store_false",

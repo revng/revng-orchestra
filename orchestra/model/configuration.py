@@ -2,7 +2,6 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 from collections import OrderedDict
 from itertools import repeat
 from tempfile import TemporaryDirectory
@@ -16,7 +15,7 @@ from loguru import logger
 from . import build as bld
 from . import component as comp
 from ..actions import CloneAction, ConfigureAction, InstallAction, AnyOfAction
-from ..actions.util import run_script
+from ..actions.util import get_script_output, try_run_internal_subprocess, get_subprocess_output
 from ..util import parse_component_name, parse_dependency
 
 
@@ -25,21 +24,20 @@ def follow_redirects(url, max=3):
         return url
 
     # TODO: this code is duplicated in several places
-    env = {
+    env = os.environ.copy()
+    env.update({
         "GIT_SSH_COMMAND": "ssh -oControlPath=~/.ssh/ssh-mux-%r@%h:%p -oControlMaster=auto -o ControlPersist=10",
         "GIT_LFS_SKIP_SMUDGE": "1",
-    }
+    })
 
     new_url = None
     with TemporaryDirectory() as temporary_directory:
-        # TODO: we're not printing the output
-        result = run_script(f"""git clone "{url}" "{temporary_directory}" """,
-                            environment=env,
-                            quiet=True,
-                            check_returncode=False)
-        if result.returncode != 0:
+        returncode = try_run_internal_subprocess(
+            ["git", "clone", url, temporary_directory],
+            environment=env,
+        )
+        if returncode != 0:
             logger.info(f"Could not clone binary archive from remote {url}!")
-            logger.info(result.stdout.decode("utf8").strip())
             return url
 
         redirect_path = os.path.join(temporary_directory, "REDIRECT")
@@ -316,10 +314,12 @@ class Configuration:
         logger.info(f"Creating default user options in {relative_path}")
         logger.info("Populating default remotes for repositories and binary archives")
         logger.info("Remember to run `orc update` next")
-        git_output = subprocess.check_output(
+
+        git_output = get_subprocess_output(
             ["git", "-C", self.orchestra_dotdir, "config", "--get-regexp", r"remote\.[^.]*\.url"]
-        ).decode("utf-8")
+        )
         remotes_re = re.compile(r"remote\.(?P<name>[^.]*)\.url (?P<url>.*)$")
+
         remotes = {}
         for line in git_output.splitlines(keepends=False):
             match = remotes_re.match(line)
@@ -401,7 +401,7 @@ class Configuration:
         ytt = os.path.join(os.path.dirname(__file__), "..", "support", "ytt")
         env = os.environ.copy()
         env["GOCG"] = "off"
-        expanded_yaml = subprocess.check_output(f"'{ytt}' -f {config_dir}", shell=True, env=env).decode("utf-8")
+        expanded_yaml = get_subprocess_output([ytt, "-f", config_dir], environment=env)
         parsed_config = yaml.safe_load(expanded_yaml)
 
         if use_cache:
@@ -416,14 +416,8 @@ class Configuration:
     def hash_config_dir(self):
         config_dir = os.path.join(self.orchestra_dotdir, "config")
         hash_script = f"""find "{config_dir}" -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum"""
-        config_hash = subprocess.check_output(hash_script, shell=True).decode("utf-8").strip().partition(" ")[0]
+        config_hash = get_script_output(hash_script).strip().partition(" ")[0]
         return config_hash
-
-
-def hash_config_dir(config_dir):
-    hash_script = f"""find "{config_dir}" -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum"""
-    config_hash = subprocess.check_output(hash_script, shell=True).decode("utf-8").strip().partition(" ")[0]
-    return config_hash
 
 
 def set_self_hash(component: comp.Component, component_yaml):
