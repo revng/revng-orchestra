@@ -13,6 +13,7 @@ import yaml
 from fuzzywuzzy import fuzz
 from loguru import logger
 
+from .remote_cache import RemoteCache
 from . import build as bld
 from . import component as comp
 from ..actions import CloneAction, ConfigureAction, InstallAction, AnyOfAction
@@ -65,6 +66,8 @@ class Configuration:
         self.orchestra_dotdir = Configuration.locate_orchestra_dotdir()
         if not self.orchestra_dotdir:
             raise Exception("Directory .orchestra not found!")
+
+        self.ls_remote_cache = RemoteCache(self, os.path.join(self.orchestra_dotdir, "remote_refs_cache.json"))
 
         self._create_default_user_options()
         self.parsed_yaml = self.load_configuration(use_cache=use_config_cache)

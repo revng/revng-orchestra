@@ -12,6 +12,7 @@ from ..model.configuration import Configuration
 def install_subcommand(sub_argparser):
     cmd_parser = sub_argparser.add_parser("update", handler=handle_update, help="Update components")
     cmd_parser.add_argument("--no-config", action="store_true", help="Don't pull orchestra config")
+    cmd_parser.add_argument("--parallelism", default=4, type=int, help="Parallel network requests allowed (default: 4)")
 
 
 def handle_update(args):
@@ -35,20 +36,6 @@ def handle_update(args):
         else:
             clone_binary_archive(name, url, config)
 
-    logger.info("Resetting ls-remote cached info")
-    ls_remote_cache = os.path.join(config.orchestra_dotdir, "remote_refs_cache.json")
-    if os.path.exists(ls_remote_cache):
-        os.remove(ls_remote_cache)
-
-    logger.info("Updating ls-remote cached info")
-    clonable_components = [component
-                           for _, component
-                           in config.components.items()
-                           if component.clone]
-    for component in tqdm(clonable_components, unit="components"):
-        logger.info(f"Fetching the latest remote commit for {component.name}")
-        _, _ = component.clone.branch()
-
     to_pull = []
     for _, component in config.components.items():
         if not component.clone:
@@ -70,6 +57,14 @@ def handle_update(args):
             result = git_pull(source_path)
             if result.returncode:
                 failed_pulls.append(f"Repository {component.name}")
+
+    logger.info("Updating ls-remote cached info")
+    clonable_components = [component
+                           for _, component
+                           in config.components.items()
+                           if component.clone]
+
+    config.ls_remote_cache.rebuild_cache(clonable_components, parallelism=args.parallelism)
 
     if failed_pulls:
         formatted_failed_pulls = "\n".join([f"  {repo}" for repo in failed_pulls])
