@@ -1,6 +1,6 @@
 import argparse
-import shlex
 import os
+import shlex
 from textwrap import dedent
 
 from loguru import logger
@@ -10,12 +10,17 @@ from ..model.configuration import Configuration
 
 
 def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("shell", handler=handle_shell,
-                                          help="Open a shell with the given component environment (experimental). "
-                                               "The shell will start in the component build directory, if it exists. "
-                                               "Otherwise, the CWD will not be changed.",
-                                          )
-    cmd_parser.add_argument("component", nargs="?")
+    cmd_parser = sub_argparser.add_parser(
+        "shell",
+        handler=handle_shell,
+        help="Open a shell with orchestra environment (experimental)."
+    )
+    cmd_parser.add_argument(
+        "--component", "-c",
+        help="Execute in the context of this component. "
+             "The shell will start in the component build directory, if it exists. "
+             "Otherwise, the CWD will not be changed.",
+    )
     cmd_parser.add_argument("command", nargs=argparse.REMAINDER)
 
 
