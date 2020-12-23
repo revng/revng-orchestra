@@ -36,8 +36,15 @@ class Action:
     def dependencies(self):
         return self._explicit_dependencies.union(self._implicit_dependencies())
 
+    @property
+    def dependencies_for_hash(self):
+        return self._explicit_dependencies.union(self._implicit_dependencies_for_hash())
+
     def _implicit_dependencies(self):
         return set()
+
+    def _implicit_dependencies_for_hash(self):
+        return self._implicit_dependencies()
 
     def is_satisfied(self):
         """Returns true if the action is satisfied."""

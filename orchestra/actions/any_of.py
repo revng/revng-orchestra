@@ -17,6 +17,10 @@ class AnyOfAction:
     def dependencies(self):
         return {a for a in self.actions}
 
+    @property
+    def dependencies_for_hash(self):
+        return self.dependencies
+
     def is_satisfied(self):
         return any(d.is_satisfied() for d in self.dependencies)
 

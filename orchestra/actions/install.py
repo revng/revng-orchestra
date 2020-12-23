@@ -143,10 +143,13 @@ class InstallAction(ActionForBuild):
         run_script(script, environment=self.environment, quiet=True)
 
     def _implicit_dependencies(self):
-        if self.allow_binary_archive and self._binary_archive_exists():
+        if self.allow_binary_archive and self._binary_archive_exists() or not self.allow_build:
             return set()
         else:
             return {self.build.configure}
+
+    def _implicit_dependencies_for_hash(self):
+        return {self.build.configure}
 
     def _build_and_install(self, args):
         logger.info("Executing install script")

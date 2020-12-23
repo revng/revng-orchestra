@@ -448,5 +448,5 @@ def collect_dependencies(root_action, collected_actions):
         return collected_actions
 
     collected_actions.add(root_action)
-    for d in root_action.dependencies:
+    for d in root_action.dependencies_for_hash:
         collect_dependencies(d, collected_actions)
