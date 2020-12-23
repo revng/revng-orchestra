@@ -1,4 +1,5 @@
 import argparse
+import shlex
 import os
 from textwrap import dedent
 
@@ -42,7 +43,8 @@ def handle_shell(args):
             cd_to = os.getcwd()
 
     if command:
-        p = run_script(" ".join(command), environment=env, strict_flags=False, check_returncode=False, cwd=cd_to)
+        script_to_run = " ".join(shlex.quote(c) for c in command)
+        p = run_script(script_to_run, environment=env, strict_flags=False, check_returncode=False, cwd=cd_to)
         exit(p.returncode)
 
     user_shell = run_script("getent passwd $(whoami) | cut -d: -f7", quiet=True).stdout.decode("utf-8").strip()
