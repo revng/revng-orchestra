@@ -289,6 +289,7 @@ class InstallAction(ActionForBuild):
             if binary_archive_repo_name not in self.config.binary_archives_remotes.keys():
                 raise Exception(f"The {self.component.name} component wants to "
                                 f"push to an unknown binary-archives repository ({binary_archive_repo_name})")
+            return binary_archive_repo_name
         else:
             return list(self.config.binary_archives_remotes.keys())[0]
 
