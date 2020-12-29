@@ -27,7 +27,7 @@ def urlretrieve(url, data=None, headers=None):
         auth = auth.encode("utf-8")
         url = urlunparse((scheme, host, path, params, query, frag))
         req = Request(url, data, headers)
-        base64string = base64.encodestring(auth)[:-1]
+        base64string = base64.encodebytes(auth)[:-1]
         basic = "Basic " + base64string.decode("utf-8")
         req.add_header("Authorization", basic)
     else:
