@@ -152,8 +152,11 @@ class InstallAction(ActionForBuild):
         return {self.build.configure}
 
     def _build_and_install(self, args):
+        env = dict(self.environment)
+        env["RUN_TESTS"] = "1" if (self.build.test and args.test) else "0"
+
         logger.info("Executing install script")
-        run_script(self.script, quiet=args.quiet, environment=self.environment)
+        run_script(self.script, quiet=args.quiet, environment=env)
 
         logger.info("Removing conflicting files")
         self._remove_conflicting_files()
