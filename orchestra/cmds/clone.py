@@ -27,7 +27,7 @@ def handle_clone(args):
         print("This component does not have a git repository configured!")
         return 1
 
-    executor = Executor(args, [build.clone])
+    executor = Executor(args, [build.component.clone])
     failed = executor.run()
     exitcode = 1 if failed else 0
     return exitcode
