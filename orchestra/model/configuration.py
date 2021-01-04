@@ -55,12 +55,22 @@ def follow_redirects(url, max=3):
 
 
 class Configuration:
-    def __init__(self, fallback_to_build=False, force_from_source=False, use_config_cache=True):
+    def __init__(self,
+                 fallback_to_build=False,
+                 force_from_source=False,
+                 use_config_cache=True,
+                 create_binary_archives=False,
+                 ):
         self.components: Dict[str, comp.Component] = {}
+
         # Allows to trigger a build from source if binary archives are not found
         self.fallback_to_build = fallback_to_build
+
         # Forces all components to be built from source
         self.build_all_from_source = force_from_source
+
+        # Enables creation of binary archives for all install actions that get run
+        self.create_binary_archives = create_binary_archives
 
         self.orchestra_dotdir = Configuration.locate_orchestra_dotdir()
         if not self.orchestra_dotdir:
@@ -232,7 +242,8 @@ class Configuration:
                     install_script,
                     self,
                     allow_build=allow_build,
-                    allow_binary_archive=allow_binary_archive
+                    allow_binary_archive=allow_binary_archive,
+                    create_binary_archive=self.create_binary_archives,
                 )
             set_self_hash(component, component_yaml)
 

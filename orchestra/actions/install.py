@@ -15,7 +15,13 @@ from ..util import is_installed
 
 
 class InstallAction(ActionForBuild):
-    def __init__(self, build, script, config, allow_build=True, allow_binary_archive=True, run_tests=False):
+    def __init__(self,
+                 build, script, config,
+                 allow_build=True,
+                 allow_binary_archive=True,
+                 create_binary_archive=False,
+                 run_tests=False
+                 ):
         if not allow_build and not allow_binary_archive:
             raise Exception(f"You must allow at least one option between "
                             f"building and installing from binary archives for {build.name}")
@@ -29,6 +35,7 @@ class InstallAction(ActionForBuild):
         super().__init__(f"install ({sources_str})", build, script, config)
         self.allow_build = allow_build
         self.allow_binary_archive = allow_binary_archive
+        self.create_binary_archive = create_binary_archive
 
     def _run(self, args):
         tmp_root = self.environment["TMP_ROOT"]
@@ -45,7 +52,7 @@ class InstallAction(ActionForBuild):
             source = "binary archives"
         elif self.allow_build:
             self._build_and_install(args)
-            if getattr(args, "create_binary_archives", False):
+            if self.create_binary_archive:
                 self._create_binary_archive()
                 self.update_binary_archive_symlink()
             source = "build"

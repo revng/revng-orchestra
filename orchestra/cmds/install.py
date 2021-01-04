@@ -23,6 +23,7 @@ def handle_install(args):
     config = Configuration(fallback_to_build=args.fallback_build,
                            force_from_source=args.from_source,
                            use_config_cache=args.config_cache,
+                           create_binary_archives=args.create_binary_archives,
                            )
     build = config.get_build(args.component)
 
