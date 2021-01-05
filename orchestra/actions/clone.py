@@ -91,6 +91,7 @@ class CloneAction(ActionForComponent):
                 for commit, branch
                 in parse_regex.findall(result)}
 
+    @property
     def environment(self) -> OrderedDict:
         env = super().environment
         env["GIT_SSH_COMMAND"] = "ssh -oControlPath=~/.ssh/ssh-mux-%r@%h:%p -oControlMaster=auto -o ControlPersist=10"
