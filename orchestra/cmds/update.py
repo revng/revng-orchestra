@@ -4,7 +4,7 @@ from textwrap import dedent
 from loguru import logger
 from tqdm import tqdm
 
-from ..actions.util import run_internal_subprocess
+from ..actions.util import run_internal_subprocess, try_run_internal_subprocess
 from ..model.configuration import Configuration
 from ..util import OrchestraException
 
@@ -128,7 +128,7 @@ def git_reset_hard(directory, ref="master"):
 def git_pull(directory):
     env = os.environ.copy()
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
-    result = run_internal_subprocess(
+    result = try_run_internal_subprocess(
         ["git", "-C", directory, "pull", "--ff-only"],
         environment=env,
     )
