@@ -9,7 +9,7 @@ from loguru import logger
 
 from .action import ActionForBuild
 from .uninstall import uninstall
-from .util import OrchestraException
+from ..util import OrchestraException
 from .. import git_lfs
 from ..util import is_installed
 
