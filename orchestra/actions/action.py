@@ -4,7 +4,7 @@ from typing import Set
 
 from loguru import logger
 
-from .util import run_user_script, run_internal_script, get_script_output
+from .util import run_user_script, run_internal_script, get_script_output, try_get_script_output
 # Only used for type hints, package-relative import not possible due to circular reference
 import orchestra.model.configuration
 
@@ -94,6 +94,9 @@ class Action:
 
     def _get_script_output(self, script):
         return get_script_output(script, environment=self.environment)
+
+    def _try_get_script_output(self, script):
+        return try_get_script_output(script, environment=self.environment)
 
 
 class ActionForComponent(Action):

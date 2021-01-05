@@ -108,7 +108,7 @@ def run_user_script(script, environment: OrderedDict = None, check_returncode=Tr
     return result
 
 
-def get_script_output(script, environment: OrderedDict = None, check_returncode=True, decode_as="utf-8"):
+def _get_script_output(script, environment: OrderedDict = None, check_returncode=True, decode_as="utf-8"):
     """Helper for getting stdout of a script
     :param script: the script to run
     :param environment: optional additional environment variables
@@ -133,6 +133,26 @@ def get_script_output(script, environment: OrderedDict = None, check_returncode=
         raise OrchestraException(err_msg)
 
     return result.stdout.decode(decode_as)
+
+
+def get_script_output(script, environment: OrderedDict = None, decode_as="utf-8"):
+    """Helper for getting stdout of a script. If the script returns a nonzero exit code an OrchestraException is raised.
+    :param script: the script to run
+    :param environment: optional additional environment variables
+    :param decode_as: decode the script output using this encoding
+    :return: the stdout produced by the script
+    """
+    return _get_script_output(script, environment=environment, check_returncode=True, decode_as=decode_as)
+
+
+def try_get_script_output(script, environment: OrderedDict = None, decode_as="utf-8"):
+    """Helper for getting stdout of a script. If the script returns nonzero an empty output will be returned.
+    :param script: the script to run
+    :param environment: optional additional environment variables
+    :param decode_as: decode the script output using this encoding
+    :return: the stdout produced by the script
+    """
+    return _get_script_output(script, environment=environment, check_returncode=False, decode_as=decode_as)
 
 
 def _run_subprocess(
