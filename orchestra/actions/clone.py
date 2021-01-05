@@ -83,7 +83,7 @@ class CloneAction(ActionForComponent):
         return None, None
 
     def _branches_from_remote(self, remote):
-        result = self._get_script_output(f'git ls-remote -h --refs "{remote}"')
+        result = self._try_get_script_output(f'git ls-remote -h --refs "{remote}"')
 
         parse_regex = re.compile(r"(?P<commit>[a-f0-9]*)\W*refs/heads/(?P<branch>.*)")
 
