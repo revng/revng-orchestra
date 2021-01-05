@@ -5,8 +5,10 @@ import sys
 from collections import OrderedDict
 from typing import Union
 
+
 class OrchestraException(Exception):
     pass
+
 
 def parse_component_name(component_spec):
     tmp = component_spec.split("@")
