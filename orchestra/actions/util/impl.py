@@ -3,8 +3,8 @@ from collections import OrderedDict
 
 from loguru import logger
 
-from .. import globals
-from ..util import export_environment, OrchestraException
+from ... import globals
+from ...util import export_environment, OrchestraException
 
 bash_prelude = """
 set -o errexit
@@ -22,7 +22,7 @@ def _run_script(
         stdout=None,
         stderr=None,
 ):
-    """Helper for running shell scripts. Should not be used directly.
+    """Helper for running shell scripts.
     :param script: the script to run
     :param environment: will be exported at the beginning of the script
     :param strict_flags: if True, a prelude is prepended to the script to help catch errors
@@ -46,7 +46,7 @@ def _run_script(
     return subprocess.run(["/bin/bash", "-c", script_to_run], stdout=stdout, stderr=stderr, cwd=cwd)
 
 
-def run_internal_script(script, environment: OrderedDict = None, check_returncode=True):
+def _run_internal_script(script, environment: OrderedDict = None, check_returncode=True):
     """Helper for running internal scripts.
     :param script: the script to run
     :param environment: optional additional environment variables
@@ -73,7 +73,7 @@ def run_internal_script(script, environment: OrderedDict = None, check_returncod
     return result
 
 
-def run_user_script(script, environment: OrderedDict = None, check_returncode=True):
+def _run_user_script(script, environment: OrderedDict = None, check_returncode=True):
     """Helper for running user scripts
     :param script: the script to run
     :param environment: optional additional environment variables
@@ -135,26 +135,6 @@ def _get_script_output(script, environment: OrderedDict = None, check_returncode
     return result.stdout.decode(decode_as)
 
 
-def get_script_output(script, environment: OrderedDict = None, decode_as="utf-8"):
-    """Helper for getting stdout of a script. If the script returns a nonzero exit code an OrchestraException is raised.
-    :param script: the script to run
-    :param environment: optional additional environment variables
-    :param decode_as: decode the script output using this encoding
-    :return: the stdout produced by the script
-    """
-    return _get_script_output(script, environment=environment, check_returncode=True, decode_as=decode_as)
-
-
-def try_get_script_output(script, environment: OrderedDict = None, decode_as="utf-8"):
-    """Helper for getting stdout of a script. If the script returns nonzero an empty output will be returned.
-    :param script: the script to run
-    :param environment: optional additional environment variables
-    :param decode_as: decode the script output using this encoding
-    :return: the stdout produced by the script
-    """
-    return _get_script_output(script, environment=environment, check_returncode=False, decode_as=decode_as)
-
-
 def _run_subprocess(
         argv,
         environment: [OrderedDict, dict] = None,
@@ -177,13 +157,13 @@ def _run_subprocess(
     return subprocess.run(argv, stdout=stdout, stderr=stderr, cwd=cwd, env=environment)
 
 
-def run_internal_subprocess(
+def _run_internal_subprocess(
         argv,
         environment: [OrderedDict, dict] = None,
         cwd=None,
         check_returncode=True,
 ):
-    """Helper for running an internal subprocess.
+    """Helper for running an internal subprocess. Not to be used directly.
     :param argv: the argv passed to subprocess.run
     :param environment: environment variables
     :param cwd: if not None, the command is executed in the specified path
@@ -211,7 +191,7 @@ def run_internal_subprocess(
     return result
 
 
-def get_subprocess_output(
+def _get_subprocess_output(
         argv,
         environment=None,
         check_returncode=True,

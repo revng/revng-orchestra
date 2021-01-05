@@ -5,7 +5,8 @@ from textwrap import dedent
 
 from loguru import logger
 
-from ..actions.util import get_script_output, _run_script
+from ..actions.util import get_script_output
+from ..actions.util.impl import _run_script
 from ..model.configuration import Configuration
 
 
