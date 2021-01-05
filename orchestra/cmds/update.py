@@ -25,10 +25,12 @@ def handle_update(args):
 
     logger.info("Updating binary archives")
     os.makedirs(config.binary_archives_dir, exist_ok=True)
-    for name, url in config.binary_archives_remotes.items():
+    progress_bar = tqdm(config.binary_archives_remotes.items(), unit="archives")
+    for name, url in progress_bar:
         binary_archive_path = os.path.join(config.binary_archives_dir, name)
+        progress_bar.set_postfix_str(f"{name}")
         if os.path.exists(binary_archive_path):
-            logger.info(f"Pulling binary archive {name}")
+            logger.debug(f"Pulling binary archive {name}")
             if not pull_binary_archive(name, config):
                 failed_pulls.append(f"Binary archive {name} ({os.path.join(config.binary_archives_dir, name)})")
         else:
@@ -46,8 +48,10 @@ def handle_update(args):
                            for _, component
                            in config.components.items()
                            if component.clone]
-    for component in tqdm(clonable_components, unit="components"):
-        logger.info(f"Fetching the latest remote commit for {component.name}")
+    progress_bar = tqdm(clonable_components, unit="components")
+    for component in progress_bar:
+        logger.debug(f"Fetching the latest remote commit for {component.name}")
+        progress_bar.set_postfix_str(f"{component.name}")
         _, _ = component.clone.branch()
 
     to_pull = []
@@ -63,11 +67,13 @@ def handle_update(args):
 
     if to_pull:
         logger.info("Updating repositories")
-        for component in tqdm(to_pull, unit="components"):
+        progress_bar = tqdm(to_pull, unit="components")
+        for component in progress_bar:
             source_path = os.path.join(config.sources_dir, component.name)
             assert is_git_repo_root(source_path)
 
-            logger.info(f"Pulling {component.name}")
+            logger.debug(f"Pulling {component.name}")
+            progress_bar.set_postfix_str(f"{component.name}")
             if not git_pull(source_path):
                 failed_pulls.append(f"Repository {component.name}")
 
