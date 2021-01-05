@@ -26,13 +26,17 @@ def handle_update(args):
 
     logger.info("Updating binary archives")
     os.makedirs(config.binary_archives_dir, exist_ok=True)
-    for name, url in config.binary_archives_remotes.items():
+    progress_bar = tqdm(config.binary_archives_remotes.items(), unit="archives")
+    for name, url in progress_bar:
         binary_archive_path = os.path.join(config.binary_archives_dir, name)
+        progress_bar.set_postfix_str(f"{name}")
         if os.path.exists(binary_archive_path):
+            logger.debug(f"Pulling binary archive {name}")
             result = pull_binary_archive(name, config)
             if result.returncode:
                 failed_pulls.append(f"Binary archive {name} ({os.path.join(config.binary_archives_dir, name)})")
         else:
+            logger.info(f"Trying to clone binary archive from remote {name} ({url})")
             clone_binary_archive(name, url, config)
 
     logger.info("Resetting ls-remote cached info")
@@ -45,8 +49,10 @@ def handle_update(args):
                            for _, component
                            in config.components.items()
                            if component.clone]
-    for component in tqdm(clonable_components, unit="components"):
-        logger.info(f"Fetching the latest remote commit for {component.name}")
+    progress_bar = tqdm(clonable_components, unit="components")
+    for component in progress_bar:
+        logger.debug(f"Fetching the latest remote commit for {component.name}")
+        progress_bar.set_postfix_str(f"{component.name}")
         _, _ = component.clone.branch()
 
     to_pull = []
@@ -62,11 +68,13 @@ def handle_update(args):
 
     if to_pull:
         logger.info("Updating repositories")
-        for component in tqdm(to_pull, unit="components"):
+        progress_bar = tqdm(to_pull, unit="components")
+        for component in progress_bar:
             source_path = os.path.join(config.sources_dir, component.name)
             assert is_git_repo(source_path)
 
-            logger.info(f"Pulling {component.name}")
+            logger.debug(f"Pulling {component.name}")
+            progress_bar.set_postfix_str(f"{component.name}")
             result = git_pull(source_path)
             if result.returncode:
                 failed_pulls.append(f"Repository {component.name}")
@@ -94,7 +102,6 @@ def pull_binary_archive(name, config):
     # and don't clean/reset orchestra configuration
     if not is_git_repo(binary_archive_path):
         raise OrchestraException(f"{binary_archive_path} is not a git repo, aborting")
-    logger.info(f"Pulling binary archive {name}")
     # clean removes untracked files
     git_clean(binary_archive_path)
     # reset restores tracked files to their committed version
@@ -104,7 +111,6 @@ def pull_binary_archive(name, config):
 
 
 def clone_binary_archive(name, url, config):
-    logger.info(f"Trying to clone binary archive from remote {name} ({url})")
     binary_archive_path = os.path.join(config.binary_archives_dir, name)
     env = os.environ.copy()
     env["GIT_SSH_COMMAND"] = "ssh -oControlPath=~/.ssh/ssh-mux-%r@%h:%p -oControlMaster=auto -o ControlPersist=10"
