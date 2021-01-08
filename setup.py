@@ -22,7 +22,15 @@ setup(
     # TODO
     url='https://rev.ng/gitlab/',
     packages=find_packages(),
-    package_data={"orchestra": ["support/*"]},
+    package_data={
+        "orchestra": [
+            "support/ytt",
+            "support/elf-replace-dynstr.py",
+            "support/verify-root",
+            "support/shell-home/.bashrc",
+            "support/shell-home/.zshrc"
+        ]
+    },
     install_requires=open("requirements.txt").readlines(),
     entry_points={
         "console_scripts": [
