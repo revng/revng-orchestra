@@ -1,16 +1,18 @@
+import graphlib
+import threading
+import time
+from collections import defaultdict
 from concurrent import futures
+from itertools import permutations
 from typing import List, Dict
 
 import enlighten
-import graphlib
 import networkx as nx
 import networkx.classes.filters as nxfilters
-import threading
-import time
 from loguru import logger
 
 from .actions import AnyOfAction
-from .actions.action import Action
+from .actions.action import Action, ActionForBuild
 from .util import set_terminal_title, OrchestraException
 
 
@@ -99,6 +101,7 @@ class Executor:
                                  remove_unreachable=True,
                                  simplify_anyof=True,
                                  remove_satisfied=True,
+                                 intra_component_ordering=True,
                                  transitive_reduction=True,
                                  ):
         # Recursively collect all dependencies of the root action in an initial graph
@@ -125,6 +128,9 @@ class Executor:
             self._remove_satisfied_attracting_components(dependency_graph)
             # Re-add the true root actions as they may have been removed
             dependency_graph.add_nodes_from(true_roots)
+
+        if intra_component_ordering:
+            dependency_graph = self._enforce_intra_component_ordering(dependency_graph)
 
         if transitive_reduction:
             dependency_graph = self._transitive_reduction(dependency_graph)
@@ -255,6 +261,100 @@ class Executor:
                     done_something = True
                     break
         return done_something
+
+    def _enforce_intra_component_ordering(self, dependency_graph):
+        """This pass ensures that when two builds of the same component are
+        scheduled to be installed their direct antidependencies will find those exact builds
+        when run.
+        Example:
+               +-------+
+            +--+  A@1  +--+
+            |  +-------+  |
+        +---v---+     +---v---+
+        |  B@1  |     |  A@2  +--+
+        +-------+     +-------+  |
+                             +---v---+
+                             |  B@2  |
+                             +-------+
+
+        Wihout this pass both following schedules are both possible:
+            - B@2, A@2, B@1, A@1
+            - B@2, B@1, A@2, A@1
+        The second schedule runs B@1 after B@2, but A@2 after B@1,
+        so A@2 would not find the exact build it was expecting.
+
+        The pass transforms the graph above into:
+
+               +-------+
+            +--+  A@1  +--+
+            |  +-------+  |
+        +---v---+     +---v---+
+        |  B@1  +----->  A@2  +--+
+        +---+---+     +-------+  |
+            |                +---v---+
+            +---------------->  B@2  |
+                             +-------+
+
+        For each component C the algorithm creates a list of groups of actions, one for each build.
+        Each group contains:
+         1. actions that pertain to a specific build of the component
+         2. actions that directly depend on actions of point 1
+        The algorithm tries all possible permutations of the groups in the list.
+        For each permutation [G1, G2, ..., Gn] all actions in
+        group Gi are marked to depend on all actions in group Gi+1.
+        The graph is checked for cycles and if none are found the order is accepted.
+        """
+        scheduled_actions_per_build = defaultdict(set)
+        scheduled_builds_per_component = defaultdict(set)
+        scheduled_actions_per_direct_build_dependency = defaultdict(set)
+
+        for action in dependency_graph.nodes:
+            if isinstance(action, ActionForBuild):
+                scheduled_builds_per_component[action.component].add(action.build)
+                scheduled_actions_per_build[action.build].add(action)
+                for d in dependency_graph.predecessors(action):
+                    scheduled_actions_per_direct_build_dependency[action.build].add(d)
+
+        groups_by_component = defaultdict(list)
+        for c, blds in scheduled_builds_per_component.items():
+            if len(blds) < 2:
+                continue
+
+            for bld in blds:
+                group = set()
+                for act in scheduled_actions_per_build[bld]:
+                    group.add(act)
+                for act in scheduled_actions_per_direct_build_dependency[bld]:
+                    group.add(act)
+                groups_by_component[c].append(group)
+
+        for component, group in groups_by_component.items():
+            dependency_graph = self._try_group_orders(dependency_graph, group)
+            if dependency_graph is None:
+                raise OrchestraException(f"Could not enforce an order between actions "
+                                         f"of component {component} pertaining to multiple builds")
+
+        return dependency_graph
+
+    @staticmethod
+    def _try_group_orders(dependency_graph, group):
+        for permutation in permutations(group):
+            # TODO: duplicating the graph is not good for performance,
+            #  might be worth removing nodes manually
+            depgraph_copy = dependency_graph.copy()
+
+            for i in range(len(permutation) - 1):
+                cur_group = permutation[i]
+                next_group = permutation[i + 1]
+                # Add edge from all nodes in cur_group to all nodes in next_group
+                for a1 in cur_group:
+                    for a2 in next_group:
+                        if a1 is a2:
+                            continue
+                        depgraph_copy.add_edge(a1, a2)
+
+            if not has_unsatisfied_cycles(depgraph_copy):
+                return depgraph_copy
 
     @staticmethod
     def _transitive_reduction(graph):
