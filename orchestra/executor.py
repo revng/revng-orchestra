@@ -3,7 +3,7 @@ import threading
 import time
 from collections import defaultdict
 from concurrent import futures
-from itertools import permutations
+from itertools import permutations, product
 from typing import List, Dict
 
 import enlighten
@@ -319,11 +319,7 @@ class Executor:
                 continue
 
             for bld in blds:
-                group = set()
-                for act in scheduled_actions_per_build[bld]:
-                    group.add(act)
-                for act in scheduled_actions_per_direct_build_dependency[bld]:
-                    group.add(act)
+                group = scheduled_actions_per_build[bld].union(scheduled_actions_per_direct_build_dependency[bld])
                 groups_by_component[c].append(group)
 
         for component, group in groups_by_component.items():
@@ -341,14 +337,10 @@ class Executor:
             #  might be worth removing nodes manually
             depgraph_copy = dependency_graph.copy()
 
-            for i in range(len(permutation) - 1):
-                cur_group = permutation[i]
-                next_group = permutation[i + 1]
-                # Add edge from all nodes in cur_group to all nodes in next_group
-                for a1 in cur_group:
-                    for a2 in next_group:
-                        if a1 is a2:
-                            continue
+            for g1, g2 in zip(permutation, permutation[1:]):
+                # Add edge from all nodes in g1 to all nodes in g2
+                for a1, a2 in product(g1, g2):
+                    if a1 is not a2:
                         depgraph_copy.add_edge(a1, a2)
 
             if not has_unsatisfied_cycles(depgraph_copy):
