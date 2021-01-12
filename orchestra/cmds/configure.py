@@ -28,7 +28,7 @@ def handle_configure(args):
         logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
         return 1
 
-    executor = Executor(args, [build.configure], no_deps=args.no_deps)
+    executor = Executor(args, [build.configure], no_deps=args.no_deps, no_force=args.no_force)
     failed = executor.run()
     exitcode = 1 if failed else 0
     return exitcode
