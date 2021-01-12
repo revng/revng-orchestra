@@ -17,6 +17,7 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("--create-binary-archives", action="store_true", help="Create binary archives")
     cmd_parser.add_argument("--keep-tmproot", action="store_true", help="Do not remove temporary root directories")
     cmd_parser.add_argument("--test", action="store_true", help="Run the test suite")
+    cmd_parser.add_argument("--no-force", action="store_true", help="Don't force execution of the root action")
 
 
 def handle_install(args):
@@ -31,7 +32,7 @@ def handle_install(args):
         logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
         return 1
 
-    executor = Executor(args, [build.install], no_deps=args.no_deps)
+    executor = Executor(args, [build.install], no_deps=args.no_deps, no_force=args.no_force)
     failed = executor.run()
     exitcode = 1 if failed else 0
     return exitcode

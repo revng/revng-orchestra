@@ -15,10 +15,11 @@ from .util import set_terminal_title, OrchestraException
 
 
 class Executor:
-    def __init__(self, args, actions, no_deps=False, threads=1):
+    def __init__(self, args, actions, no_deps=False, no_force=False, threads=1):
         self.args = args
         self.actions = actions
         self.no_deps = no_deps
+        self.no_force = no_force
         self.threads = 1
 
         self._toposorter = graphlib.TopologicalSorter()
@@ -124,7 +125,8 @@ class Executor:
         if remove_satisfied:
             self._remove_satisfied_attracting_components(dependency_graph)
             # Re-add the true root actions as they may have been removed
-            dependency_graph.add_nodes_from(true_roots)
+            if not self.no_force:
+                dependency_graph.add_nodes_from(true_roots)
 
         if transitive_reduction:
             dependency_graph = self._transitive_reduction(dependency_graph)
