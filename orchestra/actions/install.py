@@ -54,11 +54,14 @@ class InstallAction(ActionForBuild):
             self._build_and_install(args)
             if self.create_binary_archive:
                 self._create_binary_archive()
-                self.update_binary_archive_symlink()
             source = "build"
         else:
             raise OrchestraException(f"Could not find binary archive nor build: {self.build.qualified_name}")
         install_end_time = time.time()
+
+        # Binary archive symlinks always need to be updated,
+        # not only when the binary archive is rebuilt
+        self.update_binary_archive_symlink()
 
         post_file_list = self._index_directory(tmp_root + orchestra_root, relative_to=tmp_root + orchestra_root)
         post_file_list.append(
