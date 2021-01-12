@@ -25,8 +25,6 @@ def install_subcommand(sub_argparser):
                             help="Don't remove choices")
     cmd_parser.add_argument("--no-remove-satisfied-leaves", action="store_true",
                             help="Don't remove satisfied leaves")
-    cmd_parser.add_argument("--no-component-ordering", action="store_true",
-                            help="Don't enforce intra-component ordering")
     cmd_parser.add_argument("--no-transitive-reduction", action="store_true",
                             help="Don't perform transitive reduction")
 
@@ -63,7 +61,6 @@ def handle_graph(args):
             remove_unreachable=not args.no_remove_unreachable,
             simplify_anyof=not args.no_simplify_anyof,
             remove_satisfied=not args.no_remove_satisfied_leaves,
-            intra_component_ordering=not args.no_component_ordering,
             transitive_reduction=not args.no_transitive_reduction
         )
     graphviz_format = nx.nx_agraph.to_agraph(graph)
