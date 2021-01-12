@@ -43,7 +43,6 @@ class Executor:
         try:
             self._toposorter.prepare()
         except graphlib.CycleError as e:
-            # TODO: replace with OrchestraException from Ale fork when merging
             raise Exception(f"A cycle was found in the dependency graph: {e.args[1]}. This should never happen.")
 
         if not self._toposorter.is_active():
@@ -110,7 +109,6 @@ class Executor:
         # Find an assignment for all the choices so the graph becomes acyclic
         dependency_graph = self._assign_choices(dependency_graph)
         if dependency_graph is None:
-            # TODO: replace with OrchestraException from Ale fork when merging
             raise Exception("Could not find an acyclic assignment for the given dependency graph")
 
         if remove_unreachable:
@@ -331,8 +329,8 @@ class Executor:
         for component, group in groups_by_component.items():
             dependency_graph = self._try_group_orders(dependency_graph, group)
             if dependency_graph is None:
-                raise OrchestraException(f"Could not enforce an order between actions "
-                                         f"of component {component} pertaining to multiple builds")
+                raise Exception(f"Could not enforce an order between actions of "
+                                f"component {component} pertaining to multiple builds")
 
         return dependency_graph
 
