@@ -15,7 +15,8 @@ from loguru import logger
 from . import build as bld
 from . import component as comp
 from ..actions import CloneAction, ConfigureAction, InstallAction, AnyOfAction
-from ..actions.util import get_script_output, run_internal_subprocess, get_subprocess_output
+from ..actions.util import get_script_output, try_run_internal_subprocess, get_subprocess_output, \
+    try_get_subprocess_output
 from ..util import parse_component_name, parse_dependency
 
 
@@ -32,7 +33,7 @@ def follow_redirects(url, max=3):
 
     new_url = None
     with TemporaryDirectory() as temporary_directory:
-        result = run_internal_subprocess(
+        result = try_run_internal_subprocess(
             ["git", "clone", url, temporary_directory],
             environment=env,
         )
@@ -316,7 +317,7 @@ class Configuration:
         logger.info("Populating default remotes for repositories and binary archives")
         logger.info("Remember to run `orc update` next")
 
-        git_output = get_subprocess_output(
+        git_output = try_get_subprocess_output(
             ["git", "-C", self.orchestra_dotdir, "config", "--get-regexp", r"remote\.[^.]*\.url"]
         )
         remotes_re = re.compile(r"remote\.(?P<name>[^.]*)\.url (?P<url>.*)$")
