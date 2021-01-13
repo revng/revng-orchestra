@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 from ..actions.util import run_internal_subprocess
 from ..model.configuration import Configuration
+from ..util import OrchestraException
 
 
 def install_subcommand(sub_argparser):
@@ -63,7 +64,7 @@ def handle_update(args):
         logger.info("Updating repositories")
         for component in tqdm(to_pull, unit="components"):
             source_path = os.path.join(config.sources_dir, component.name)
-            assert os.path.exists(os.path.join(source_path, ".git"))
+            assert is_git_repo(source_path)
 
             logger.info(f"Pulling {component.name}")
             result = git_pull(source_path)
@@ -89,7 +90,15 @@ def handle_update(args):
 
 def pull_binary_archive(name, config):
     binary_archive_path = os.path.join(config.binary_archives_dir, name)
+    # This check is to ensure we are called with the path of an existing binary archive
+    # and don't clean/reset orchestra configuration
+    if not is_git_repo(binary_archive_path):
+        raise OrchestraException(f"{binary_archive_path} is not a git repo, aborting")
     logger.info(f"Pulling binary archive {name}")
+    # clean removes untracked files
+    git_clean(binary_archive_path)
+    # reset restores tracked files to their committed version
+    git_reset_hard(binary_archive_path)
     result = git_pull(binary_archive_path)
     return result
 
@@ -108,6 +117,14 @@ def clone_binary_archive(name, url, config):
         logger.info(f"Could not clone binary archive from remote {name}!")
 
 
+def git_clean(directory):
+    return run_internal_subprocess(["git", "-C", directory, "clean", "-d", "--force"])
+
+
+def git_reset_hard(directory, ref="master"):
+    return run_internal_subprocess(["git", "-C", directory, "reset", "--hard", ref])
+
+
 def git_pull(directory):
     env = os.environ.copy()
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
@@ -116,3 +133,7 @@ def git_pull(directory):
         environment=env,
     )
     return result
+
+
+def is_git_repo(directory):
+    return os.path.exists(os.path.join(directory, ".git"))
