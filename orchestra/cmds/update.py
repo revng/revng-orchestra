@@ -128,7 +128,12 @@ def git_clean(directory):
 
 
 def git_reset_hard(directory, ref="master"):
-    return run_internal_subprocess(["git", "-C", directory, "reset", "--hard", ref])
+    env = os.environ.copy()
+    env["GIT_LFS_SKIP_SMUDGE"] = "1"
+    return run_internal_subprocess(
+        ["git", "-C", directory, "reset", "--hard", ref],
+        environment=env,
+    )
 
 
 def git_pull(directory):
