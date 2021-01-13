@@ -5,7 +5,7 @@ from loguru import logger
 from tqdm import tqdm
 
 from ..model.configuration import Configuration
-from ..actions.util import try_run_internal_subprocess
+from ..actions.util import run_internal_subprocess, try_run_internal_subprocess
 
 
 def install_subcommand(sub_argparser):
@@ -65,7 +65,7 @@ def handle_update(args):
         logger.info("Updating repositories")
         for component in tqdm(to_pull, unit="components"):
             source_path = os.path.join(config.sources_dir, component.name)
-            assert os.path.exists(os.path.join(source_path, ".git"))
+            assert is_git_repo_root(source_path)
 
             logger.info(f"Pulling {component.name}")
             if not git_pull(source_path):
@@ -116,7 +116,29 @@ def clone_binary_archive(name, url, config):
 
 def pull_binary_archive(name, config):
     binary_archive_path = os.path.join(config.binary_archives_dir, name)
+    # This check is to ensure we are called with the path of an existing binary archive
+    # and don't clean/reset orchestra configuration
+    if not is_git_repo_root(binary_archive_path):
+        raise Exception(f"{binary_archive_path} is not the root of a git repo, aborting")
+    # clean removes untracked files
+    git_clean(binary_archive_path)
+    # reset restores tracked files to their committed version
+    git_reset_hard(binary_archive_path)
     return git_pull(binary_archive_path)
+
+
+def git_clean(directory):
+    return run_internal_subprocess(["git", "clean", "-d", "--force"], cwd=directory)
+
+
+def git_reset_hard(directory, ref="master"):
+    env = os.environ.copy()
+    env["GIT_LFS_SKIP_SMUDGE"] = "1"
+    return run_internal_subprocess(
+        ["git", "reset", "--hard", ref],
+        cwd=directory,
+        environment=env
+    )
 
 
 def git_pull(directory):
@@ -130,3 +152,7 @@ def git_pull(directory):
         cwd=directory
     )
     return returncode == 0
+
+
+def is_git_repo_root(directory):
+    return os.path.exists(os.path.join(directory, ".git"))
