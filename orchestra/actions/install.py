@@ -47,7 +47,7 @@ class InstallAction(ActionForBuild):
         pre_file_list = self._index_directory(tmp_root + orchestra_root, relative_to=tmp_root + orchestra_root)
 
         install_start_time = time.time()
-        if self.allow_binary_archive and self._binary_archive_exists():
+        if self.allow_binary_archive and self.binary_archive_exists():
             self._install_from_binary_archive(args)
             source = "binary archives"
         elif self.allow_build:
@@ -141,7 +141,7 @@ class InstallAction(ActionForBuild):
         git_lfs.fetch(binary_archive_repo_dir, only=[os.path.realpath(binary_archive_path)])
 
     def _extract_binary_archive(self):
-        if not self._binary_archive_exists():
+        if not self.binary_archive_exists():
             raise Exception("Binary archive not found!")
 
         archive_filepath = self._binary_archive_filepath()
@@ -153,7 +153,7 @@ class InstallAction(ActionForBuild):
         self._run_internal_script(script)
 
     def _implicit_dependencies(self):
-        if self.allow_binary_archive and self._binary_archive_exists() or not self.allow_build:
+        if self.allow_binary_archive and self.binary_archive_exists() or not self.allow_build:
             return set()
         else:
             return {self.build.configure}
@@ -389,7 +389,7 @@ class InstallAction(ActionForBuild):
                 return try_archive_path
         return None
 
-    def _binary_archive_exists(self):
+    def binary_archive_exists(self):
         return self._binary_archive_filepath() is not None
 
     @property
