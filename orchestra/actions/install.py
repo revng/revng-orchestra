@@ -1,3 +1,4 @@
+import glob
 import os
 import stat
 import time
@@ -362,9 +363,9 @@ class InstallAction(ActionForBuild):
 
     def update_binary_archive_symlink(self):
         """Creates/updates convenience symlinks to the binary archives.
-        Symlinks named <component_branch>_<orchestra_branch>.tar.gz point to the binary archives built for the
+        Symlinks named <component_branch>_<orchestra_branch>.tar.xz point to the binary archives built for the
         corresponding component and orchestra branches.
-        Example: fix-something_master.tar.gz -> abcdef_fedcba.tar.gz would be created if the binary archive
+        Example: fix-something_master.tar.xz -> abcdef_fedcba.tar.xz would be created if the binary archive
         for component branch fix-something with orchestra configuration on the `master` branch is available.
         """
         logger.debug("Updating binary archive symlink")
@@ -389,7 +390,7 @@ class InstallAction(ActionForBuild):
             branch = branch.replace("/", "-")
             target_name = self._binary_archive_filename(commit, self.component.recursive_hash)
             target_absolute_path = os.path.join(archive_dir_path, target_name)
-            symlink_absolute_path = os.path.join(archive_dir_path, f"{branch}_{orchestra_config_branch}.tar.gz")
+            symlink_absolute_path = os.path.join(archive_dir_path, f"{branch}_{orchestra_config_branch}.tar.xz")
             if os.path.exists(target_absolute_path):
                 if os.path.exists(symlink_absolute_path):
                     os.unlink(symlink_absolute_path)
@@ -460,7 +461,7 @@ class InstallAction(ActionForBuild):
 
     @staticmethod
     def _binary_archive_filename(component_commit, component_recursive_hash) -> str:
-        return f"{component_commit}_{component_recursive_hash}.tar.gz"
+        return f"{component_commit}_{component_recursive_hash}.tar.xz"
 
     def _binary_archive_path(self) -> str:
         """Returns the absolute path where the binary archive should be created.
@@ -476,9 +477,12 @@ class InstallAction(ActionForBuild):
         *Note*: the path may be pointing to a git LFS pointer which needs to be downloaded and checked out (smudged)"""
         binary_archives_path = self.config.binary_archives_dir
         for name in self.config.binary_archives_remotes:
-            try_path = os.path.join(binary_archives_path, name, self.binary_archive_relative_path)
-            if os.path.exists(try_path):
-                return try_path
+            # Try any .tar.* extension
+            archive_relative_path_glob = os.path.splitext(self.binary_archive_relative_path)[0] + "*"
+            try_archive_glob_path = os.path.join(binary_archives_path, name, archive_relative_path_glob)
+            matching_archives = glob.glob(try_archive_glob_path)
+            if matching_archives:
+                return matching_archives[0]
         return None
 
     def binary_archive_exists(self) -> bool:

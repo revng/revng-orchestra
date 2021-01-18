@@ -17,7 +17,7 @@ def test_binary_archive_location(orchestra: OrchestraShim):
     if commit is None:
         commit = "none"
 
-    expected_filename = f"{commit}_{component.recursive_hash}.tar.gz"
+    expected_filename = f"{commit}_{component.recursive_hash}.tar.xz"
     expected_relative_path = f"{action.architecture}/{component.name}/{build.name}/{expected_filename}"
     assert action.binary_archive_filename == expected_filename
     assert action.binary_archive_relative_path == expected_relative_path
