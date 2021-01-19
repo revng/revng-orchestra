@@ -98,7 +98,14 @@ def is_installed(config, wanted_component, wanted_build=None, wanted_recursive_h
 def export_environment(variables: OrderedDict):
     env = ""
     for var, val in variables.items():
-        env += f'export {var}="{val}"\n'
+        if var.startswith("-"):
+            var_name = var[1:]
+            if val is not None and val != "":
+                raise Exception(f"Requested environment variable {var_name} to be unset but its value is not empty")
+            env += f'unset -v {var_name}\n'
+        else:
+            env += f'export {var}="{val}"\n'
+
     return env
 
 
