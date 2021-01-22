@@ -26,6 +26,7 @@ class Build:
 
         self.ndebug = serialized_build.get("ndebug", True)
         self.test = serialized_build.get("test", False)
+        self.asan = serialized_build.get("asan", False)
 
         self._build_state = BuildState.NOT_READY
 
