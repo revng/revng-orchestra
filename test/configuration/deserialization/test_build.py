@@ -25,35 +25,48 @@ def test_build_deserialization(orchestra: OrchestraShim):
     assert build._explicit_dependencies == serialized_build["dependencies"]
     assert build._explicit_build_dependencies == serialized_build["build_dependencies"]
 
-    assert build.configure.dependencies_for_hash == {
-        component_A.builds["build0"].install,
+    for d in {
+        AnyOfAction({b.install for b in component_A.builds.values()}, component_A.default_build.install),
         AnyOfAction({b.install for b in component_B.builds.values()}, component_B.builds["build1"].install),
         component_C.builds["build1"].install,
-        component_D.builds["build0"].install,
+        AnyOfAction({b.install for b in component_D.builds.values()}, component_D.default_build.install),
+        AnyOfAction({b.install for b in component_E.builds.values()}, component_E.builds["build1"].install),
+        component_F.builds["build1"].install,
+        component_G.clone,
+    }:
+        if d not in build.configure.dependencies_for_hash:
+            print(f">>>{d.name_for_components} not in {build.configure.dependencies_for_hash}")
+            assert False
+
+    assert build.configure.dependencies_for_hash == {
+        AnyOfAction({b.install for b in component_A.builds.values()}, component_A.default_build.install),
+        AnyOfAction({b.install for b in component_B.builds.values()}, component_B.builds["build1"].install),
+        component_C.builds["build1"].install,
+        AnyOfAction({b.install for b in component_D.builds.values()}, component_D.default_build.install),
         AnyOfAction({b.install for b in component_E.builds.values()}, component_E.builds["build1"].install),
         component_F.builds["build1"].install,
         component_G.clone,
     }
 
     assert build.configure.dependencies == {
-        component_A.builds["build0"].install,
+        AnyOfAction({b.install for b in component_A.builds.values()}, component_A.default_build.install),
         AnyOfAction({b.install for b in component_B.builds.values()}, component_B.builds["build1"].install),
         component_C.builds["build1"].install,
-        component_D.builds["build0"].install,
+        AnyOfAction({b.install for b in component_D.builds.values()}, component_D.default_build.install),
         AnyOfAction({b.install for b in component_E.builds.values()}, component_E.builds["build1"].install),
         component_F.builds["build1"].install,
         component_G.clone,
     }
 
     assert build.install.dependencies_for_hash == {
-        component_A.builds["build0"].install,
+        AnyOfAction({b.install for b in component_A.builds.values()}, component_A.default_build.install),
         AnyOfAction({b.install for b in component_B.builds.values()}, component_B.builds["build1"].install),
         component_C.builds["build1"].install,
         build.configure,
     }
 
     assert build.install.dependencies == {
-        component_A.builds["build0"].install,
+        AnyOfAction({b.install for b in component_A.builds.values()}, component_A.default_build.install),
         AnyOfAction({b.install for b in component_B.builds.values()}, component_B.builds["build1"].install),
         component_C.builds["build1"].install,
         build.configure,

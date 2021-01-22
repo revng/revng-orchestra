@@ -110,7 +110,7 @@ def parse_dependency(dependency) -> (str, Union[str, None], bool):
     """Dependencies can be specified in the following formats:
     - Simple:
         `component`
-        Depend on the installation of the default build of `component`.
+        Depend on the installation of any build of `component`, preferring the default build
     - Exact:
         `component@build`
         Depend on the installation of a specific build of `component`
@@ -130,7 +130,7 @@ def parse_dependency(dependency) -> (str, Union[str, None], bool):
         raise Exception(f"Invalid dependency specified: {dependency}")
 
     component = match.group("component")
-    exact_build_required = False if match.group("type") == "~" else True
+    exact_build_required = match.group("type") == "@"
     build = match.group("build")
 
     return component, build, exact_build_required
