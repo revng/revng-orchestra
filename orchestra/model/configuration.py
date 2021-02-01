@@ -14,6 +14,7 @@ from loguru import logger
 
 from . import build as bld
 from . import component as comp
+from .remote_cache import RemoteHeadsCache
 from ..actions import CloneAction, ConfigureAction, InstallAction, AnyOfAction
 from ..actions.util import get_script_output, get_subprocess_output
 from ..actions.util import try_run_internal_subprocess, try_get_subprocess_output
@@ -105,6 +106,9 @@ class Configuration:
         self.builds_dir = self.parsed_yaml.get("paths", {}).get("builds_dir")
         if not self.builds_dir:
             self.builds_dir = os.path.realpath(os.path.join(self.orchestra_dotdir, "..", "build"))
+
+        remote_heads_cache_path = os.path.join(self.orchestra_dotdir, "remote_refs_cache.json")
+        self.remote_heads_cache = RemoteHeadsCache(self, remote_heads_cache_path)
 
         self._global_env = self._compute_global_env()
         self._parse_components()
@@ -430,8 +434,9 @@ def set_self_hash(component: comp.Component, component_yaml):
         serialized_build_yaml = json.dumps(build_yaml, sort_keys=True).encode("utf-8")
         to_hash += serialized_build_yaml
 
-    if component.clone:
-        to_hash += component.commit().encode("utf-8")
+    commit = component.commit()
+    if commit:
+        to_hash += commit.encode("utf-8")
 
     component.self_hash = hashlib.sha1(to_hash).hexdigest()
 

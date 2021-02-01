@@ -11,6 +11,7 @@ from ..actions.util import run_internal_subprocess, try_run_internal_subprocess
 def install_subcommand(sub_argparser):
     cmd_parser = sub_argparser.add_parser("update", handler=handle_update, help="Update components")
     cmd_parser.add_argument("--no-config", action="store_true", help="Don't pull orchestra config")
+    cmd_parser.add_argument("--parallelism", type=int, default=1, help="Maximum parallel processes")
 
 
 def handle_update(args):
@@ -44,15 +45,7 @@ def handle_update(args):
         os.remove(ls_remote_cache)
 
     logger.info("Updating ls-remote cached info")
-    clonable_components = [component
-                           for _, component
-                           in config.components.items()
-                           if component.clone]
-    progress_bar = tqdm(clonable_components, unit="components")
-    for component in progress_bar:
-        logger.debug(f"Fetching the latest remote commit for {component.name}")
-        progress_bar.set_postfix_str(f"{component.name}")
-        _, _ = component.clone.branch()
+    config.remote_heads_cache.rebuild_cache(parallelism=args.parallelism)
 
     to_pull = []
     for _, component in config.components.items():

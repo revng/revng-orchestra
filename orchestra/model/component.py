@@ -17,7 +17,7 @@ class Component:
         self.skip_post_install = skip_post_install
         self.license = license
         self.from_source = from_source
-        self.clone = None
+        self.clone: CloneAction = None
         self.binary_archives = binary_archives
         self.self_hash = None
         self.recursive_hash = None
