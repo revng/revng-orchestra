@@ -434,6 +434,10 @@ def set_self_hash(component: comp.Component, component_yaml):
         build_yaml = component_yaml["builds"][build_name]
         serialized_build_yaml = json.dumps(build_yaml, sort_keys=True).encode("utf-8")
         to_hash += serialized_build_yaml
+
+    if component.clone:
+        to_hash += component.commit().encode("utf-8")
+
     component.self_hash = hashlib.sha1(to_hash).hexdigest()
 
 

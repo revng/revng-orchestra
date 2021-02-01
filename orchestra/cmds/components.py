@@ -1,6 +1,7 @@
-from loguru import logger
-from urllib.parse import urlparse
 from fnmatch import fnmatch
+from urllib.parse import urlparse
+
+from loguru import logger
 
 from ..model.configuration import Configuration
 from ..util import get_installed_build
@@ -65,7 +66,7 @@ def handle_components(args):
             if not component.clone:
                 continue
 
-            branch, _ = component.clone.get_remote_head()
+            branch, _ = component.clone.branch()
             if not fnmatch(branch, args.branch):
                 continue
 
