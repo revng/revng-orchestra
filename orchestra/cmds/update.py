@@ -70,10 +70,13 @@ def handle_update(args):
         progress_bar = tqdm(to_pull, unit="components")
         for component in progress_bar:
             source_path = os.path.join(config.sources_dir, component.name)
-            assert is_git_repo_root(source_path)
-
             logger.debug(f"Pulling {component.name}")
             progress_bar.set_postfix_str(f"{component.name}")
+
+            if not is_git_repo_root(source_path):
+                failed_pulls.append(f"Repository {component.name}: Directory {source_path} is not a git repo")
+                continue
+
             if not git_pull(source_path):
                 failed_pulls.append(f"Repository {component.name}")
 
