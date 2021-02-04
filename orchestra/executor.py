@@ -64,7 +64,7 @@ class Executor:
         signal.signal(signal.SIGINT, self._sigint_handler)
 
         # Schedule and run the actions
-        while self._toposorter.is_active() and not self._failed_actions:
+        while (self._toposorter.is_active() and not self._failed_actions) or self._queued_actions:
             for action in self._toposorter.get_ready():
                 future = self._pool.submit(self._run_action, action)
                 self._queued_actions[future] = action
@@ -78,34 +78,25 @@ class Executor:
             for completed_future in done:
                 action = self._queued_actions[completed_future]
                 del self._queued_actions[completed_future]
-                exception = completed_future.exception()
+                try:
+                    exception = completed_future.exception()
+                except futures.CancelledError:
+                    continue
+
                 if exception:
+                    for future in self._queued_actions:
+                        future.cancel()
+                    self._failed_actions.append(action)
                     if isinstance(exception, OrchestraException):
                         logger.error(str(exception))
-                        logger.error(f"Waiting for other running actions to terminate")
-                        self._pool.shutdown(wait=True)
-                        self._failed_actions.append(action)
                     else:
+                        logger.error("An unexpected exception occurred, waiting for running actions to terminate")
+                        self._pool.shutdown(wait=True)
                         raise exception
                 else:
                     self._toposorter.done(action)
 
-        # Wait for pending actions to finish
-        done, not_done = futures.wait(self._queued_actions, return_when=futures.ALL_COMPLETED)
-        for completed_future in done:
-            action = self._queued_actions[completed_future]
-            del self._queued_actions[completed_future]
-            exception = completed_future.exception()
-            if exception:
-                if isinstance(exception, OrchestraException):
-                    logger.error(str(exception))
-                    logger.error(f"Waiting for other running actions to terminate")
-                    self._pool.shutdown(wait=True)
-                    self._failed_actions.append(action)
-                else:
-                    raise exception
-            else:
-                self._toposorter.done(action)
+        assert len(self._queued_actions) == 0 and len(self._running_actions) == 0
 
         self._stop_display_update()
 
