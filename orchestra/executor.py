@@ -15,6 +15,8 @@ from .actions import AnyOfAction, InstallAction
 from .actions.action import Action, ActionForBuild
 from .util import set_terminal_title, OrchestraException
 
+DUMMY_ROOT = "Dummy root"
+
 
 class Executor:
     def __init__(self, args, actions, no_deps=False, no_force=False, threads=1):
@@ -115,7 +117,7 @@ class Executor:
             raise Exception("Could not find an acyclic assignment for the given dependency graph")
 
         if remove_unreachable:
-            self._remove_unreachable_actions(dependency_graph, ["Dummy root"])
+            self._remove_unreachable_actions(dependency_graph, [DUMMY_ROOT])
 
         if simplify_anyof:
             # The graph returned contains choices with only one alternative
@@ -123,8 +125,8 @@ class Executor:
             self._simplify_anyof_actions(dependency_graph)
 
         # Remove the dummy root node
-        true_roots = list(dependency_graph.successors("Dummy root"))
-        dependency_graph.remove_node("Dummy root")
+        true_roots = list(dependency_graph.successors(DUMMY_ROOT))
+        dependency_graph.remove_node(DUMMY_ROOT)
         if remove_satisfied:
             self._remove_satisfied_attracting_components(dependency_graph)
             # Re-add the true root actions as they may have been removed
@@ -141,8 +143,9 @@ class Executor:
 
     def _create_initial_dependency_graph(self):
         graph = nx.DiGraph()
+        graph.add_node(DUMMY_ROOT)
         for action in self.actions:
-            graph.add_edge("Dummy root", action)
+            graph.add_edge(DUMMY_ROOT, action)
             self._collect_dependencies(action, graph)
         return graph
 
@@ -195,7 +198,7 @@ class Executor:
         # of the stringly connected components is cyclic
         if not remaining:
             subgraph = graph.copy()
-            self._remove_unreachable_actions(subgraph, ["Dummy root"])
+            self._remove_unreachable_actions(subgraph, [DUMMY_ROOT])
             subgraph = subgraph.subgraph(strongly_connected_component)
 
             if has_unsatisfied_cycles(subgraph):
@@ -215,7 +218,7 @@ class Executor:
             graph.add_edge(to_assign, alternative)
 
             #  Assigning nodes that are not reachable from the root is pointless
-            _, pointless = filter_out_unreachable(graph, remaining, ["Dummy root"])
+            _, pointless = filter_out_unreachable(graph, remaining, [DUMMY_ROOT])
             for n in pointless:
                 remaining.remove(n)
 
