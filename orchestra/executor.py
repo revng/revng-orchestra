@@ -1,4 +1,7 @@
 import graphlib
+import os
+import signal
+import sys
 import threading
 import time
 from collections import defaultdict
@@ -58,13 +61,20 @@ class Executor:
 
         self._start_display_update()
 
+        signal.signal(signal.SIGINT, self._sigint_handler)
+
         # Schedule and run the actions
         while self._toposorter.is_active() and not self._failed_actions:
             for action in self._toposorter.get_ready():
                 future = self._pool.submit(self._run_action, action)
                 self._queued_actions[future] = action
 
-            done, not_done = futures.wait(self._queued_actions, return_when=futures.FIRST_COMPLETED)
+            try:
+                done, not_done = futures.wait(self._queued_actions, return_when=futures.FIRST_COMPLETED)
+            except KeyboardInterrupt:
+                self._stop_display_update()
+                os.killpg(os.getpgid(os.getpid()), signal.SIGINT)
+
             for completed_future in done:
                 action = self._queued_actions[completed_future]
                 del self._queued_actions[completed_future]
@@ -426,6 +436,11 @@ class Executor:
 
     def _stop_display_update(self):
         self._stop_updating_display = True
+        while self._display_thread is not None:
+            pass
+        self._display_manager.stop()
+        sys.stdout.buffer.flush()
+        sys.stderr.buffer.flush()
 
     def _update_display(self):
         self._status_bar.color = "bright_white_on_lightslategray"
@@ -444,6 +459,12 @@ class Executor:
                 time.sleep(0.3)
         finally:
             self._status_bar.close()
+            self._display_thread = None
+
+    def _sigint_handler(self, sig, frame):
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        self._stop_display_update()
+        signal.default_int_handler(signal.SIGINT, frame)
 
 
 def has_unsatisfied_cycles(graph):
