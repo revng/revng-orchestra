@@ -1,5 +1,5 @@
-from pathlib import Path
 import os
+from pathlib import Path
 
 from loguru import logger
 
@@ -14,7 +14,7 @@ class ConfigureAction(ActionForBuild):
         # TODO: invalidate configure if self_hash (or even recursive_hash?) has changed
         return os.path.exists(self._configure_successful_path)
 
-    def _run(self, args):
+    def _run(self, cmdline_args):
         if os.path.exists(self._configure_successful_path):
             logger.warning("This component was already successfully configured, rerunning configure script")
             os.remove(self._configure_successful_path)

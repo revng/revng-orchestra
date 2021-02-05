@@ -5,7 +5,7 @@ from loguru import logger
 from tqdm import tqdm
 
 from ..model.configuration import Configuration
-from ..actions.util import try_run_internal_subprocess
+from ..actions.util import run_internal_subprocess, try_run_internal_subprocess
 
 
 def install_subcommand(sub_argparser):
@@ -25,10 +25,12 @@ def handle_update(args):
 
     logger.info("Updating binary archives")
     os.makedirs(config.binary_archives_dir, exist_ok=True)
-    for name, url in config.binary_archives_remotes.items():
+    progress_bar = tqdm(config.binary_archives_remotes.items(), unit="archives")
+    for name, url in progress_bar:
         binary_archive_path = os.path.join(config.binary_archives_dir, name)
+        progress_bar.set_postfix_str(f"{name}")
         if os.path.exists(binary_archive_path):
-            logger.info(f"Pulling binary archive {name}")
+            logger.debug(f"Pulling binary archive {name}")
             if not pull_binary_archive(name, config):
                 failed_pulls.append(f"Binary archive {name} ({os.path.join(config.binary_archives_dir, name)})")
         else:
@@ -46,8 +48,10 @@ def handle_update(args):
                            for _, component
                            in config.components.items()
                            if component.clone]
-    for component in tqdm(clonable_components, unit="components"):
-        logger.info(f"Fetching the latest remote commit for {component.name}")
+    progress_bar = tqdm(clonable_components, unit="components")
+    for component in progress_bar:
+        logger.debug(f"Fetching the latest remote commit for {component.name}")
+        progress_bar.set_postfix_str(f"{component.name}")
         _, _ = component.clone.branch()
 
     to_pull = []
@@ -63,17 +67,23 @@ def handle_update(args):
 
     if to_pull:
         logger.info("Updating repositories")
-        for component in tqdm(to_pull, unit="components"):
+        progress_bar = tqdm(to_pull, unit="components")
+        for component in progress_bar:
             source_path = os.path.join(config.sources_dir, component.name)
-            assert os.path.exists(os.path.join(source_path, ".git"))
+            logger.debug(f"Pulling {component.name}")
+            progress_bar.set_postfix_str(f"{component.name}")
 
-            logger.info(f"Pulling {component.name}")
+            if not is_git_repo_root(source_path):
+                failed_pulls.append(f"Repository {component.name}: Directory {source_path} is not a git repo")
+                continue
+
             if not git_pull(source_path):
                 failed_pulls.append(f"Repository {component.name}")
 
     if failed_pulls:
-        formatted_failed_pulls = "\n".join([f"  {repo}" for repo in failed_pulls])
-        failed_git_pull_suggestion = dedent(f"""
+        formatted_failed_pulls = "\n".join([f"  - {repo}" for repo in failed_pulls])
+        # Note: f-strings don't account for indentation, using a template is more practical
+        failed_git_pull_template = dedent("""
         Could not git pull --ff-only the following repositories:
         {formatted_failed_pulls}
 
@@ -83,11 +93,13 @@ def handle_update(args):
             - `git pull --rebase`, to pull remote changes and apply your commits on top
             - `git push` your changes to the remotes
         """)
+        failed_git_pull_suggestion = failed_git_pull_template.format(formatted_failed_pulls=formatted_failed_pulls)
         logger.error(failed_git_pull_suggestion)
 
     if failed_clones:
-        formatted_failed_clones = "\n".join([f"  {repo}" for repo in failed_clones])
-        failed_git_clone_suggestion = dedent(f"""
+        formatted_failed_clones = "\n".join([f"  - {repo}" for repo in failed_clones])
+        # Note: f-strings don't account for indentation, using a template is more practical
+        failed_git_clone_template = dedent("""
                 Could not clone the following repositories:
                 {formatted_failed_clones}
 
@@ -95,6 +107,7 @@ def handle_update(args):
                     - check your network connection
                     - check your ssh and git configuration (try manually cloning the repositories)
                 """)
+        failed_git_clone_suggestion = failed_git_clone_template.format(formatted_failed_clones=formatted_failed_clones)
         logger.error(failed_git_clone_suggestion)
 
     if failed_pulls or failed_clones:
@@ -116,7 +129,29 @@ def clone_binary_archive(name, url, config):
 
 def pull_binary_archive(name, config):
     binary_archive_path = os.path.join(config.binary_archives_dir, name)
+    # This check is to ensure we are called with the path of an existing binary archive
+    # and don't clean/reset orchestra configuration
+    if not is_git_repo_root(binary_archive_path):
+        raise Exception(f"{binary_archive_path} is not the root of a git repo, aborting")
+    # clean removes untracked files
+    git_clean(binary_archive_path)
+    # reset restores tracked files to their committed version
+    git_reset_hard(binary_archive_path)
     return git_pull(binary_archive_path)
+
+
+def git_clean(directory):
+    return run_internal_subprocess(["git", "clean", "-d", "--force"], cwd=directory)
+
+
+def git_reset_hard(directory, ref="master"):
+    env = os.environ.copy()
+    env["GIT_LFS_SKIP_SMUDGE"] = "1"
+    return run_internal_subprocess(
+        ["git", "reset", "--hard", ref],
+        cwd=directory,
+        environment=env
+    )
 
 
 def git_pull(directory):
@@ -130,3 +165,7 @@ def git_pull(directory):
         cwd=directory
     )
     return returncode == 0
+
+
+def is_git_repo_root(directory):
+    return os.path.exists(os.path.join(directory, ".git"))

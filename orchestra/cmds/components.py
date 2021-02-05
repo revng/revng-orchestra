@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 from loguru import logger
 
 from ..model.configuration import Configuration
-from ..util import get_installed_build
+from ..util import get_installed_metadata, get_installed_build
 
 
 def normalize_repository_url(url):
@@ -70,39 +70,47 @@ def handle_components(args):
             if not fnmatch(branch, args.branch):
                 continue
 
-        installed_build = get_installed_build(component_name, config)
-        if args.installed and installed_build \
-                or args.not_installed and installed_build is None \
-                or not args.installed and not args.not_installed:
+        metadata = get_installed_metadata(component_name, config)
+        is_installed = metadata is not None
+        manually_installed = is_installed and metadata.get("manually_installed", False)
+        installed_build = metadata and metadata.get("build_name")
+        if args.installed and not is_installed:
+            continue
+        if args.not_installed and is_installed:
+            continue
 
-            component_infos = []
-            if args.hashes:
-                component_infos.append(f"hash: {component.self_hash}")
-                component_infos.append(f"recursive hash: {component.recursive_hash}")
-            component_infos_s = stringify_infos(component_infos)
+        component_infos = []
+        if args.hashes:
+            component_infos.append(f"hash: {component.self_hash}")
+            component_infos.append(f"recursive hash: {component.recursive_hash}")
+        component_infos_s = stringify_infos(component_infos)
 
-            print(f"Component {component_name} {component_infos_s}")
-            for build_name, build in component.builds.items():
-                build_infos = []
-                if installed_build == build_name:
-                    build_infos.append("installed")
-                if build is component.default_build:
-                    build_infos.append("default")
+        print(f"Component {component_name} {component_infos_s}")
+        for build_name, build in component.builds.items():
+            build_infos = []
+            if installed_build == build_name:
+                if manually_installed:
+                    build_infos.append("installed manually")
+                else:
+                    build_infos.append("installed as dependency")
 
-                if build.configure and args.deps:
-                    dependencies = [dep for dep in build.configure.dependencies]
-                    if dependencies:
-                        build_infos.append(f"config deps: {' '.join(d.name_for_components for d in dependencies)}")
+            if build is component.default_build:
+                build_infos.append("default")
 
-                if build.install and args.deps:
-                    dependencies = [dep for dep in build.install.dependencies]
-                    if dependencies:
-                        build_infos.append(f"install deps: {' '.join(d.name_for_components for d in dependencies)}")
+            if build.configure and args.deps:
+                dependencies = [dep for dep in build.configure.dependencies]
+                if dependencies:
+                    build_infos.append(f"config deps: {' '.join(d.name_for_components for d in dependencies)}")
 
-                build_infos_s = stringify_infos(build_infos)
-                print(f"  Build {build_name} {build_infos_s}")
+            if build.install and args.deps:
+                dependencies = [dep for dep in build.install.dependencies]
+                if dependencies:
+                    build_infos.append(f"install deps: {' '.join(d.name_for_components for d in dependencies)}")
 
-            print()
+            build_infos_s = stringify_infos(build_infos)
+            print(f"  Build {build_name} {build_infos_s}")
+
+        print()
 
 
 def stringify_infos(infos):

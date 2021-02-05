@@ -1,4 +1,7 @@
 import graphlib
+import os
+import signal
+import sys
 import threading
 import time
 from collections import defaultdict
@@ -11,16 +14,19 @@ import networkx as nx
 import networkx.classes.filters as nxfilters
 from loguru import logger
 
-from .actions import AnyOfAction
+from .actions import AnyOfAction, InstallAction
 from .actions.action import Action, ActionForBuild
 from .util import set_terminal_title, OrchestraException
 
+DUMMY_ROOT = "Dummy root"
+
 
 class Executor:
-    def __init__(self, args, actions, no_deps=False, threads=1):
+    def __init__(self, args, actions, no_deps=False, no_force=False, threads=1):
         self.args = args
         self.actions = actions
         self.no_deps = no_deps
+        self.no_force = no_force
         self.threads = 1
 
         self._toposorter = graphlib.TopologicalSorter()
@@ -38,6 +44,8 @@ class Executor:
     def run(self):
         dependency_graph = self._create_dependency_graph()
 
+        self._verify_binary_archives_exist(dependency_graph)
+
         self._init_toposorter(dependency_graph)
 
         try:
@@ -53,44 +61,42 @@ class Executor:
 
         self._start_display_update()
 
+        signal.signal(signal.SIGINT, self._sigint_handler)
+
         # Schedule and run the actions
-        while self._toposorter.is_active() and not self._failed_actions:
+        while (self._toposorter.is_active() and not self._failed_actions) or self._queued_actions:
             for action in self._toposorter.get_ready():
                 future = self._pool.submit(self._run_action, action)
                 self._queued_actions[future] = action
 
-            done, not_done = futures.wait(self._queued_actions, return_when=futures.FIRST_COMPLETED)
+            try:
+                done, not_done = futures.wait(self._queued_actions, return_when=futures.FIRST_COMPLETED)
+            except KeyboardInterrupt:
+                self._stop_display_update()
+                os.killpg(os.getpgid(os.getpid()), signal.SIGINT)
+
             for completed_future in done:
                 action = self._queued_actions[completed_future]
                 del self._queued_actions[completed_future]
-                exception = completed_future.exception()
+                try:
+                    exception = completed_future.exception()
+                except futures.CancelledError:
+                    continue
+
                 if exception:
+                    for future in self._queued_actions:
+                        future.cancel()
+                    self._failed_actions.append(action)
                     if isinstance(exception, OrchestraException):
                         logger.error(str(exception))
-                        logger.error(f"Waiting for other running actions to terminate")
-                        self._pool.shutdown(wait=True)
-                        self._failed_actions.append(action)
                     else:
+                        logger.error("An unexpected exception occurred, waiting for running actions to terminate")
+                        self._pool.shutdown(wait=True)
                         raise exception
                 else:
                     self._toposorter.done(action)
 
-        # Wait for pending actions to finish
-        done, not_done = futures.wait(self._queued_actions, return_when=futures.ALL_COMPLETED)
-        for completed_future in done:
-            action = self._queued_actions[completed_future]
-            del self._queued_actions[completed_future]
-            exception = completed_future.exception()
-            if exception:
-                if isinstance(exception, OrchestraException):
-                    logger.error(str(exception))
-                    logger.error(f"Waiting for other running actions to terminate")
-                    self._pool.shutdown(wait=True)
-                    self._failed_actions.append(action)
-                else:
-                    raise exception
-            else:
-                self._toposorter.done(action)
+        assert len(self._queued_actions) == 0 and len(self._running_actions) == 0
 
         self._stop_display_update()
 
@@ -112,7 +118,7 @@ class Executor:
             raise Exception("Could not find an acyclic assignment for the given dependency graph")
 
         if remove_unreachable:
-            self._remove_unreachable_actions(dependency_graph, ["Dummy root"])
+            self._remove_unreachable_actions(dependency_graph, [DUMMY_ROOT])
 
         if simplify_anyof:
             # The graph returned contains choices with only one alternative
@@ -120,12 +126,13 @@ class Executor:
             self._simplify_anyof_actions(dependency_graph)
 
         # Remove the dummy root node
-        true_roots = list(dependency_graph.successors("Dummy root"))
-        dependency_graph.remove_node("Dummy root")
+        true_roots = list(dependency_graph.successors(DUMMY_ROOT))
+        dependency_graph.remove_node(DUMMY_ROOT)
         if remove_satisfied:
             self._remove_satisfied_attracting_components(dependency_graph)
             # Re-add the true root actions as they may have been removed
-            dependency_graph.add_nodes_from(true_roots)
+            if not self.no_force:
+                dependency_graph.add_nodes_from(true_roots)
 
         if intra_component_ordering:
             dependency_graph = self._enforce_intra_component_ordering(dependency_graph)
@@ -137,8 +144,9 @@ class Executor:
 
     def _create_initial_dependency_graph(self):
         graph = nx.DiGraph()
+        graph.add_node(DUMMY_ROOT)
         for action in self.actions:
-            graph.add_edge("Dummy root", action)
+            graph.add_edge(DUMMY_ROOT, action)
             self._collect_dependencies(action, graph)
         return graph
 
@@ -191,7 +199,7 @@ class Executor:
         # of the stringly connected components is cyclic
         if not remaining:
             subgraph = graph.copy()
-            self._remove_unreachable_actions(subgraph, ["Dummy root"])
+            self._remove_unreachable_actions(subgraph, [DUMMY_ROOT])
             subgraph = subgraph.subgraph(strongly_connected_component)
 
             if has_unsatisfied_cycles(subgraph):
@@ -211,7 +219,7 @@ class Executor:
             graph.add_edge(to_assign, alternative)
 
             #  Assigning nodes that are not reachable from the root is pointless
-            _, pointless = filter_out_unreachable(graph, remaining, ["Dummy root"])
+            _, pointless = filter_out_unreachable(graph, remaining, [DUMMY_ROOT])
             for n in pointless:
                 remaining.remove(n)
 
@@ -379,6 +387,19 @@ class Executor:
 
         return inflated_graph
 
+    @staticmethod
+    def _verify_binary_archives_exist(dependency_graph):
+        for action in dependency_graph.nodes:
+            if not isinstance(action, InstallAction):
+                continue
+            if not action.binary_archive_exists() and not action.allow_build:
+                binary_archive_filename = action.build.binary_archive_filename
+                qualified_name = action.build.qualified_name
+                raise Exception(
+                    f"""Binary archive {binary_archive_filename} for {qualified_name} not found.
+                    Try `orc update` or run `orc install` with `-b`."""
+                )
+
     def _init_toposorter(self, dependency_graph):
         for action in dependency_graph.nodes:
             dependencies = dependency_graph.successors(action)
@@ -387,8 +408,12 @@ class Executor:
     def _run_action(self, action: Action):
         self._running_actions.append(action)
         self._current_remaining -= 1
+        kwargs = {}
+        if isinstance(action, InstallAction):
+            kwargs["set_manually_installed"] = action in self.actions
+
         try:
-            return action.run(args=self.args)
+            return action.run(cmdline_args=self.args, **kwargs)
         finally:
             self._running_actions.remove(action)
 
@@ -402,6 +427,11 @@ class Executor:
 
     def _stop_display_update(self):
         self._stop_updating_display = True
+        while self._display_thread is not None:
+            pass
+        self._display_manager.stop()
+        sys.stdout.buffer.flush()
+        sys.stderr.buffer.flush()
 
     def _update_display(self):
         self._status_bar.color = "bright_white_on_lightslategray"
@@ -420,6 +450,12 @@ class Executor:
                 time.sleep(0.3)
         finally:
             self._status_bar.close()
+            self._display_thread = None
+
+    def _sigint_handler(self, sig, frame):
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        self._stop_display_update()
+        signal.default_int_handler(signal.SIGINT, frame)
 
 
 def has_unsatisfied_cycles(graph):

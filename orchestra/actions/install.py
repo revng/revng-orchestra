@@ -37,7 +37,7 @@ class InstallAction(ActionForBuild):
         self.allow_binary_archive = allow_binary_archive
         self.create_binary_archive = create_binary_archive
 
-    def _run(self, args):
+    def _run(self, cmdline_args, set_manually_installed=False):
         tmp_root = self.environment["TMP_ROOT"]
         orchestra_root = self.environment['ORCHESTRA_ROOT']
 
@@ -47,11 +47,11 @@ class InstallAction(ActionForBuild):
         pre_file_list = self._index_directory(tmp_root + orchestra_root, relative_to=tmp_root + orchestra_root)
 
         install_start_time = time.time()
-        if self.allow_binary_archive and self._binary_archive_exists():
-            self._install_from_binary_archive(args)
+        if self.allow_binary_archive and self.binary_archive_exists():
+            self._install_from_binary_archive()
             source = "binary archives"
         elif self.allow_build:
-            self._build_and_install(args)
+            self._build_and_install(cmdline_args)
             if self.create_binary_archive:
                 self._create_binary_archive()
             source = "build"
@@ -70,7 +70,7 @@ class InstallAction(ActionForBuild):
             os.path.relpath(self.config.installed_component_metadata_path(self.build.component.name), orchestra_root))
         new_files = [f for f in post_file_list if f not in pre_file_list]
 
-        if not args.no_merge:
+        if not cmdline_args.no_merge:
             if is_installed(self.config, self.build.component.name):
                 logger.info("Uninstalling previously installed build")
                 uninstall(self.build.component.name, self.config)
@@ -78,27 +78,51 @@ class InstallAction(ActionForBuild):
             logger.info("Merging installed files into orchestra root directory")
             self._merge()
 
-            # Write file metadata and index
-            os.makedirs(self.config.installed_component_metadata_dir(), exist_ok=True)
-            metadata = {
-                "component_name": self.build.component.name,
-                "build_name": self.build.name,
-                "install_time": install_end_time - install_start_time,
-                "source": source,
-                "self_hash": self.build.component.self_hash,
-                "recursive_hash": self.build.component.recursive_hash,
-                "binary_archive_path": os.path.join(self.build.binary_archive_dir, self.build.binary_archive_filename),
-            }
-            with open(self.config.installed_component_metadata_path(self.build.component.name), "w") as f:
-                json.dump(metadata, f)
+            self._update_metadata(new_files,
+                                  install_end_time - install_start_time,
+                                  source,
+                                  set_manually_installed)
 
-            with open(self.config.installed_component_file_list_path(self.build.component.name), "w") as f:
-                new_files = [f"{f}\n" for f in new_files]
-                f.writelines(new_files)
-
-        if not args.keep_tmproot:
+        if not cmdline_args.keep_tmproot:
             logger.info("Cleaning up tmproot")
             self._cleanup_tmproot()
+
+    def _update_metadata(self, file_list, install_time, source, set_manually_insalled):
+        # Write file metadata and index
+        metadata_dir_path = self.config.installed_component_metadata_dir()
+        metadata_path = self.config.installed_component_metadata_path(self.build.component.name)
+        file_list_path = self.config.installed_component_file_list_path(self.build.component.name)
+
+        os.makedirs(metadata_dir_path, exist_ok=True)
+
+        if os.path.exists(metadata_path):
+            with open(metadata_path) as f:
+                metadata = json.load(f)
+        else:
+            metadata = {}
+
+        binary_archive_path = os.path.join(self.build.binary_archive_dir, self.build.binary_archive_filename)
+        manually_installed = metadata.get("manually_installed", False) or set_manually_insalled
+
+        metadata.update({
+            "component_name": self.build.component.name,
+            "build_name": self.build.name,
+            "install_time": install_time,
+            "source": source,
+            "self_hash": self.build.component.self_hash,
+            "recursive_hash": self.build.component.recursive_hash,
+            "binary_archive_path": binary_archive_path,
+            "manually_installed": manually_installed,
+        })
+
+        # Write metadata
+        with open(metadata_path, "w") as f:
+            json.dump(metadata, f)
+
+        # Write installed file list (.idx)
+        with open(file_list_path, "w") as f:
+            new_files = [f"{f}\n" for f in file_list]
+            f.writelines(new_files)
 
     def _prepare_tmproot(self):
         script = dedent("""
@@ -116,7 +140,7 @@ class InstallAction(ActionForBuild):
             """)
         self._run_internal_script(script)
 
-    def _install_from_binary_archive(self, args):
+    def _install_from_binary_archive(self):
         # TODO: handle nonexisting binary archives
         logger.info("Fetching binary archive")
         self._fetch_binary_archive()
@@ -141,7 +165,7 @@ class InstallAction(ActionForBuild):
         git_lfs.fetch(binary_archive_repo_dir, only=[os.path.realpath(binary_archive_path)])
 
     def _extract_binary_archive(self):
-        if not self._binary_archive_exists():
+        if not self.binary_archive_exists():
             raise Exception("Binary archive not found!")
 
         archive_filepath = self._binary_archive_filepath()
@@ -153,7 +177,7 @@ class InstallAction(ActionForBuild):
         self._run_internal_script(script)
 
     def _implicit_dependencies(self):
-        if self.allow_binary_archive and self._binary_archive_exists() or not self.allow_build:
+        if self.allow_binary_archive and self.binary_archive_exists() or not self.allow_build:
             return set()
         else:
             return {self.build.configure}
@@ -389,7 +413,7 @@ class InstallAction(ActionForBuild):
                 return try_archive_path
         return None
 
-    def _binary_archive_exists(self):
+    def binary_archive_exists(self):
         return self._binary_archive_filepath() is not None
 
     @property

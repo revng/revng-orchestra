@@ -27,6 +27,8 @@ def install_subcommand(sub_argparser):
                             help="Don't remove satisfied leaves")
     cmd_parser.add_argument("--no-transitive-reduction", action="store_true",
                             help="Don't perform transitive reduction")
+    cmd_parser.add_argument("--no-force", action="store_true",
+                            help="Don't force execution of the root action")
 
 
 def handle_graph(args):
@@ -52,7 +54,7 @@ def handle_graph(args):
             else:
                 actions.add(component.default_build.install)
 
-    executor = Executor(args, actions)
+    executor = Executor(args, actions, no_force=args.no_force)
 
     if not args.solved:
         graph = executor._create_initial_dependency_graph()
