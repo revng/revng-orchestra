@@ -13,13 +13,12 @@ def install_subcommand(sub_argparser):
         help="Print dependency graph (dot format)",
         parents=[build_options],
     )
-    cmd_parser.add_argument("component", nargs="?")
+    cmd_parser.add_argument("components", nargs="*")
     cmd_parser.add_argument(
         "--all-builds",
         action="store_true",
-        help="Include all builds instead of only the default one.\n" "Can't be used with --solved",
+        help="Include all builds instead of only the default one.\nCan't be used with --solved",
     )
-
     cmd_parser.add_argument(
         "--solved",
         "-s",
@@ -56,16 +55,18 @@ def handle_graph(args):
         use_config_cache=args.config_cache,
     )
 
-    if args.component:
-        build = config.get_build(args.component)
-        if not build:
-            suggested_component_name = config.get_suggested_component_name(args.component)
-            logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
-            return 1
+    actions = set()
 
-        actions = [build.install]
+    if args.components:
+        for component in args.components:
+            build = config.get_build(component)
+            if not build:
+                suggested_component_name = config.get_suggested_component_name(component)
+                logger.error(f"Component {component} not found! Did you mean {suggested_component_name}?")
+                return 1
+
+            actions.add(build.install)
     else:
-        actions = set()
         for component in config.components.values():
             if args.all_builds:
                 for build in component.builds.values():

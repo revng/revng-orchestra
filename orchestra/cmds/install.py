@@ -12,12 +12,8 @@ def install_subcommand(sub_argparser):
         help="Build and install a component",
         parents=[build_options, execution_options],
     )
-    cmd_parser.add_argument("component", help="Name of the component to install")
-    cmd_parser.add_argument(
-        "--no-force",
-        action="store_true",
-        help="Don't force execution of the root action",
-    )
+    cmd_parser.add_argument("components", nargs="+", help="Name of the components to install")
+    cmd_parser.add_argument("--no-force", action="store_true", help="Don't force execution of the root action")
     cmd_parser.add_argument("--no-deps", action="store_true", help="Only execute the requested action")
     cmd_parser.add_argument("--no-merge", action="store_true", help="Do not merge files into orchestra root")
     cmd_parser.add_argument("--create-binary-archives", action="store_true", help="Create binary archives")
@@ -39,13 +35,16 @@ def handle_install(args):
         run_tests=args.test,
     )
 
-    build = config.get_build(args.component)
-    if not build:
-        suggested_component_name = config.get_suggested_component_name(args.component)
-        logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
-        return 1
+    actions = set()
+    for component in args.components:
+        build = config.get_build(component)
+        if not build:
+            suggested_component_name = config.get_suggested_component_name(component)
+            logger.error(f"Component {component} not found! Did you mean {suggested_component_name}?")
+            return 1
+        actions.add(build.install)
 
-    executor = Executor([build.install], no_deps=args.no_deps, no_force=args.no_force, pretend=args.pretend)
+    executor = Executor(actions, no_deps=args.no_deps, no_force=args.no_force, pretend=args.pretend)
     failed = executor.run()
     exitcode = 1 if failed else 0
     return exitcode
