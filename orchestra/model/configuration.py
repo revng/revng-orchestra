@@ -179,7 +179,7 @@ class Configuration:
         # TODO: the order of the variables stays the same even if the
         #  user overrides an environment variable from the config.
         #  This is convenient but we should think if it is really what we want.
-        for env_dict in self.parsed_yaml["environment"]:
+        for env_dict in self.parsed_yaml.get("environment", {}):
             for k, v in env_dict.items():
                 env[k] = v
 
