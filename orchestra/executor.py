@@ -348,8 +348,17 @@ class Executor:
             for g1, g2 in zip(permutation, permutation[1:]):
                 # Add edge from all nodes in g1 to all nodes in g2
                 for a1, a2 in product(g1, g2):
-                    if a1 is not a2:
-                        depgraph_copy.add_edge(a1, a2)
+                    same_action = a1 is a2
+                    same_build = (
+                            isinstance(a1, ActionForBuild)
+                            and isinstance(a2, ActionForBuild)
+                            and a1.build is a2.build
+                    )
+                    # Don't add self loops or edges between actions for the same build
+                    if same_action or same_build:
+                        continue
+
+                    depgraph_copy.add_edge(a1, a2)
 
             if not has_unsatisfied_cycles(depgraph_copy):
                 return depgraph_copy
