@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 from textwrap import dedent
 from typing import Dict
 
+import jsonschema
 import yaml
 from fuzzywuzzy import fuzz
 from loguru import logger
@@ -409,6 +410,17 @@ class Configuration:
         expanded_yaml = get_subprocess_output([ytt, "-f", config_dir], environment=env)
         parsed_config = yaml.safe_load(expanded_yaml)
 
+        config_schema_path = os.path.join(os.path.dirname(__file__), "..", "support", "config.schema.yml")
+        with open(config_schema_path) as f:
+            parsed_config_schema = yaml.safe_load(f)
+
+        try:
+            jsonschema.validate(parsed_config, parsed_config_schema)
+        except jsonschema.ValidationError as e:
+            logger.error(f"Invalid configuration. Got the following error at path {error_path(e)}")
+            logger.error(e.message)
+            exit(1)
+
         if use_cache:
             with open(config_cache_file, "w") as f:
                 json.dump({"config_hash": config_hash, "config": parsed_config}, f)
@@ -471,3 +483,16 @@ def collect_dependencies(root_action, collected_actions):
     collected_actions.add(root_action)
     for d in root_action.dependencies_for_hash:
         collect_dependencies(d, collected_actions)
+
+
+# pip release of jsonschema does not yet include this commit
+# which implements this function directly as a property of the error
+# https://github.com/Julian/jsonschema/commit/1f37cb81c141df6a99bacc117b1549cc6702fa79
+def error_path(err: jsonschema.ValidationError):
+    path = '$'
+    for elem in err.absolute_path:
+        if isinstance(elem, int):
+            path += '[' + str(elem) + ']'
+        else:
+            path += '.' + elem
+    return path

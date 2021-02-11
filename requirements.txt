@@ -7,3 +7,4 @@ enlighten~=1.6.2
 tqdm~=4.50.2
 graphlib-backport
 networkx~=2.5
+jsonschema~=3.2.0

@@ -28,7 +28,8 @@ setup(
             "support/elf-replace-dynstr.py",
             "support/verify-root",
             "support/shell-home/.bashrc",
-            "support/shell-home/.zshrc"
+            "support/shell-home/.zshrc",
+            "support/config.schema.yml",
         ]
     },
     install_requires=open("requirements.txt").readlines(),
