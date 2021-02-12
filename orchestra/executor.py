@@ -88,11 +88,11 @@ class Executor:
                         future.cancel()
                     self._failed_actions.append(action)
                     if isinstance(exception, OrchestraException):
+                        logger.error("An action failed, waiting for running actions to terminate")
                         logger.error(str(exception))
                     else:
                         logger.error("An unexpected exception occurred, waiting for running actions to terminate")
-                        self._pool.shutdown(wait=True)
-                        raise exception
+                        logger.error(exception)
                 else:
                     self._toposorter.done(action)
 
