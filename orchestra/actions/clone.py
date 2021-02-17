@@ -1,9 +1,7 @@
-import json
 import os.path
-import re
-from collections import OrderedDict
 
 from .action import ActionForComponent
+from .. import gitutils
 
 
 class CloneAction(ActionForComponent):
@@ -31,73 +29,30 @@ class CloneAction(ActionForComponent):
     def is_satisfied(self):
         return os.path.exists(self.environment["SOURCE_DIR"])
 
-    def branches(self):
-        # First, check local checkout
-        if self.component.from_source:
-            source_dir = self.environment["SOURCE_DIR"]
-            if os.path.exists(source_dir):
-                return self._branches_from_remote(source_dir)
+    def heads(self):
+        """Returns a dictionary of branch names -> commit hash.
+        This information is retrieved either from the local clone
+        or from the first remote where the repository exists"""
+        # Give priority to the local checkout
+        source_dir = self.environment["SOURCE_DIR"]
+        if os.path.exists(source_dir):
+            return gitutils.ls_remote(source_dir)
 
-        cache_filepath = os.path.join(self.config.orchestra_dotdir,
-                                      "remote_refs_cache.json")
-
-        # Check the cache
-        if os.path.exists(cache_filepath):
-            with open(cache_filepath, "rb") as f:
-                cached_data = json.loads(f.read())
-                if self.component.name in cached_data:
-                    return cached_data[self.component.name]
-
-        # Check all the remotes
-        remotes = [f"{base_url}/{self.repository}"
-                   for base_url
-                   in self.config.remotes.values()]
-        for remote in remotes:
-            result = self._branches_from_remote(remote)
-            if result:
-                # We have a result, cache and return it
-                if os.path.exists(cache_filepath):
-                    with open(cache_filepath, "rb") as f:
-                        cached_data = json.loads(f.read())
-                else:
-                    cached_data = {}
-
-                cached_data[self.component.name] = result
-
-                # TODO: prevent race condition, if two clone actions run at the same time
-                with open(cache_filepath, "w") as f:
-                    json.dump(cached_data, f)
-
-                return result
-
-        return None
+        return self.config.remote_heads_cache.heads(self.component)
 
     def branch(self):
-        branches = self.branches()
+        """Returns a 2-tuple (branch name, commit hash).
+        If a local clone exists the information regards the currently checked out branch,
+        otherwise it is taken from the configured remotes.
+        """
+        source_dir = self.environment["SOURCE_DIR"]
+        if gitutils.is_root_of_git_repo(source_dir):
+            return gitutils.current_branch_info(source_dir)
+
+        branches = self.heads()
         if branches:
             for branch in self.config.branches:
                 if branch in branches:
                     return branch, branches[branch]
 
         return None, None
-
-    def _branches_from_remote(self, remote):
-        result = self._try_get_script_output(f'git ls-remote -h --refs "{remote}"')
-        if result is None:
-            return {}
-
-        parse_regex = re.compile(r"(?P<commit>[a-f0-9]*)\W*refs/heads/(?P<branch>.*)")
-
-        branches = {
-            branch: commit
-            for commit, branch
-            in parse_regex.findall(result)
-        }
-
-        return branches
-
-    @property
-    def environment(self) -> OrderedDict:
-        env = super().environment
-        env["GIT_SSH_COMMAND"] = "ssh -oControlPath=~/.ssh/ssh-mux-%r@%h:%p -oControlMaster=auto -o ControlPersist=10"
-        return env

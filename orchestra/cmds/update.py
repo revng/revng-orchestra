@@ -6,11 +6,13 @@ from tqdm import tqdm
 
 from ..model.configuration import Configuration
 from ..actions.util import run_internal_subprocess, try_run_internal_subprocess
+from ..gitutils import is_root_of_git_repo
 
 
 def install_subcommand(sub_argparser):
     cmd_parser = sub_argparser.add_parser("update", handler=handle_update, help="Update components")
     cmd_parser.add_argument("--no-config", action="store_true", help="Don't pull orchestra config")
+    cmd_parser.add_argument("--parallelism", type=int, default=1, help="Maximum parallel processes")
 
 
 def handle_update(args):
@@ -44,15 +46,7 @@ def handle_update(args):
         os.remove(ls_remote_cache)
 
     logger.info("Updating ls-remote cached info")
-    clonable_components = [component
-                           for _, component
-                           in config.components.items()
-                           if component.clone]
-    progress_bar = tqdm(clonable_components, unit="components")
-    for component in progress_bar:
-        logger.debug(f"Fetching the latest remote commit for {component.name}")
-        progress_bar.set_postfix_str(f"{component.name}")
-        _, _ = component.clone.branch()
+    config.remote_heads_cache.rebuild_cache(parallelism=args.parallelism)
 
     to_pull = []
     for _, component in config.components.items():
@@ -73,7 +67,7 @@ def handle_update(args):
             logger.debug(f"Pulling {component.name}")
             progress_bar.set_postfix_str(f"{component.name}")
 
-            if not is_git_repo_root(source_path):
+            if not is_root_of_git_repo(source_path):
                 failed_pulls.append(f"Repository {component.name}: Directory {source_path} is not a git repo")
                 continue
 
@@ -131,7 +125,7 @@ def pull_binary_archive(name, config):
     binary_archive_path = os.path.join(config.binary_archives_dir, name)
     # This check is to ensure we are called with the path of an existing binary archive
     # and don't clean/reset orchestra configuration
-    if not is_git_repo_root(binary_archive_path):
+    if not is_root_of_git_repo(binary_archive_path):
         raise Exception(f"{binary_archive_path} is not the root of a git repo, aborting")
     # clean removes untracked files
     git_clean(binary_archive_path)
@@ -165,7 +159,3 @@ def git_pull(directory):
         cwd=directory
     )
     return returncode == 0
-
-
-def is_git_repo_root(directory):
-    return os.path.exists(os.path.join(directory, ".git"))

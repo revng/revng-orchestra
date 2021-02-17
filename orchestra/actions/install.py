@@ -376,7 +376,7 @@ class InstallAction(ActionForBuild):
                 os.symlink(target_name, symlink)
 
         if self.component.clone:
-            for branch, commit in self.component.clone.branches().items():
+            for branch, commit in self.component.clone.heads().items():
                 create_symlink(branch, commit)
         else:
             create_symlink("none", "none")
