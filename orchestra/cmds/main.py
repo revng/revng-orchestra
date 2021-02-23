@@ -1,5 +1,6 @@
 import argparse
 
+from . import CustomArgumentParser
 from . import clean
 from . import clone
 from . import components
@@ -14,14 +15,7 @@ from . import shell
 from . import uninstall
 from . import update
 from . import upgrade
-
-
-class CustomArgumentParser(argparse.ArgumentParser):
-    def __init__(self, handler=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if not handler:
-            raise ValueError("Please provide a command handler")
-        self.handler = handler
+from . import binary_archives
 
 
 main_parser = argparse.ArgumentParser()
@@ -37,6 +31,7 @@ main_subparsers = main_parser.add_subparsers(
     description="Available subcommands. Use <subcommand> --help",
     dest="command_name",
     parser_class=CustomArgumentParser,
+    metavar="<subcommand>"
 )
 
 subcommands = [
@@ -54,6 +49,7 @@ subcommands = [
     ls,
     fix_binary_archives_symlinks,
     dumpconfig,
+    binary_archives
 ]
 
 for cmd in subcommands:
