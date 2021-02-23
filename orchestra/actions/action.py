@@ -87,20 +87,20 @@ class Action:
     def __repr__(self):
         return self.__str__()
 
-    def _run_user_script(self, script):
-        run_user_script(script, environment=self.environment)
+    def _run_user_script(self, script, cwd=None):
+        run_user_script(script, environment=self.environment, cwd=cwd)
 
-    def _run_internal_script(self, script):
-        run_internal_script(script, environment=self.environment)
+    def _run_internal_script(self, script, cwd=None):
+        run_internal_script(script, environment=self.environment, cwd=cwd)
 
-    def _try_run_internal_script(self, script):
-        return try_run_internal_script(script, environment=self.environment)
+    def _try_run_internal_script(self, script, cwd=None):
+        return try_run_internal_script(script, environment=self.environment, cwd=cwd)
 
-    def _get_script_output(self, script):
-        return get_script_output(script, environment=self.environment)
+    def _get_script_output(self, script, cwd=None):
+        return get_script_output(script, environment=self.environment, cwd=cwd)
 
-    def _try_get_script_output(self, script):
-        return try_get_script_output(script, environment=self.environment)
+    def _try_get_script_output(self, script, cwd=None):
+        return try_get_script_output(script, environment=self.environment, cwd=cwd)
 
 
 class ActionForComponent(Action):

@@ -7,52 +7,57 @@ from .impl import _run_internal_subprocess
 from .impl import _run_user_script
 
 
-def run_internal_script(script, environment: OrderedDict = None):
+def run_internal_script(script, environment: OrderedDict = None, cwd=None):
     """Helper for running internal scripts.
     If the script returns a nonzero exit code an error is logged and an OrchestraException is raised.
     :param script: the script to run
     :param environment: optional additional environment variables
+    :param cwd: if not None, the command is executed in the specified path
     """
-    _run_internal_script(script, environment=environment, check_returncode=True)
+    _run_internal_script(script, environment=environment, check_returncode=True, cwd=cwd)
 
 
-def try_run_internal_script(script, environment: OrderedDict = None):
+def try_run_internal_script(script, environment: OrderedDict = None, cwd=None):
     """Helper for running internal scripts that might fail.
     :param script: the script to run
     :param environment: optional additional environment variables
+    :param cwd: if not None, the command is executed in the specified path
     :returns: the exit code of the script
     """
-    return _run_internal_script(script, environment=environment, check_returncode=False)
+    return _run_internal_script(script, environment=environment, check_returncode=False, cwd=cwd)
 
 
-def run_user_script(script, environment: OrderedDict = None):
+def run_user_script(script, environment: OrderedDict = None, cwd=None):
     """Helper for running user scripts.
     If the script returns a nonzero exit code an OrchestraException is raised.
     :param script: the script to run
     :param environment: optional additional environment variables
+    :param cwd: if not None, the command is executed in the specified path
     """
-    _run_user_script(script, environment=environment, check_returncode=True)
+    _run_user_script(script, environment=environment, check_returncode=True, cwd=cwd)
 
 
-def get_script_output(script, environment: OrderedDict = None, decode_as="utf-8"):
+def get_script_output(script, environment: OrderedDict = None, decode_as="utf-8", cwd=None):
     """Helper for getting stdout of a script.
     If the script returns a nonzero exit code an error is logged and an OrchestraException is raised.
     :param script: the script to run
     :param environment: optional additional environment variables
     :param decode_as: decode the script output using this encoding
+    :param cwd: if not None, the command is executed in the specified path
     :return: the stdout produced by the script
     """
-    return _get_script_output(script, environment=environment, check_returncode=True, decode_as=decode_as)
+    return _get_script_output(script, environment=environment, check_returncode=True, decode_as=decode_as, cwd=cwd)
 
 
-def try_get_script_output(script, environment: OrderedDict = None, decode_as="utf-8"):
+def try_get_script_output(script, environment: OrderedDict = None, decode_as="utf-8", cwd=None):
     """Helper for getting stdout of a script that might fail.
     :param script: the script to run
     :param environment: optional additional environment variables
     :param decode_as: decode the script output using this encoding
+    :param cwd: if not None, the command is executed in the specified path
     :return: the stdout produced by the script or None if the script exits with a nonzero exit code
     """
-    return _get_script_output(script, environment=environment, check_returncode=False, decode_as=decode_as)
+    return _get_script_output(script, environment=environment, check_returncode=False, decode_as=decode_as, cwd=cwd)
 
 
 def run_internal_subprocess(

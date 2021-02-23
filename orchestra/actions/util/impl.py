@@ -46,12 +46,13 @@ def _run_script(
     return subprocess.run(["/bin/bash", "-c", script_to_run], stdout=stdout, stderr=stderr, cwd=cwd)
 
 
-def _run_internal_script(script, environment: OrderedDict = None, check_returncode=True):
+def _run_internal_script(script, environment: OrderedDict = None, check_returncode=True, cwd=None):
     """Helper for running internal scripts.
     :param script: the script to run
     :param environment: optional additional environment variables
     :param check_returncode: if True, log an error and raise an OrchestraException
                              when the script returns a nonzero exit code
+    :param cwd: if not None, the command is executed in the specified path
     :returns: the exit code of the script
     """
     result = _run_script(
@@ -60,6 +61,7 @@ def _run_internal_script(script, environment: OrderedDict = None, check_returnco
         loglevel="DEBUG",
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
+        cwd=cwd,
     )
 
     if check_returncode and result.returncode != 0:
@@ -74,12 +76,13 @@ def _run_internal_script(script, environment: OrderedDict = None, check_returnco
     return result.returncode
 
 
-def _run_user_script(script, environment: OrderedDict = None, check_returncode=True):
+def _run_user_script(script, environment: OrderedDict = None, check_returncode=True, cwd=None):
     """Helper for running user scripts
     :param script: the script to run
     :param environment: optional additional environment variables
     :param check_returncode: if True, log an error and raise an OrchestraException
                              when the script returns a nonzero exit code
+    :param cwd: if not None, the command is executed in the specified path
     """
 
     quiet = globals.loglevel not in ["TRACE", "DEBUG", "INFO"]
@@ -96,6 +99,7 @@ def _run_user_script(script, environment: OrderedDict = None, check_returncode=T
         loglevel="INFO",
         stdout=stdout,
         stderr=stderr,
+        cwd=cwd,
     )
 
     if check_returncode and result.returncode != 0:
@@ -111,7 +115,8 @@ def _get_script_output(
         script,
         environment: OrderedDict = None,
         check_returncode=True,
-        decode_as="utf-8"
+        decode_as="utf-8",
+        cwd=None,
 ):
     """Helper for getting stdout of a script
     :param script: the script to run
@@ -119,6 +124,7 @@ def _get_script_output(
     :param check_returncode: if True, log an error and raise an OrchestraException
                              when the script returns a nonzero exit code
     :param decode_as: decode the script output using this encoding
+    :param cwd: if not None, the command is executed in the specified path
     :return: the stdout produced by the script or None if the script exits with a nonzero exit code
     """
     result = _run_script(
@@ -127,6 +133,7 @@ def _get_script_output(
         loglevel="DEBUG",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        cwd=cwd,
     )
 
     if check_returncode and result.returncode != 0:
