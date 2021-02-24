@@ -323,8 +323,10 @@ class InstallAction(ActionForBuild):
                 raise Exception(f"The {self.component.name} component wants to "
                                 f"push to an unknown binary-archives repository ({binary_archive_repo_name})")
             return binary_archive_repo_name
-        else:
+        elif self.config.binary_archives_remotes:
             return list(self.config.binary_archives_remotes.keys())[0]
+        else:
+            return None
 
     def _binary_archive_path(self):
         archive_dirname = self.build.binary_archive_dir
@@ -353,6 +355,10 @@ class InstallAction(ActionForBuild):
         logger.info("Updating binary archive symlink")
 
         binary_archive_repo_name = self._binary_archive_repo_name()
+        if binary_archive_repo_name is None:
+            logger.warning("No binary archive configured")
+            return
+
         archive_dirname = self.build.binary_archive_dir
 
         orchestra_config_branch = self._get_script_output(
