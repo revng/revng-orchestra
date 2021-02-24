@@ -23,6 +23,7 @@ from ..util import parse_component_name, parse_dependency
 
 
 def follow_redirects(url, max=3):
+    """Recursively follows REDIRECT files found in a repository (up to `max` depth)"""
     if max == 0:
         return url
 
@@ -36,7 +37,7 @@ def follow_redirects(url, max=3):
     new_url = None
     with TemporaryDirectory() as temporary_directory:
         returncode = try_run_internal_subprocess(
-            ["git", "clone", url, temporary_directory],
+            ["git", "clone", "--depth", "1", url, temporary_directory],
             environment=env,
         )
         if returncode != 0:
