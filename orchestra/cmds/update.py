@@ -132,7 +132,7 @@ def pull_binary_archive(name, config):
     # clean removes untracked files
     git_clean(binary_archive_path)
     # reset restores tracked files to their committed version
-    git_reset_hard(binary_archive_path)
+    git_reset_hard(binary_archive_path, ref="origin/master")
     return git_pull(binary_archive_path)
 
 
