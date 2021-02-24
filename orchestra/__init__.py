@@ -1,4 +1,5 @@
 import sys
+import os
 from loguru import logger
 from tqdm import tqdm
 
@@ -13,12 +14,15 @@ class TqdmWrapper:
         sys.stderr.flush()
 
 
-def main():
-    args = main_parser.parse_args()
+def _main(argv):
+    args = main_parser.parse_args(argv)
 
     logger.remove(0)
     logger.add(TqdmWrapper(), level=args.loglevel, colorize=True, format="<level>[+] {level}</level> - {message}")
     orchestra.globals.loglevel = args.loglevel
+
+    if args.orchestra_dir:
+        os.chdir(args.orchestra_dir)
 
     cmd_parser = main_subparsers.choices.get(args.command_name)
     if not cmd_parser:
@@ -26,3 +30,7 @@ def main():
         exit(1)
 
     return cmd_parser.handler(args)
+
+
+def main():
+    return _main(sys.argv[1:])
