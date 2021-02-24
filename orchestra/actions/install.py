@@ -361,9 +361,14 @@ class InstallAction(ActionForBuild):
 
         archive_dirname = self.build.binary_archive_dir
 
-        orchestra_config_branch = self._get_script_output(
+        orchestra_config_branch = self._try_get_script_output(
             'git -C "$ORCHESTRA_DOTDIR" rev-parse --abbrev-ref HEAD',
-        ).strip().replace("/", "-")
+        )
+        if orchestra_config_branch is None:
+            logger.warning("Orchestra configuration is not inside a git repository. Defaulting to `master` as branch name")
+            orchestra_config_branch = "master"
+        else:
+            orchestra_config_branch = orchestra_config_branch.strip().replace("/", "-")
 
         archive_path = os.path.join(self.environment["BINARY_ARCHIVES"],
                                     binary_archive_repo_name,
