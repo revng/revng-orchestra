@@ -1,0 +1,43 @@
+components:
+  component_A:
+    builds:
+      default:
+        configure: |
+          mkdir -p "$BUILD_DIR"
+        install: |
+          cd "$BUILD_DIR"
+          touch "$TMP_ROOT$ORCHESTRA_ROOT/some_file"
+
+  component_B:
+    builds:
+      build0:
+        configure: |
+          mkdir -p "$BUILD_DIR"
+        install: |
+          cd "$BUILD_DIR"
+          touch "$TMP_ROOT$ORCHESTRA_ROOT/some_file"
+
+      build1:
+        configure: |
+          mkdir -p "$BUILD_DIR"
+        install: |
+          cd "$BUILD_DIR"
+          touch "$TMP_ROOT$ORCHESTRA_ROOT/some_other_file"
+
+  component_C:
+    repository: component_C
+    builds:
+      build0:
+        configure: |
+          mkdir -p "$BUILD_DIR"
+          touch "$BUILD_DIR/component_C_configure"
+        install: |
+          cd "$BUILD_DIR"
+          touch "$TMP_ROOT$ORCHESTRA_ROOT/component_C_file"
+        build_dependencies:
+          - component_A
+        dependencies:
+          - component_B@build1
+
+branches:
+  - master
