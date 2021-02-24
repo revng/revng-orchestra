@@ -29,7 +29,7 @@ def _main(argv):
         main_parser.print_help()
         exit(1)
 
-    return cmd_parser.handler(args)
+    return cmd_parser.handler(args) or 0
 
 
 def main():
