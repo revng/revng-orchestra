@@ -17,7 +17,7 @@ class TqdmWrapper:
 def _main(argv):
     args = main_parser.parse_args(argv)
 
-    logger.remove(0)
+    logger.remove(None)
     logger.add(TqdmWrapper(), level=args.loglevel, colorize=True, format="<level>[+] {level}</level> - {message}")
     orchestra.globals.loglevel = args.loglevel
 
