@@ -17,10 +17,11 @@ def install_subcommand(sub_argparser):
 
 
 def handle_configure(args):
-    config = Configuration(fallback_to_build=args.fallback_build,
-                           force_from_source=args.from_source,
-                           use_config_cache=args.config_cache,
-                           )
+    config = Configuration(
+        fallback_to_build=args.fallback_build,
+        force_from_source=args.from_source,
+        use_config_cache=args.config_cache,
+    )
     build = config.get_build(args.component)
 
     if not build:
@@ -28,6 +29,8 @@ def handle_configure(args):
         logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
         return 1
 
+    args.no_merge = False
+    args.keep_tmproot = False
     executor = Executor(args, [build.configure], no_deps=args.no_deps, no_force=args.no_force)
     failed = executor.run()
     exitcode = 1 if failed else 0
