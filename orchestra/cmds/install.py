@@ -12,12 +12,11 @@ def install_subcommand(sub_argparser):
                                           parents=[build_options, execution_options],
                                           )
     cmd_parser.add_argument("component", help="Name of the component to install")
+    cmd_parser.add_argument("--no-force", action="store_true", help="Don't force execution of the root action")
     cmd_parser.add_argument("--no-deps", action="store_true", help="Only execute the requested action")
     cmd_parser.add_argument("--no-merge", action="store_true", help="Do not merge files into orchestra root")
     cmd_parser.add_argument("--create-binary-archives", action="store_true", help="Create binary archives")
     cmd_parser.add_argument("--keep-tmproot", action="store_true", help="Do not remove temporary root directories")
-    cmd_parser.add_argument("--test", action="store_true", help="Run the test suite")
-    cmd_parser.add_argument("--no-force", action="store_true", help="Don't force execution of the root action")
 
 
 def handle_install(args):
