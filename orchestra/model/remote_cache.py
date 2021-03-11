@@ -54,8 +54,21 @@ class RemoteHeadsCache:
 
         map_to_threadpool(get_branches_with_update, clonable_components, parallelism=parallelism)
 
+        self._persist_cache()
+
+    def _persist_cache(self):
         with open(self.cache_path, "w") as f:
             json.dump(self._cached_remote_data, f)
+
+    def _set_entry(self, component_name, branch_name, commit, persist_cache=True):
+        """This helper is meant to be used by the testsuite to poison the cache
+        :param persist_cache: if True, the on-disk cache is also updated
+        """
+        current_cached_info = self._cached_remote_data.get(component_name, {})
+        current_cached_info[branch_name] = commit
+        self._cached_remote_data[component_name] = current_cached_info
+        if persist_cache:
+            self._persist_cache()
 
 
 def map_to_threadpool(func, args_list, parallelism=4):
