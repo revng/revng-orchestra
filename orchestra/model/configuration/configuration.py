@@ -16,12 +16,14 @@ from ...util import parse_component_name
 
 
 class Configuration:
-    def __init__(self,
-                 fallback_to_build=False,
-                 force_from_source=False,
-                 use_config_cache=True,
-                 create_binary_archives=False,
-                 ):
+    def __init__(
+            self,
+            fallback_to_build=False,
+            force_from_source=False,
+            use_config_cache=True,
+            create_binary_archives=False,
+            orchestra_dotdir=None,
+    ):
         self.components: Dict[str, Component] = {}
 
         # Allows to trigger a build from source if binary archives are not found
@@ -33,7 +35,7 @@ class Configuration:
         # Enables creation of binary archives for all install actions that get run
         self.create_binary_archives = create_binary_archives
 
-        self.orchestra_dotdir = locate_orchestra_dotdir()
+        self.orchestra_dotdir = locate_orchestra_dotdir(orchestra_dotdir)
         if not self.orchestra_dotdir:
             raise Exception("Directory .orchestra not found!")
 
@@ -279,8 +281,10 @@ class Configuration:
         return os.path.join(self.orchestra_dotdir, "config", "user_options.yml")
 
 
-def locate_orchestra_dotdir(relpath=""):
-    cwd = os.getcwd()
+def locate_orchestra_dotdir(cwd=None):
+    if cwd is None:
+        cwd = os.getcwd()
+
     while cwd != "/":
         path_to_try = os.path.join(cwd, ".orchestra")
         if os.path.isdir(path_to_try):
