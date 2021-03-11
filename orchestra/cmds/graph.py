@@ -32,10 +32,11 @@ def install_subcommand(sub_argparser):
 
 
 def handle_graph(args):
-    config = Configuration(fallback_to_build=args.fallback_build,
-                           force_from_source=args.from_source,
-                           use_config_cache=args.config_cache,
-                           )
+    config = Configuration(
+        fallback_to_build=args.fallback_build,
+        force_from_source=args.from_source,
+        use_config_cache=args.config_cache,
+    )
     if args.component:
         build = config.get_build(args.component)
 
