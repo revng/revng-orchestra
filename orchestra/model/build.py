@@ -1,15 +1,16 @@
-from enum import Enum, auto
-from itertools import repeat
-from typing import Union
 import hashlib
 import json
 import os.path
 import re
+from enum import Enum, auto
+from functools import lru_cache
+from itertools import repeat
+from typing import Union
 
 from . import component
+from ..actions import AnyOfAction
 from ..actions import ConfigureAction
 from ..actions import InstallAction
-from ..actions import AnyOfAction
 
 
 class Build:
@@ -26,9 +27,7 @@ class Build:
         self.ndebug = serialized_build.get("ndebug", True)
         self.test = serialized_build.get("test", False)
 
-        self.build_hash = self._compute_build_hash(serialized_build)
-
-        self.__build_state = BuildState.NOT_READY
+        self._build_state = BuildState.NOT_READY
 
         configure_script = serialized_build["configure"]
         self.configure = ConfigureAction(self, configure_script, configuration)
@@ -46,12 +45,12 @@ class Build:
             create_binary_archive=configuration.create_binary_archives,
         )
 
-        # -- Save dependencies in string form for resolving them later
+        # -- Save dependencies in string form for resolving them later and build hash computation
         self._explicit_dependencies = serialized_build.get("dependencies", [])
         self._explicit_build_dependencies = serialized_build.get("build_dependencies", [])
 
     def resolve_dependencies(self, configuration):
-        if self.__build_state is not BuildState.NOT_READY:
+        if self._build_state is not BuildState.NOT_READY:
             raise Exception("Called resolve_dependencies at the wrong time")
 
         # List of (dependency_name: str, build_only: bool)
@@ -78,10 +77,7 @@ class Build:
             if not build_only:
                 self.install.add_explicit_dependency(dependency_action)
 
-        del self._explicit_dependencies
-        del self._explicit_build_dependencies
-
-        self.__build_state = BuildState.READY
+        self._build_state = BuildState.READY
 
     @property
     def qualified_name(self):
@@ -102,9 +98,20 @@ class Build:
         component_commit = self.component.commit() or "none"
         return f'{component_commit}_{self.component.recursive_hash}.tar.gz'
 
-    @staticmethod
-    def _compute_build_hash(serialized_build):
-        return hashlib.sha1(json.dumps(serialized_build, sort_keys=True).encode("utf-8")).hexdigest()
+    @property
+    @lru_cache()
+    def build_hash(self):
+        return hashlib.sha1(json.dumps(
+            {
+                "test": self.test,
+                "ndebug": self.ndebug,
+                "install": self.install.script,
+                "configure": self.configure.script,
+                "dependendencies": self._explicit_dependencies,
+                "build_dependendencies": self._explicit_build_dependencies,
+            },
+            sort_keys=True,
+        ).encode("utf-8")).hexdigest()
 
     def __str__(self):
         return f"Build {self.component.name}@{self.name}"
