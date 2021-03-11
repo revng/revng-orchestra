@@ -1,10 +1,11 @@
-import sys
 import os
+import sys
+
 from loguru import logger
 from tqdm import tqdm
 
-from orchestra.cmds.main import main_parser, main_subparsers
 import orchestra.globals
+from orchestra.cmds.main import main_parser, main_subparsers
 
 
 class TqdmWrapper:

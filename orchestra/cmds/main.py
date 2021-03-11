@@ -1,6 +1,7 @@
 import argparse
 
 from . import CustomArgumentParser
+from . import binary_archives
 from . import clean
 from . import clone
 from . import components
@@ -15,8 +16,7 @@ from . import shell
 from . import uninstall
 from . import update
 from . import upgrade
-from . import binary_archives
-
+from . import version
 
 main_parser = argparse.ArgumentParser()
 logging_group = main_parser.add_argument_group(title="Logging options")
@@ -50,7 +50,8 @@ subcommands = [
     ls,
     fix_binary_archives_symlinks,
     dumpconfig,
-    binary_archives
+    binary_archives,
+    version,
 ]
 
 for cmd in subcommands:
