@@ -1,0 +1,12 @@
+[tool.black]
+line-length = 120
+include = '\.pyi?$'
+exclude = '''
+# All rows apart from the first one must begin with a pipe "|",
+# but if the first row begins with a pipe all regexes are ignored
+^\.eggs
+|^\.git
+|^\.venv
+|^/build
+|^/dist
+'''
