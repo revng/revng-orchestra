@@ -52,10 +52,6 @@ class Action:
         """Returns true if the action is satisfied."""
         raise NotImplementedError()
 
-    def can_run(self):
-        """Returns true if the action can be run (i.e. all its dependencies are satisfied)"""
-        return all(d.is_satisfied() for d in self.dependencies)
-
     @property
     def environment(self) -> OrderedDict:
         """Returns additional environment variables provided to the script to be run"""
@@ -64,10 +60,6 @@ class Action:
     @property
     def _target_name(self):
         raise NotImplementedError("Action subclasses must implement _target_name")
-
-    @property
-    def qualified_name(self):
-        return self._target_name + f"[{self.name}]"
 
     @property
     def name_for_info(self):
@@ -82,7 +74,7 @@ class Action:
         return self._target_name
 
     def __str__(self):
-        return f"Action {self.name} of {self.name_for_info}"
+        return f"Action {self.name} of {self._target_name}"
 
     def __repr__(self):
         return self.__str__()
