@@ -59,10 +59,11 @@ def handle_components(args):
             if not component.clone:
                 continue
             repository = component.clone.repository
-            if not any(remote_base_url
-                       for remote_base_url
-                       in config.remotes.values()
-                       if normalize_repository_url(f"{remote_base_url}/{repository}") == repository_filter):
+            if not any(
+                remote_base_url
+                for remote_base_url in config.remotes.values()
+                if normalize_repository_url(f"{remote_base_url}/{repository}") == repository_filter
+            ):
                 continue
 
         # Filter by branch
@@ -78,8 +79,7 @@ def handle_components(args):
         metadata = get_installed_metadata(component_name, config)
         installed_build = metadata and metadata.get("build_name")
 
-        if args.installed and installed_build is None \
-                or args.not_installed and installed_build is not None:
+        if args.installed and installed_build is None or args.not_installed and installed_build is not None:
             continue
 
         components_to_print.add(component)

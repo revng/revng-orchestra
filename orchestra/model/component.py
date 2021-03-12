@@ -9,14 +9,9 @@ from ..actions import CloneAction
 
 
 class Component:
-    def __init__(
-            self,
-            name: str,
-            serialized_component,
-            configuration
-    ):
+    def __init__(self, name: str, serialized_component, configuration):
         self.name = name
-        self.builds: Dict[str, 'build.Build'] = {}
+        self.builds: Dict[str, "build.Build"] = {}
         self.skip_post_install = serialized_component.get("skip_post_install", False)
         self.license = serialized_component.get("license")
         self.from_source = serialized_component.get("build_from_source", False) or configuration.build_all_from_source
@@ -36,7 +31,7 @@ class Component:
             default_build_name = sorted(serialized_component["builds"])[0]
 
         if default_build_name not in serialized_component["builds"]:
-            raise Exception(f"Invalid default build \"{default_build_name}\" for component {name}")
+            raise Exception(f'Invalid default build "{default_build_name}" for component {name}')
 
         for build_name, build_yaml in serialized_component["builds"].items():
             bld = build.Build(build_name, build_yaml, self, configuration)

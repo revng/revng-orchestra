@@ -102,13 +102,14 @@ class Executor:
 
         return list(self._failed_actions)
 
-    def _create_dependency_graph(self,
-                                 remove_unreachable=True,
-                                 simplify_anyof=True,
-                                 remove_satisfied=True,
-                                 intra_component_ordering=True,
-                                 transitive_reduction=True,
-                                 ):
+    def _create_dependency_graph(
+        self,
+        remove_unreachable=True,
+        simplify_anyof=True,
+        remove_satisfied=True,
+        intra_component_ordering=True,
+        transitive_reduction=True,
+    ):
         # Recursively collect all dependencies of the root action in an initial graph
         dependency_graph = self._create_initial_dependency_graph()
 
@@ -164,11 +165,7 @@ class Executor:
 
         for dependency in action.dependencies:
             graph.add_edge(action, dependency)
-            self._collect_dependencies(
-                dependency,
-                graph,
-                already_visited_nodes=already_visited_nodes
-            )
+            self._collect_dependencies(dependency, graph, already_visited_nodes=already_visited_nodes)
 
     def _assign_choices(self, graph):
         # We can assign the choices for each strongly connected component independently
@@ -177,7 +174,8 @@ class Executor:
             strongly_connected_components.sort(key=len, reverse=True)
             for strongly_connected_component in strongly_connected_components:
                 any_of_nodes = [
-                    c for c in strongly_connected_component
+                    c
+                    for c in strongly_connected_component
                     if isinstance(c, AnyOfAction) and len(list(graph.successors(c))) > 1
                 ]
                 if not any_of_nodes:
@@ -333,8 +331,10 @@ class Executor:
         for component, group in groups_by_component.items():
             dependency_graph = self._try_group_orders(dependency_graph, group)
             if dependency_graph is None:
-                raise Exception(f"Could not enforce an order between actions of "
-                                f"component {component} pertaining to multiple builds")
+                raise Exception(
+                    f"Could not enforce an order between actions of "
+                    f"component {component} pertaining to multiple builds"
+                )
 
         return dependency_graph
 
@@ -350,9 +350,7 @@ class Executor:
                 for a1, a2 in product(g1, g2):
                     same_action = a1 is a2
                     same_build = (
-                            isinstance(a1, ActionForBuild)
-                            and isinstance(a2, ActionForBuild)
-                            and a1.build is a2.build
+                        isinstance(a1, ActionForBuild) and isinstance(a2, ActionForBuild) and a1.build is a2.build
                     )
                     # Don't add self loops or edges between actions for the same build
                     if same_action or same_build:

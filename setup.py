@@ -14,13 +14,13 @@ if not os.path.exists(ytt_path):
     os.chmod(ytt_path, 0o755)
 
 setup(
-    name='orchestra',
-    version='3.0.0',
-    description='The orchestra meta build system',
-    author='Filippo Cremonese (rev.ng SRLs)',
-    author_email='filippocremonese@rev.ng',
+    name="orchestra",
+    version="3.0.0",
+    description="The orchestra meta build system",
+    author="Filippo Cremonese (rev.ng SRLs)",
+    author_email="filippocremonese@rev.ng",
     # TODO
-    url='https://rev.ng/gitlab/',
+    url="https://rev.ng/gitlab/",
     packages=find_packages(),
     package_data={
         "orchestra": [
@@ -28,7 +28,7 @@ setup(
             "support/elf-replace-dynstr.py",
             "support/verify-root",
             "support/shell-home/.bashrc",
-            "support/shell-home/.zshrc"
+            "support/shell-home/.zshrc",
         ]
     },
     install_requires=open("requirements.txt").readlines(),
@@ -40,4 +40,3 @@ setup(
     },
     zip_safe=False,
 )
-

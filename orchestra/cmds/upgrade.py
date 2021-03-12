@@ -5,18 +5,17 @@ from ..util import get_installed_metadata
 
 
 def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("upgrade",
-                                          handler=handle_upgrade,
-                                          help="Upgrade all manually installed components",
-                                          parents=[execution_options, build_options],
-                                          )
+    cmd_parser = sub_argparser.add_parser(
+        "upgrade",
+        handler=handle_upgrade,
+        help="Upgrade all manually installed components",
+        parents=[execution_options, build_options],
+    )
 
 
 def handle_upgrade(args):
     config = Configuration(
-        fallback_to_build=args.fallback_build,
-        force_from_source=args.from_source,
-        use_config_cache=args.config_cache
+        fallback_to_build=args.fallback_build, force_from_source=args.from_source, use_config_cache=args.config_cache
     )
 
     install_actions = set()

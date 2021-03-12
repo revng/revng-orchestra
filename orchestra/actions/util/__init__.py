@@ -61,9 +61,9 @@ def try_get_script_output(script, environment: OrderedDict = None, decode_as="ut
 
 
 def run_internal_subprocess(
-        argv,
-        environment: [OrderedDict, dict] = None,
-        cwd=None,
+    argv,
+    environment: [OrderedDict, dict] = None,
+    cwd=None,
 ):
     """Helper for running an internal subprocess.
     If the subprocess returns a nonzero exit code an error is logged and OrchestraException is raised.
@@ -75,9 +75,9 @@ def run_internal_subprocess(
 
 
 def try_run_internal_subprocess(
-        argv,
-        environment: [OrderedDict, dict] = None,
-        cwd=None,
+    argv,
+    environment: [OrderedDict, dict] = None,
+    cwd=None,
 ):
     """Helper for running an internal subprocess that might fail.
     :param argv: the argv passed to subprocess.run
@@ -89,10 +89,10 @@ def try_run_internal_subprocess(
 
 
 def get_subprocess_output(
-        argv,
-        environment=None,
-        decode_as="utf-8",
-        cwd=None,
+    argv,
+    environment=None,
+    decode_as="utf-8",
+    cwd=None,
 ):
     """
     Helper to run a subprocess and get its output.
@@ -107,10 +107,10 @@ def get_subprocess_output(
 
 
 def try_get_subprocess_output(
-        argv,
-        environment=None,
-        decode_as="utf-8",
-        cwd=None,
+    argv,
+    environment=None,
+    decode_as="utf-8",
+    cwd=None,
 ):
     """
     Helper to run a subprocess and get its output that might fail.

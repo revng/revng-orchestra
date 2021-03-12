@@ -77,7 +77,8 @@ def handle_update(args):
     if failed_pulls:
         formatted_failed_pulls = "\n".join([f"  - {repo}" for repo in failed_pulls])
         # Note: f-strings don't account for indentation, using a template is more practical
-        failed_git_pull_template = dedent("""
+        failed_git_pull_template = dedent(
+            """
         Could not git pull --ff-only the following repositories:
         {formatted_failed_pulls}
 
@@ -86,21 +87,24 @@ def handle_update(args):
             - commit your work
             - `git pull --rebase`, to pull remote changes and apply your commits on top
             - `git push` your changes to the remotes
-        """)
+        """
+        )
         failed_git_pull_suggestion = failed_git_pull_template.format(formatted_failed_pulls=formatted_failed_pulls)
         logger.error(failed_git_pull_suggestion)
 
     if failed_clones:
         formatted_failed_clones = "\n".join([f"  - {repo}" for repo in failed_clones])
         # Note: f-strings don't account for indentation, using a template is more practical
-        failed_git_clone_template = dedent("""
+        failed_git_clone_template = dedent(
+            """
                 Could not clone the following repositories:
                 {formatted_failed_clones}
 
                 Suggestions:
                     - check your network connection
                     - check your ssh and git configuration (try manually cloning the repositories)
-                """)
+                """
+        )
         failed_git_clone_suggestion = failed_git_clone_template.format(formatted_failed_clones=formatted_failed_clones)
         logger.error(failed_git_clone_suggestion)
 
@@ -141,11 +145,7 @@ def git_clean(directory):
 def git_reset_hard(directory, ref="master"):
     env = os.environ.copy()
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
-    return run_internal_subprocess(
-        ["git", "reset", "--hard", ref],
-        cwd=directory,
-        environment=env
-    )
+    return run_internal_subprocess(["git", "reset", "--hard", ref], cwd=directory, environment=env)
 
 
 def git_pull(directory):
@@ -153,9 +153,5 @@ def git_pull(directory):
     Returns a boolean value representing the operation success."""
     env = os.environ.copy()
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
-    returncode = try_run_internal_subprocess(
-        ["git", "pull", "--ff-only"],
-        environment=env,
-        cwd=directory
-    )
+    returncode = try_run_internal_subprocess(["git", "pull", "--ff-only"], environment=env, cwd=directory)
     return returncode == 0

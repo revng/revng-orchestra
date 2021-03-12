@@ -61,9 +61,11 @@ def is_installed(config, wanted_component, wanted_build=None, wanted_recursive_h
     installed_build = metadata.get("build_name")
     installed_recursive_hash = metadata.get("recursive_hash")
 
-    return installed_build is not None \
-           and (wanted_build is None or installed_build == wanted_build) \
-           and (wanted_recursive_hash is None or installed_recursive_hash == wanted_recursive_hash)
+    return (
+        installed_build is not None
+        and (wanted_build is None or installed_build == wanted_build)
+        and (wanted_recursive_hash is None or installed_recursive_hash == wanted_recursive_hash)
+    )
 
 
 def export_environment(variables: OrderedDict):
@@ -73,7 +75,7 @@ def export_environment(variables: OrderedDict):
             var_name = var[1:]
             if val is not None and val != "":
                 raise Exception(f"Requested environment variable {var_name} to be unset but its value is not empty")
-            env += f'unset -v {var_name}\n'
+            env += f"unset -v {var_name}\n"
         else:
             env += f'export {var}="{val}"\n'
 

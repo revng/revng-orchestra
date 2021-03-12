@@ -15,11 +15,11 @@ from ..actions import InstallAction
 
 class Build:
     def __init__(
-            self,
-            name: str,
-            serialized_build,
-            comp: 'component.Component',
-            configuration,
+        self,
+        name: str,
+        serialized_build,
+        comp: "component.Component",
+        configuration,
     ):
         self.name = name
         self.component: component.Component = comp
@@ -96,22 +96,24 @@ class Build:
     def binary_archive_filename(self):
         """Returns the filename of the binary archive. Remember to os.path.join it with binary_archive_dir!"""
         component_commit = self.component.commit() or "none"
-        return f'{component_commit}_{self.component.recursive_hash}.tar.gz'
+        return f"{component_commit}_{self.component.recursive_hash}.tar.gz"
 
     @property
     @lru_cache()
     def build_hash(self):
-        return hashlib.sha1(json.dumps(
-            {
-                "test": self.test,
-                "ndebug": self.ndebug,
-                "install": self.install.script,
-                "configure": self.configure.script,
-                "dependendencies": self._explicit_dependencies,
-                "build_dependendencies": self._explicit_build_dependencies,
-            },
-            sort_keys=True,
-        ).encode("utf-8")).hexdigest()
+        return hashlib.sha1(
+            json.dumps(
+                {
+                    "test": self.test,
+                    "ndebug": self.ndebug,
+                    "install": self.install.script,
+                    "configure": self.configure.script,
+                    "dependendencies": self._explicit_dependencies,
+                    "build_dependendencies": self._explicit_build_dependencies,
+                },
+                sort_keys=True,
+            ).encode("utf-8")
+        ).hexdigest()
 
     def __str__(self):
         return f"Build {self.component.name}@{self.name}"

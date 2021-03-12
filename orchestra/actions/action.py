@@ -6,6 +6,7 @@ from loguru import logger
 
 from .util import run_user_script, run_internal_script, get_script_output
 from .util import try_run_internal_script, try_get_script_output
+
 # Only used for type hints, package-relative import not possible due to circular reference
 import orchestra.model.configuration
 
@@ -119,9 +120,7 @@ class ActionForBuild(ActionForComponent):
     @property
     def environment(self) -> OrderedDict:
         env = super().environment
-        env["BUILD_DIR"] = os.path.join(self.config.builds_dir,
-                                        self.build.component.name,
-                                        self.build.name)
+        env["BUILD_DIR"] = os.path.join(self.config.builds_dir, self.build.component.name, self.build.name)
         env["TMP_ROOT"] = os.path.join(env["TMP_ROOTS"], self.build.safe_name)
         return env
 
