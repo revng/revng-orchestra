@@ -1,0 +1,54 @@
+components:
+  component_A:
+    builds:
+      default:
+        configure: |
+          mkdir -p "$SOURCE_DIR"
+          touch "$SOURCE_DIR/source_file"
+          mkdir -p "$BUILD_DIR"
+        install: |
+          cd "$BUILD_DIR"
+          touch "$BUILD_DIR/build_file"
+          touch "$TMP_ROOT$ORCHESTRA_ROOT/component_A_file"
+
+  component_B:
+    builds:
+      default:
+        configure: |
+          mkdir -p "$SOURCE_DIR"
+          touch "$SOURCE_DIR/source_file"
+          mkdir -p "$BUILD_DIR"
+        install: |
+          cd "$BUILD_DIR"
+          touch "$BUILD_DIR/build_file"
+          touch "$TMP_ROOT$ORCHESTRA_ROOT/component_B_file"
+
+  component_C:
+    builds:
+      default:
+        dependencies:
+          - component_A
+        configure: |
+          mkdir -p "$SOURCE_DIR"
+          touch "$SOURCE_DIR/source_file"
+          mkdir -p "$BUILD_DIR"
+        install: |
+          cd "$BUILD_DIR"
+          touch "$BUILD_DIR/build_file"
+          touch "$TMP_ROOT$ORCHESTRA_ROOT/component_C_file"
+
+  component_that_may_fail_configure:
+    builds:
+      default:
+        configure: |
+          mkdir -p "$BUILD_DIR"
+          if [[ -n "${FAIL_CONFIGURE-}" ]]; then
+            exit 1
+          fi
+          echo "Configure successful"
+        install: |
+          echo "Installing"
+
+environment:
+  - VAR_1: "VAR_1_VALUE"
+  - -VAR_2: ""

@@ -1,3 +1,4 @@
+import json
 from fnmatch import fnmatch
 from urllib.parse import urlparse
 
@@ -29,6 +30,7 @@ def install_subcommand(sub_argparser):
     cmd_parser.add_argument("--hashes", action="store_true", help="Show hashes")
     cmd_parser.add_argument("--repository-url", help="Show components from this repository URL")
     cmd_parser.add_argument("--branch", help="Show components using this branch (jolly expression)")
+    cmd_parser.add_argument("--json", action="store_true", help="Print infos as JSON")
 
 
 def handle_components(args):
@@ -49,16 +51,19 @@ def handle_components(args):
     if args.repository_url:
         repository_filter = normalize_repository_url(args.repository_url)
 
+    components_to_print = set()
+
     for component_name, component in components.items():
         # Filter by repository URL
         if repository_filter:
             if not component.clone:
                 continue
             repository = component.clone.repository
-            if not any(remote_base_url
-                       for remote_base_url
-                       in config.remotes.values()
-                       if normalize_repository_url(f"{remote_base_url}/{repository}") == repository_filter):
+            if not any(
+                remote_base_url
+                for remote_base_url in config.remotes.values()
+                if normalize_repository_url(f"{remote_base_url}/{repository}") == repository_filter
+            ):
                 continue
 
         # Filter by branch
@@ -70,20 +75,77 @@ def handle_components(args):
             if not fnmatch(branch, args.branch):
                 continue
 
+        # Filter by install status
+        metadata = get_installed_metadata(component_name, config)
+        installed_build = metadata and metadata.get("build_name")
+
+        if args.installed and installed_build is None or args.not_installed and installed_build is not None:
+            continue
+
+        components_to_print.add(component)
+
+    if args.json:
+        print_json(components_to_print, config)
+    else:
+        print_human_readable(components_to_print, config, args)
+
+
+def print_json(components, config):
+    components_json = []
+    for component in components:
+        component_name = component.name
         metadata = get_installed_metadata(component_name, config)
         is_installed = metadata is not None
         manually_installed = is_installed and metadata.get("manually_installed", False)
         installed_build = metadata and metadata.get("build_name")
-        if args.installed and not is_installed:
-            continue
-        if args.not_installed and is_installed:
-            continue
+        component_info = {
+            "name": component.name,
+            "installed": is_installed,
+            "manually_installed": manually_installed,
+            "installed_build_name": installed_build,
+            "hash": component.self_hash,
+            "recursive_hash": component.recursive_hash,
+            "default_build": component.default_build.name,
+            "builds": {},
+        }
+
+        if component.clone:
+            branch_name, branch_commit = component.clone.branch()
+            component_info["head_branch_name"] = branch_name
+            component_info["head_commit"] = branch_commit
+
+        for build_name, build in component.builds.items():
+            build_info = {
+                "installed": installed_build == build_name,
+                "default": build is component.default_build,
+                "qualified_name": build.qualified_name,
+            }
+            if build.configure:
+                build_info["config_deps"] = [d.name_for_components for d in build.configure.dependencies]
+
+            if build.install:
+                build_info["install_deps"] = [d.name_for_components for d in build.install.dependencies]
+
+            component_info["builds"][build_name] = build_info
+        components_json.append(component_info)
+    print(json.dumps(components_json))
+
+
+def print_human_readable(components, config, args):
+    for component in components:
+        component_name = component.name
+
+        installed_build = get_installed_build(component_name, config)
 
         component_infos = []
         if args.hashes:
             component_infos.append(f"hash: {component.self_hash}")
             component_infos.append(f"recursive hash: {component.recursive_hash}")
         component_infos_s = stringify_infos(component_infos)
+
+        metadata = get_installed_metadata(component_name, config)
+        is_installed = metadata is not None
+        manually_installed = is_installed and metadata.get("manually_installed", False)
 
         print(f"Component {component_name} {component_infos_s}")
         for build_name, build in component.builds.items():

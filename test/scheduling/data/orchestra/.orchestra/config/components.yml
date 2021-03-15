@@ -1,0 +1,48 @@
+#@ load("@ytt:template", "template")
+
+#@ def basic_build(dependencies=[]):
+configure: |
+  mkdir -p "$BUILD_DIR"
+install: |
+  cd "$BUILD_DIR"
+  touch some_file
+dependencies: #@ dependencies
+#@ end
+
+#@yaml/text-templated-strings
+---
+#@ def component(dependencies=[], nbuilds=1):
+builds:
+  #@ for nbuild in range(nbuilds):
+  (@= "build" + str(nbuild) @): #@ basic_build(dependencies=dependencies)
+  #@ end
+#@ end
+
+---
+components:
+  #! test_simple_schedule
+  component_A: #@ component(dependencies=["component_B"])
+  component_B: #@ component()
+
+  #! test_avoid_cycle:
+  component_with_cyclic_dependency_A: #@ component(dependencies=["component_with_cyclic_dependency_B~build0"])
+  component_with_cyclic_dependency_B:
+    builds:
+      build0: #@ basic_build(dependencies=["component_with_cyclic_dependency_C"])
+      build1: #@ basic_build()
+  component_with_cyclic_dependency_C: #@ component(dependencies=["component_with_cyclic_dependency_B~build0"])
+
+  #! test_reject_simple_cycle
+  component_cyclic_A: #@ component(dependencies=["component_cyclic_B"])
+  component_cyclic_B: #@ component(dependencies=["component_cyclic_A"])
+
+  #! test_reject_choice_cycle
+  component_cyclic_C: #@ component(dependencies=["component_cyclic_D~build0"])
+  component_cyclic_D: #@ component(dependencies=["component_cyclic_C"], nbuilds=2)
+
+  #! test_same_component_ordering
+  component_sco_A:
+    builds:
+      build0: #@ basic_build(dependencies=["component_sco_A@build1"])
+      build1: #@ basic_build()
+  component_sco_B: #@ component(nbuilds=2)

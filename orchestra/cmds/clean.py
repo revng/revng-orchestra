@@ -7,11 +7,12 @@ from ..model.configuration import Configuration
 
 
 def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("clean",
-                                          handler=handle_clean,
-                                          help="Remove build/source directories",
-                                          parents=[execution_options],
-                                          )
+    cmd_parser = sub_argparser.add_parser(
+        "clean",
+        handler=handle_clean,
+        help="Remove build/source directories",
+        parents=[execution_options],
+    )
     cmd_parser.add_argument("component", help="Name of the component to clean")
     cmd_parser.add_argument("--include-sources", "-s", action="store_true", help="Also delete source dir")
 

@@ -15,9 +15,7 @@ def ls_remote(remote):
 
     parse_regex = re.compile(r"(?P<commit>[a-f0-9]*)\W*refs/heads/(?P<branch>.*)")
 
-    return {branch: commit
-            for commit, branch
-            in parse_regex.findall(result)}
+    return {branch: commit for commit, branch in parse_regex.findall(result)}
 
 
 def current_branch_info(repo_path):

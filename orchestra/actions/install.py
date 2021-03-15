@@ -16,15 +16,12 @@ from ..util import is_installed
 
 
 class InstallAction(ActionForBuild):
-    def __init__(self,
-                 build, script, config,
-                 allow_build=True,
-                 allow_binary_archive=True,
-                 create_binary_archive=False
-                 ):
+    def __init__(self, build, script, config, allow_build=True, allow_binary_archive=True, create_binary_archive=False):
         if not allow_build and not allow_binary_archive:
-            raise Exception(f"You must allow at least one option between "
-                            f"building and installing from binary archives for {build.name}")
+            raise Exception(
+                f"You must allow at least one option between "
+                f"building and installing from binary archives for {build.name}"
+            )
         sources = []
         if allow_build:
             sources.append("build")
@@ -39,7 +36,7 @@ class InstallAction(ActionForBuild):
 
     def _run(self, cmdline_args, set_manually_installed=False):
         tmp_root = self.environment["TMP_ROOT"]
-        orchestra_root = self.environment['ORCHESTRA_ROOT']
+        orchestra_root = self.environment["ORCHESTRA_ROOT"]
 
         logger.info("Preparing temporary root directory")
         self._prepare_tmproot()
@@ -65,9 +62,11 @@ class InstallAction(ActionForBuild):
 
         post_file_list = self._index_directory(tmp_root + orchestra_root, relative_to=tmp_root + orchestra_root)
         post_file_list.append(
-            os.path.relpath(self.config.installed_component_file_list_path(self.build.component.name), orchestra_root))
+            os.path.relpath(self.config.installed_component_file_list_path(self.build.component.name), orchestra_root)
+        )
         post_file_list.append(
-            os.path.relpath(self.config.installed_component_metadata_path(self.build.component.name), orchestra_root))
+            os.path.relpath(self.config.installed_component_metadata_path(self.build.component.name), orchestra_root)
+        )
         new_files = [f for f in post_file_list if f not in pre_file_list]
 
         if not cmdline_args.no_merge:
@@ -78,10 +77,7 @@ class InstallAction(ActionForBuild):
             logger.info("Merging installed files into orchestra root directory")
             self._merge()
 
-            self._update_metadata(new_files,
-                                  install_end_time - install_start_time,
-                                  source,
-                                  set_manually_installed)
+            self._update_metadata(new_files, install_end_time - install_start_time, source, set_manually_installed)
 
         if not cmdline_args.keep_tmproot:
             logger.info("Cleaning up tmproot")
@@ -104,16 +100,18 @@ class InstallAction(ActionForBuild):
         binary_archive_path = os.path.join(self.build.binary_archive_dir, self.build.binary_archive_filename)
         manually_installed = metadata.get("manually_installed", False) or set_manually_insalled
 
-        metadata.update({
-            "component_name": self.build.component.name,
-            "build_name": self.build.name,
-            "install_time": install_time,
-            "source": source,
-            "self_hash": self.build.component.self_hash,
-            "recursive_hash": self.build.component.recursive_hash,
-            "binary_archive_path": binary_archive_path,
-            "manually_installed": manually_installed,
-        })
+        metadata.update(
+            {
+                "component_name": self.build.component.name,
+                "build_name": self.build.name,
+                "install_time": install_time,
+                "source": source,
+                "self_hash": self.build.component.self_hash,
+                "recursive_hash": self.build.component.recursive_hash,
+                "binary_archive_path": binary_archive_path,
+                "manually_installed": manually_installed,
+            }
+        )
 
         # Write metadata
         with open(metadata_path, "w") as f:
@@ -125,7 +123,8 @@ class InstallAction(ActionForBuild):
             f.writelines(new_files)
 
     def _prepare_tmproot(self):
-        script = dedent("""
+        script = dedent(
+            """
             rm -rf "$TMP_ROOT"
             mkdir -p "$TMP_ROOT"
             mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/include"
@@ -137,7 +136,8 @@ class InstallAction(ActionForBuild):
             mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/share/"{info,doc,man,orchestra}
             touch "${TMP_ROOT}${ORCHESTRA_ROOT}/share/info/dir"
             mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/libexec"
-            """)
+            """
+        )
         self._run_internal_script(script)
 
     def _install_from_binary_archive(self):
@@ -169,11 +169,13 @@ class InstallAction(ActionForBuild):
             raise Exception("Binary archive not found!")
 
         archive_filepath = self._binary_archive_filepath()
-        script = dedent(f"""
+        script = dedent(
+            f"""
             mkdir -p "$TMP_ROOT$ORCHESTRA_ROOT"
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             tar xaf "{archive_filepath}"
-            """)
+            """
+        )
         self._run_internal_script(script)
 
     def _implicit_dependencies(self):
@@ -219,11 +221,16 @@ class InstallAction(ActionForBuild):
         logger.info("Replacing NDEBUG preprocessor statements")
         self._replace_ndebug(self.build.ndebug)
 
+        # TODO: this should be put into the configuration and not in orchestra itself
+        logger.info("Replacing ASAN preprocessor statements")
+        self._replace_asan(self.build.asan)
+
         if self.build.component.license:
             logger.info("Copying license file")
             source = self.build.component.license
             destination = self.config.installed_component_license_path(self.build.component.name)
-            script = dedent(f"""
+            script = dedent(
+                f"""
                 DESTINATION_DIR="$(dirname "{destination}")"
                 mkdir -p "$DESTINATION_DIR"
                 for DIR in "$BUILD_DIR" "$SOURCE_DIR"; do
@@ -234,31 +241,38 @@ class InstallAction(ActionForBuild):
                 done
                 echo "Couldn't find {source}"
                 exit 1
-                """)
+                """
+            )
             self._run_internal_script(script)
 
     def _remove_conflicting_files(self):
-        script = dedent("""
+        script = dedent(
+            """
             if test -d "$TMP_ROOT/$ORCHESTRA_ROOT/share/info"; then rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/info"; fi
             if test -d "$TMP_ROOT/$ORCHESTRA_ROOT/share/locale"; then rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/locale"; fi
-            """)
+            """
+        )
         self._run_internal_script(script)
 
     def _drop_absolute_pkgconfig_paths(self):
-        script = dedent("""
+        script = dedent(
+            """
             cd "${TMP_ROOT}${ORCHESTRA_ROOT}"
             if [ -e lib/pkgconfig ]; then
                 find lib/pkgconfig \\
                     -name "*.pc" \\
                     -exec sed -i 's|/*'"$ORCHESTRA_ROOT"'/*|${pcfiledir}/../..|g' {} ';'
             fi
-            """)
+            """
+        )
         self._run_internal_script(script)
 
     def _purge_libtools_files(self):
-        script = dedent("""
+        script = dedent(
+            """
             find "${TMP_ROOT}${ORCHESTRA_ROOT}" -name "*.la" -type f -delete
-            """)
+            """
+        )
         self._run_internal_script(script)
 
     def _hard_to_symbolic(self):
@@ -281,7 +295,8 @@ class InstallAction(ActionForBuild):
 
     def _fix_rpath(self):
         replace_dynstr = os.path.join(os.path.dirname(__file__), "..", "support", "elf-replace-dynstr.py")
-        fix_rpath_script = dedent(f"""
+        fix_rpath_script = dedent(
+            f"""
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             # Fix rpath
             find . -type f -executable | while read EXECUTABLE; do
@@ -294,12 +309,14 @@ class InstallAction(ActionForBuild):
                     "{replace_dynstr}" "$EXECUTABLE" "$ORCHESTRA_ROOT" "$REPLACE" /
                 fi
             done
-            """)
+            """
+        )
         self._run_internal_script(fix_rpath_script)
 
     def _replace_ndebug(self, disable_debugging):
         debug, ndebug = ("0", "1") if disable_debugging else ("1", "0")
-        patch_ndebug_script = dedent(rf"""
+        patch_ndebug_script = dedent(
+            rf"""
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             find include/ -name "*.h" \
                 -exec \
@@ -308,6 +325,20 @@ class InstallAction(ActionForBuild):
                     -e 's|^\s*#\s*ifdef\s\+NDEBUG|#if {ndebug}|' \
                     -e 's|^\(\s*#\s*if\s\+.*\)!defined(NDEBUG)|\1{debug}|' \
                     -e 's|^\(\s*#\s*if\s\+.*\)defined(NDEBUG)|\1{ndebug}|' \
+                    {{}} ';'
+            """
+        )
+        self._run_internal_script(patch_ndebug_script)
+
+    def _replace_asan(self, asan_enabled):
+        replace_with = "1" if asan_enabled else "0"
+        patch_ndebug_script = dedent(rf"""
+            cd "$TMP_ROOT$ORCHESTRA_ROOT"
+            find include/ -name "*.h" \
+                -exec \
+                    sed -i \
+                    -e 's|__has_feature\(address_sanitizer\)|{replace_with}|' \
+                    -e 's|defined\(__SANITIZE_ADDRESS__\)|{replace_with}|' \
                     {{}} ';'
             """)
         self._run_internal_script(patch_ndebug_script)
@@ -321,11 +352,15 @@ class InstallAction(ActionForBuild):
         if self.component.binary_archives:
             binary_archive_repo_name = self.component.binary_archives
             if binary_archive_repo_name not in self.config.binary_archives_remotes.keys():
-                raise Exception(f"The {self.component.name} component wants to "
-                                f"push to an unknown binary-archives repository ({binary_archive_repo_name})")
+                raise Exception(
+                    f"The {self.component.name} component wants to "
+                    f"push to an unknown binary-archives repository ({binary_archive_repo_name})"
+                )
             return binary_archive_repo_name
-        else:
+        elif self.config.binary_archives_remotes:
             return list(self.config.binary_archives_remotes.keys())[0]
+        else:
+            return None
 
     def _binary_archive_path(self):
         archive_dirname = self.build.binary_archive_dir
@@ -340,30 +375,42 @@ class InstallAction(ActionForBuild):
         binary_archive_repo_name = self._binary_archive_repo_name()
         binary_archive_tmp_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/_tmp_{archive_name}"
         binary_archive_containing_dir = os.path.dirname(binary_archive_path)
-        script = dedent(f"""
+        script = dedent(
+            f"""
             mkdir -p "$BINARY_ARCHIVES"
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             rm -f "{binary_archive_tmp_path}"
             tar cvaf "{binary_archive_tmp_path}" --owner=0 --group=0 *
             mkdir -p "{binary_archive_containing_dir}"
             mv "{binary_archive_tmp_path}" "{binary_archive_path}"
-            """)
+            """
+        )
         self._run_internal_script(script)
 
     def update_binary_archive_symlink(self):
         logger.info("Updating binary archive symlink")
 
         binary_archive_repo_name = self._binary_archive_repo_name()
+        if binary_archive_repo_name is None:
+            logger.warning("No binary archive configured")
+            return
+
         archive_dirname = self.build.binary_archive_dir
 
-        orchestra_config_branch = self._get_script_output(
+        orchestra_config_branch = self._try_get_script_output(
             'git -C "$ORCHESTRA_DOTDIR" rev-parse --abbrev-ref HEAD',
-        ).strip().replace("/", "-")
+        )
+        if orchestra_config_branch is None:
+            logger.warning(
+                "Orchestra configuration is not inside a git repository. Defaulting to `master` as branch name"
+            )
+            orchestra_config_branch = "master"
+        else:
+            orchestra_config_branch = orchestra_config_branch.strip().replace("/", "-")
 
-        archive_path = os.path.join(self.environment["BINARY_ARCHIVES"],
-                                    binary_archive_repo_name,
-                                    "linux-x86-64",
-                                    archive_dirname)
+        archive_path = os.path.join(
+            self.environment["BINARY_ARCHIVES"], binary_archive_repo_name, "linux-x86-64", archive_dirname
+        )
 
         def create_symlink(branch, commit):
             branch = branch.replace("/", "-")
@@ -427,5 +474,5 @@ class InstallAction(ActionForBuild):
             self.config,
             self.build.component.name,
             wanted_build=self.build.name,
-            wanted_recursive_hash=self.build.component.recursive_hash
+            wanted_recursive_hash=self.build.component.recursive_hash,
         )

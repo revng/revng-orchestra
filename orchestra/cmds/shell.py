@@ -12,15 +12,14 @@ from ..model.configuration import Configuration
 
 def install_subcommand(sub_argparser):
     cmd_parser = sub_argparser.add_parser(
-        "shell",
-        handler=handle_shell,
-        help="Open a shell with orchestra environment (experimental)."
+        "shell", handler=handle_shell, help="Open a shell with orchestra environment (experimental)."
     )
     cmd_parser.add_argument(
-        "--component", "-c",
+        "--component",
+        "-c",
         help="Execute in the context of this component. "
-             "The shell will start in the component build directory, if it exists. "
-             "Otherwise, the CWD will not be changed.",
+        "The shell will start in the component build directory, if it exists. "
+        "Otherwise, the CWD will not be changed.",
     )
     cmd_parser.add_argument("command", nargs=argparse.REMAINDER)
 
@@ -50,13 +49,7 @@ def handle_shell(args):
 
     if command:
         script_to_run = " ".join(shlex.quote(c) for c in command)
-        p = _run_script(
-            script_to_run,
-            environment=env,
-            strict_flags=False,
-            cwd=cd_to,
-            loglevel="DEBUG"
-        )
+        p = _run_script(script_to_run, environment=env, strict_flags=False, cwd=cd_to, loglevel="DEBUG")
         return p.returncode
 
     user_shell = get_script_output("getent passwd $(whoami) | cut -d: -f7").strip()

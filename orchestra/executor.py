@@ -102,13 +102,14 @@ class Executor:
 
         return list(self._failed_actions)
 
-    def _create_dependency_graph(self,
-                                 remove_unreachable=True,
-                                 simplify_anyof=True,
-                                 remove_satisfied=True,
-                                 intra_component_ordering=True,
-                                 transitive_reduction=True,
-                                 ):
+    def _create_dependency_graph(
+        self,
+        remove_unreachable=True,
+        simplify_anyof=True,
+        remove_satisfied=True,
+        intra_component_ordering=True,
+        transitive_reduction=True,
+    ):
         # Recursively collect all dependencies of the root action in an initial graph
         dependency_graph = self._create_initial_dependency_graph()
 
@@ -164,11 +165,7 @@ class Executor:
 
         for dependency in action.dependencies:
             graph.add_edge(action, dependency)
-            self._collect_dependencies(
-                dependency,
-                graph,
-                already_visited_nodes=already_visited_nodes
-            )
+            self._collect_dependencies(dependency, graph, already_visited_nodes=already_visited_nodes)
 
     def _assign_choices(self, graph):
         # We can assign the choices for each strongly connected component independently
@@ -177,7 +174,8 @@ class Executor:
             strongly_connected_components.sort(key=len, reverse=True)
             for strongly_connected_component in strongly_connected_components:
                 any_of_nodes = [
-                    c for c in strongly_connected_component
+                    c
+                    for c in strongly_connected_component
                     if isinstance(c, AnyOfAction) and len(list(graph.successors(c))) > 1
                 ]
                 if not any_of_nodes:
@@ -333,8 +331,10 @@ class Executor:
         for component, group in groups_by_component.items():
             dependency_graph = self._try_group_orders(dependency_graph, group)
             if dependency_graph is None:
-                raise Exception(f"Could not enforce an order between actions of "
-                                f"component {component} pertaining to multiple builds")
+                raise Exception(
+                    f"Could not enforce an order between actions of "
+                    f"component {component} pertaining to multiple builds"
+                )
 
         return dependency_graph
 
@@ -348,16 +348,27 @@ class Executor:
             for g1, g2 in zip(permutation, permutation[1:]):
                 # Add edge from all nodes in g1 to all nodes in g2
                 for a1, a2 in product(g1, g2):
-                    if a1 is not a2:
-                        depgraph_copy.add_edge(a1, a2)
+                    same_action = a1 is a2
+                    same_build = (
+                        isinstance(a1, ActionForBuild) and isinstance(a2, ActionForBuild) and a1.build is a2.build
+                    )
+                    # Don't add self loops or edges between actions for the same build
+                    if same_action or same_build:
+                        continue
+
+                    depgraph_copy.add_edge(a1, a2, label="Intra-component ordering")
 
             if not has_unsatisfied_cycles(depgraph_copy):
                 return depgraph_copy
 
     @staticmethod
     def _transitive_reduction(graph):
+        labels = nx.get_edge_attributes(graph, "label")
+
         if nx.is_directed_acyclic_graph(graph):
-            return nx.algorithms.dag.transitive_reduction(graph)
+            reduced_graph = nx.algorithms.dag.transitive_reduction(graph)
+            nx.set_edge_attributes(reduced_graph, labels, "label")
+            return reduced_graph
 
         # It is not possible (rather, it is expensive and not uniquely defined)
         # to compute the transitive reduction on a graph with cycles
@@ -385,6 +396,7 @@ class Executor:
                 if condensed_graph.has_edge(condensed_node, v_condensed_node):
                     inflated_graph.add_edge(u, v)
 
+        nx.set_edge_attributes(inflated_graph, labels, "label")
         return inflated_graph
 
     @staticmethod
