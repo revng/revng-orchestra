@@ -28,9 +28,12 @@ def _main(argv):
     cmd_parser = main_subparsers.choices.get(args.command_name)
     if not cmd_parser:
         main_parser.print_help()
-        exit(1)
+        return 1
 
-    return cmd_parser.handler(args)
+    return_code = cmd_parser.handler(args)
+    if not isinstance(return_code, int):
+        raise Exception(f"Handler for command {args.command_name} did not return an integer return code")
+    return return_code
 
 
 def main():

@@ -18,3 +18,4 @@ def handle_uninstall(args):
         return 1
 
     uninstall(component_name, config)
+    return 0

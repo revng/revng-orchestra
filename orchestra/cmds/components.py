@@ -112,6 +112,8 @@ def handle_components(args):
 
         print()
 
+    return 0
+
 
 def stringify_infos(infos):
     return " ".join(f"[{i}]" for i in infos)

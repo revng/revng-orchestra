@@ -36,3 +36,5 @@ def handle_clean(args):
         logger.info(f"Cleaning source dir for {build.qualified_name} ({sources_dir})")
         if not args.pretend:
             shutil.rmtree(sources_dir, ignore_errors=True)
+
+    return 0

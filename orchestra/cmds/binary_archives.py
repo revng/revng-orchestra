@@ -54,7 +54,7 @@ def _handle_archives_top_level(args):
     subcommand_parser = _subcmd_parser.choices.get(args.archives_command_name)
     if subcommand_parser is None:
         _cmd_parser.print_help()
-        exit(1)
+        return 1
 
     subcommand_parser.handler(args)
 
@@ -76,6 +76,8 @@ def handle_clean(args):
 
         elif os.path.exists(path):
             logger.warning(f"Path {path} is not the root of a git repository, skipping")
+
+    return 0
 
 
 def find_unreferenced_archives(binary_archive_path):

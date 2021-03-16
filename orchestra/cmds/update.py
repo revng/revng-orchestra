@@ -106,6 +106,8 @@ def handle_update(args):
 
     if failed_pulls or failed_clones:
         return 1
+    else:
+        return 0
 
 
 def clone_binary_archive(name, url, config):

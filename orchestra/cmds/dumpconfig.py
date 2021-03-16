@@ -15,3 +15,5 @@ def handle_dumpconfig(args):
     config = Configuration(use_config_cache=args.config_cache)
     with open(os.path.join(config.orchestra_dotdir, "config_cache.yml")) as f:
         print(f.read())
+
+    return 0

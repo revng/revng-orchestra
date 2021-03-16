@@ -13,3 +13,5 @@ def handle_fix_binary_archives_symlinks(args):
     for _, component in config.components.items():
         for _, build in component.builds.items():
             build.install.update_binary_archive_symlink()
+
+    return 0

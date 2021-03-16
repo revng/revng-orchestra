@@ -69,3 +69,5 @@ def handle_graph(args):
     graphviz_format.graph_attr["splines"] = "ortho"
     graphviz_format.node_attr["shape"] = "box"
     print(graphviz_format)
+
+    return 0

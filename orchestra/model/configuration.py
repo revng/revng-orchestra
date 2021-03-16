@@ -336,8 +336,7 @@ class Configuration:
             remotes[match.group("name")] = base_url
 
         if not remotes:
-            logger.error("Could not get default remotes, manually configure .config/user_remotes.yml")
-            exit(1)
+            raise Exception("Could not get default remotes, manually configure .config/user_remotes.yml")
 
         remote_base_urls = ""
         binary_archives = ""
@@ -420,9 +419,12 @@ class Configuration:
         try:
             jsonschema.validate(parsed_config, parsed_config_schema)
         except jsonschema.ValidationError as e:
-            logger.error(f"Invalid configuration. Got the following error at path {error_path(e)}")
-            logger.error(e.message)
-            exit(1)
+            # Do not use f-strings, as they will break dedent if `message` contains newlines
+            error_message = dedent("""
+            Invalid configuration. Got the following error at path {path}:
+            {message}
+            """).format(path=error_path(e), message=e.message).strip()
+            raise Exception(error_message)
 
         if use_cache:
             with open(config_cache_file, "w") as f:

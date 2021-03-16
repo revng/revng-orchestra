@@ -35,3 +35,5 @@ def handle_ls(args):
             path = os.path.join(config.binary_archives_dir, name)
             if os.path.exists(path):
                 print(path)
+
+    return 0

@@ -22,3 +22,5 @@ def handle_environment(args):
             return 1
 
         print(export_environment(build.install.environment))
+
+    return 0

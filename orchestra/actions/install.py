@@ -160,8 +160,7 @@ class InstallAction(ActionForBuild):
                 break
             binary_archive_repo_dir = os.path.dirname(binary_archive_repo_dir)
         if binary_archive_repo_dir == "/":
-            logger.error("Binary archives are not a git repository!")
-            exit(1)
+            raise Exception("Binary archives are not a git repository!")
         git_lfs.fetch(binary_archive_repo_dir, only=[os.path.realpath(binary_archive_path)])
 
     def _extract_binary_archive(self):
