@@ -4,6 +4,7 @@ from collections import OrderedDict
 from tempfile import TemporaryDirectory
 from textwrap import dedent
 from typing import Dict
+from pkg_resources import parse_version
 
 from fuzzywuzzy import fuzz
 from loguru import logger
@@ -13,6 +14,7 @@ from ..component import Component
 from ..remote_cache import RemoteHeadsCache
 from ...actions.util import try_run_internal_subprocess, try_get_subprocess_output
 from ...util import parse_component_name
+from ...version import __version__, __parsed_version__
 
 
 class Configuration:
@@ -41,6 +43,8 @@ class Configuration:
 
         self._create_default_user_options()
         self.parsed_yaml = generate_yaml_configuration(self.orchestra_dotdir, use_cache=use_config_cache)
+
+        self._check_minimum_version()
 
         self.remotes = self._get_remotes()
         self.binary_archives_remotes = self._get_binary_archives_remotes()
@@ -113,6 +117,14 @@ class Configuration:
         # Second pass: resolve dependencies
         for component in self.components.values():
             component.resolve_dependencies(self)
+
+    def _check_minimum_version(self):
+        min_version = self.parsed_yaml.get("min_orchestra_version")
+        if min_version:
+            parsed_min_version = parse_version(min_version)
+            if __parsed_version__ < parsed_min_version:
+                raise Exception("This configuration requires orchestra version "
+                                f">= {min_version}, you have {__version__}")
 
     def _create_default_user_options(self):
         remotes_config_file = self.user_options_path

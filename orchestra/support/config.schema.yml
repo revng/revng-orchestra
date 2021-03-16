@@ -35,6 +35,8 @@ definitions:
         type: array
         items:
           type: string
+      min_orchestra_version:
+        type: string
     required:
       - components
     title: OrchestraConfig

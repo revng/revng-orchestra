@@ -15,7 +15,7 @@ if not os.path.exists(ytt_path):
 
 setup(
     name='orchestra',
-    version='3.0',
+    version='3.0.0',
     description='The orchestra meta build system',
     author='Filippo Cremonese (rev.ng SRLs)',
     author_email='filippocremonese@rev.ng',
