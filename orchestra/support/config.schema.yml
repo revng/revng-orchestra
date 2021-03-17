@@ -69,7 +69,9 @@ definitions:
       skip_post_install:
         type: boolean
       add_to_path:
-        type: string
+        type: array
+        items:
+          type: string
     required:
       - builds
     title: Component
@@ -90,8 +92,6 @@ definitions:
         items:
           type: string
       ndebug:
-        type: boolean
-      test:
         type: boolean
     required:
       - configure
