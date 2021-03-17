@@ -211,7 +211,7 @@ class InstallAction(ActionForBuild):
             source = self.build.component.license
             destination = self.config.installed_component_license_path(self.build.component.name)
             script = dedent(f"""
-                DESTINATION_DIR="$(dirname "{destination}")"
+                DESTINATION_DIR="$TMP_ROOT$(dirname "{destination}")"
                 mkdir -p "$DESTINATION_DIR"
                 for DIR in "$BUILD_DIR" "$SOURCE_DIR"; do
                   if test -e "$DIR/{source}"; then
