@@ -17,12 +17,12 @@ class Action:
         self._explicit_dependencies: Set[Action] = set()
         self._script = script
 
-    def run(self, cmdline_args, *args, **kwargs):
+    def run(self, pretend=False, **kwargs):
         logger.info(f"Executing {self}")
-        if not cmdline_args.pretend:
-            self._run(cmdline_args, *args, **kwargs)
+        if not pretend:
+            self._run(**kwargs)
 
-    def _run(self, cmdline_args):
+    def _run(self, **kwargs):
         """Executes the action"""
         self._run_user_script(self.script)
 

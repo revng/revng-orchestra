@@ -20,7 +20,10 @@ class InstallAction(ActionForBuild):
                  build, script, config,
                  allow_build=True,
                  allow_binary_archive=True,
-                 create_binary_archive=False
+                 create_binary_archive=False,
+                 no_merge=False,
+                 keep_tmproot=False,
+                 run_tests=False,
                  ):
         if not allow_build and not allow_binary_archive:
             raise Exception(f"You must allow at least one option between "
@@ -36,8 +39,11 @@ class InstallAction(ActionForBuild):
         self.allow_build = allow_build
         self.allow_binary_archive = allow_binary_archive
         self.create_binary_archive = create_binary_archive
+        self.no_merge = no_merge
+        self.keep_tmproot = keep_tmproot
+        self.run_tests = run_tests
 
-    def _run(self, cmdline_args, set_manually_installed=False):
+    def _run(self, set_manually_installed=False):
         tmp_root = self.environment["TMP_ROOT"]
         orchestra_root = self.environment['ORCHESTRA_ROOT']
 
@@ -51,7 +57,7 @@ class InstallAction(ActionForBuild):
             self._install_from_binary_archive()
             source = "binary archives"
         elif self.allow_build:
-            self._build_and_install(cmdline_args)
+            self._build_and_install()
             if self.create_binary_archive:
                 self._create_binary_archive()
             source = "build"
@@ -70,7 +76,7 @@ class InstallAction(ActionForBuild):
             os.path.relpath(self.config.installed_component_metadata_path(self.build.component.name), orchestra_root))
         new_files = [f for f in post_file_list if f not in pre_file_list]
 
-        if not cmdline_args.no_merge:
+        if not self.no_merge:
             if is_installed(self.config, self.build.component.name):
                 logger.info("Uninstalling previously installed build")
                 uninstall(self.build.component.name, self.config)
@@ -83,7 +89,7 @@ class InstallAction(ActionForBuild):
                                   source,
                                   set_manually_installed)
 
-        if not cmdline_args.keep_tmproot:
+        if not self.keep_tmproot:
             logger.info("Cleaning up tmproot")
             self._cleanup_tmproot()
 
@@ -166,9 +172,9 @@ class InstallAction(ActionForBuild):
     def _implicit_dependencies_for_hash(self):
         return {self.build.configure}
 
-    def _build_and_install(self, args):
+    def _build_and_install(self):
         env = self.environment
-        env["RUN_TESTS"] = "1" if (self.build.test and args.test) else "0"
+        env["RUN_TESTS"] = "1" if self.run_tests else "0"
 
         logger.info("Executing install script")
         run_user_script(self.script, environment=env)

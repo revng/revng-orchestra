@@ -54,7 +54,7 @@ def handle_graph(args):
             else:
                 actions.add(component.default_build.install)
 
-    executor = Executor(args, actions, no_force=args.no_force)
+    executor = Executor(actions, no_force=args.no_force)
 
     if not args.solved:
         graph = executor._create_initial_dependency_graph()

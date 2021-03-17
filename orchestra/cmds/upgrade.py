@@ -16,7 +16,8 @@ def handle_upgrade(args):
     config = Configuration(
         fallback_to_build=args.fallback_build,
         force_from_source=args.from_source,
-        use_config_cache=args.config_cache
+        use_config_cache=args.config_cache,
+        run_tests=args.test,
     )
 
     install_actions = set()
@@ -31,7 +32,7 @@ def handle_upgrade(args):
 
     args.keep_tmproot = False
     args.no_merge = False
-    executor = Executor(args, install_actions, no_force=True)
+    executor = Executor(install_actions, no_force=True, pretend=args.pretend)
     failed = executor.run()
     exitcode = 1 if failed else 0
     return exitcode

@@ -25,6 +25,9 @@ class Configuration:
             use_config_cache=True,
             create_binary_archives=False,
             orchestra_dotdir=None,
+            no_merge=False,
+            keep_tmproot=False,
+            run_tests=False,
     ):
         self.components: Dict[str, Component] = {}
 
@@ -36,6 +39,16 @@ class Configuration:
 
         # Enables creation of binary archives for all install actions that get run
         self.create_binary_archives = create_binary_archives
+
+        # Disables merging files into orchestra root after building
+        # Useful for debugging a broken component without touching orchestra root
+        self.no_merge = no_merge
+
+        # Disables removal of the temporary root directory
+        self.keep_tmproot = keep_tmproot
+
+        # Enables tests when building components from source
+        self.run_tests = run_tests
 
         self.orchestra_dotdir = locate_orchestra_dotdir(cwd=orchestra_dotdir)
         if not self.orchestra_dotdir:

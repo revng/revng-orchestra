@@ -24,6 +24,9 @@ def handle_install(args):
                            force_from_source=args.from_source,
                            use_config_cache=args.config_cache,
                            create_binary_archives=args.create_binary_archives,
+                           no_merge=args.no_merge,
+                           keep_tmproot=args.keep_tmproot,
+                           run_tests=args.test,
                            )
     build = config.get_build(args.component)
 
@@ -32,7 +35,7 @@ def handle_install(args):
         logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
         return 1
 
-    executor = Executor(args, [build.install], no_deps=args.no_deps, no_force=args.no_force)
+    executor = Executor([build.install], no_deps=args.no_deps, no_force=args.no_force, pretend=args.pretend)
     failed = executor.run()
     exitcode = 1 if failed else 0
     return exitcode

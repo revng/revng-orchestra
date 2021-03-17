@@ -39,6 +39,9 @@ class Build:
             allow_build=allow_build,
             allow_binary_archive=allow_binary_archive,
             create_binary_archive=configuration.create_binary_archives,
+            no_merge=configuration.no_merge,
+            keep_tmproot=configuration.keep_tmproot,
+            run_tests=configuration.run_tests,
         )
 
         # Dependency names are needed for resolving them to the actual Actions and to compute the build hash

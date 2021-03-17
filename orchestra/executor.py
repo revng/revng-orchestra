@@ -22,11 +22,11 @@ DUMMY_ROOT = "Dummy root"
 
 
 class Executor:
-    def __init__(self, args, actions, no_deps=False, no_force=False, threads=1):
-        self.args = args
+    def __init__(self, actions, no_deps=False, no_force=False, pretend=False, threads=1):
         self.actions = actions
         self.no_deps = no_deps
         self.no_force = no_force
+        self.pretend = pretend
         self.threads = 1
 
         self._toposorter = graphlib.TopologicalSorter()
@@ -425,7 +425,7 @@ class Executor:
             kwargs["set_manually_installed"] = action in self.actions
 
         try:
-            return action.run(cmdline_args=self.args, **kwargs)
+            return action.run(pretend=self.pretend, **kwargs)
         finally:
             self._running_actions.remove(action)
 
