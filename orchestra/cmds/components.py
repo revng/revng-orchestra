@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 from loguru import logger
 
 from ..model.configuration import Configuration
-from ..util import get_installed_metadata, get_installed_build
+from ..model.install_metadata import load_metadata
 
 
 def normalize_repository_url(url):
@@ -70,10 +70,15 @@ def handle_components(args):
             if not fnmatch(branch, args.branch):
                 continue
 
-        metadata = get_installed_metadata(component_name, config)
+        metadata = load_metadata(component_name, config)
         is_installed = metadata is not None
-        manually_installed = is_installed and metadata.get("manually_installed", False)
-        installed_build = metadata and metadata.get("build_name")
+        if is_installed:
+            manually_installed = metadata.manually_installed
+            installed_build = metadata.build_name
+        else:
+            manually_installed = False
+            installed_build = None
+
         if args.installed and not is_installed:
             continue
         if args.not_installed and is_installed:

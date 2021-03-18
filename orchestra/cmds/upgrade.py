@@ -1,7 +1,7 @@
 from .common import execution_options
 from ..executor import Executor
 from ..model.configuration import Configuration
-from ..util import get_installed_metadata
+from ..model.install_metadata import load_metadata
 
 
 def install_subcommand(sub_argparser):
@@ -19,13 +19,12 @@ def handle_upgrade(args):
     install_actions = set()
 
     for component_name, component in config.components.items():
-        metadata = get_installed_metadata(component_name, config)
+        metadata = load_metadata(component_name, config)
         if metadata is None:
             continue
 
-        if metadata.get("manually_installed", False):
-            installed_build_name = metadata["build_name"]
-            install_actions.add(component.builds[installed_build_name].install)
+        if metadata.manually_installed:
+            install_actions.add(component.builds[metadata.build_name].install)
 
     args.keep_tmproot = False
     args.no_merge = False

@@ -1,4 +1,3 @@
-import json
 import os
 import stat
 import time
@@ -11,8 +10,9 @@ from .action import ActionForBuild
 from .uninstall import uninstall
 from .util import run_user_script
 from .. import git_lfs
+from ..model.install_metadata import load_metadata, init_metadata_from_build, save_metadata, save_file_list, \
+    is_installed
 from ..util import OrchestraException
-from ..util import is_installed
 
 
 class InstallAction(ActionForBuild):
@@ -88,41 +88,23 @@ class InstallAction(ActionForBuild):
             self._cleanup_tmproot()
 
     def _update_metadata(self, file_list, install_time, source, set_manually_insalled):
-        # Write file metadata and index
-        metadata_dir_path = self.config.installed_component_metadata_dir()
-        metadata_path = self.config.installed_component_metadata_path(self.build.component.name)
-        file_list_path = self.config.installed_component_file_list_path(self.build.component.name)
+        # Save installed file list (.idx)
+        save_file_list(self.component.name, file_list, self.config)
 
-        os.makedirs(metadata_dir_path, exist_ok=True)
+        # Save metadata
+        metadata = load_metadata(self.component.name, self.config)
+        if metadata is None:
+            metadata = init_metadata_from_build(self.build)
 
-        if os.path.exists(metadata_path):
-            with open(metadata_path) as f:
-                metadata = json.load(f)
-        else:
-            metadata = {}
-
+        metadata.self_hash = self.component.self_hash
+        metadata.recursive_hash = self.component.recursive_hash
+        metadata.source = source
+        metadata.manually_installed = metadata.manually_installed or set_manually_insalled
+        metadata.install_time = install_time
         binary_archive_path = os.path.join(self.build.binary_archive_dir, self.build.binary_archive_filename)
-        manually_installed = metadata.get("manually_installed", False) or set_manually_insalled
+        metadata.binary_archive_path = binary_archive_path
 
-        metadata.update({
-            "component_name": self.build.component.name,
-            "build_name": self.build.name,
-            "install_time": install_time,
-            "source": source,
-            "self_hash": self.build.component.self_hash,
-            "recursive_hash": self.build.component.recursive_hash,
-            "binary_archive_path": binary_archive_path,
-            "manually_installed": manually_installed,
-        })
-
-        # Write metadata
-        with open(metadata_path, "w") as f:
-            json.dump(metadata, f)
-
-        # Write installed file list (.idx)
-        with open(file_list_path, "w") as f:
-            new_files = [f"{f}\n" for f in file_list]
-            f.writelines(new_files)
+        save_metadata(metadata, self.config)
 
     def _prepare_tmproot(self):
         script = dedent("""
@@ -365,7 +347,8 @@ class InstallAction(ActionForBuild):
             'git -C "$ORCHESTRA_DOTDIR" rev-parse --abbrev-ref HEAD',
         )
         if orchestra_config_branch is None:
-            logger.warning("Orchestra configuration is not inside a git repository. Defaulting to `master` as branch name")
+            logger.warning(
+                "Orchestra configuration is not inside a git repository. Defaulting to `master` as branch name")
             orchestra_config_branch = "master"
         else:
             orchestra_config_branch = orchestra_config_branch.strip().replace("/", "-")

@@ -2,6 +2,8 @@ import os
 
 from loguru import logger
 
+from ..model.install_metadata import load_file_list
+
 
 def uninstall(component_name, config):
     index_path = config.installed_component_file_list_path(component_name)
@@ -14,8 +16,7 @@ def uninstall(component_name, config):
         os.path.relpath(metadata_path, config.orchestra_root)
     ]
 
-    with open(index_path) as f:
-        paths = f.readlines()
+    paths = load_file_list(component_name, config)
 
     # Ensure depth first visit by reverse-sorting
     # paths.sort(reverse=True)

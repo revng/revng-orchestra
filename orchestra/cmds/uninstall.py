@@ -1,8 +1,9 @@
 from loguru import logger
 
-from ..model.configuration import Configuration
-from ..util import parse_component_name, is_installed
 from ..actions.install import uninstall
+from ..model.configuration import Configuration
+from ..model.install_metadata import is_installed
+from ..util import parse_component_name
 
 
 def install_subcommand(sub_argparser):
