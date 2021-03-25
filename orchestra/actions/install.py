@@ -227,6 +227,10 @@ class InstallAction(ActionForBuild):
         logger.debug("Replacing NDEBUG preprocessor statements")
         self._replace_ndebug(self.build.ndebug)
 
+        # TODO: this should be put into the configuration and not in orchestra itself
+        logger.info("Replacing ASAN preprocessor statements")
+        self._replace_asan(self.build.asan)
+
         if self.build.component.license:
             logger.debug("Copying license file")
             source = self.build.component.license
@@ -334,6 +338,21 @@ class InstallAction(ActionForBuild):
                     {{}} ';'
             """
         )
+        self._run_internal_script(patch_ndebug_script)
+
+    def _replace_asan(self, asan_enabled):
+        replace_with = "1" if asan_enabled else "0"
+        # fmt: off
+        patch_ndebug_script = dedent(rf"""
+            cd "$TMP_ROOT$ORCHESTRA_ROOT"
+            find include/ -name "*.h" \
+                -exec \
+                    sed -i \
+                    -e 's|__has_feature\(address_sanitizer\)|{replace_with}|' \
+                    -e 's|defined\(__SANITIZE_ADDRESS__\)|{replace_with}|' \
+                    {{}} ';'
+            """)
+        # fmt: on
         self._run_internal_script(patch_ndebug_script)
 
     def _merge(self):
