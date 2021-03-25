@@ -22,6 +22,7 @@ class Build:
         self.component: comp.Component = component
 
         self.ndebug = serialized_build.get("ndebug", True)
+        self.asan = serialized_build.get("asan", False)
 
         configure_script = serialized_build["configure"]
         self.configure = configure.ConfigureAction(self, configure_script, configuration)
