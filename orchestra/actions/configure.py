@@ -15,7 +15,7 @@ class ConfigureAction(ActionForBuild):
         return os.path.exists(self._configure_successful_path)
 
     def _run(self):
-        if os.path.exists(self._configure_successful_path):
+        if self._configure_successful_path.exists():
             logger.warning("This component was already successfully configured, rerunning configure script")
             os.remove(self._configure_successful_path)
         elif os.path.exists(self.environment["BUILD_DIR"]):
@@ -24,11 +24,15 @@ class ConfigureAction(ActionForBuild):
                            f"(use `orchestra clean {self.build.qualified_name}`)")
 
         self._run_user_script(self.script)
-        Path(self._configure_successful_path).touch()
+
+        if self._configure_successful_path.parent.exists():
+            self._configure_successful_path.touch()
+        else:
+            raise Exception(f"{self._configure_successful_path.parent} was not created by the configure script")
 
     @property
-    def _configure_successful_path(self):
-        return os.path.join(self.environment["BUILD_DIR"], ".configure_successful")
+    def _configure_successful_path(self) -> Path:
+        return Path(self.environment["BUILD_DIR"], ".configure_successful")
 
     def _implicit_dependencies(self):
         if self.build.component.clone:

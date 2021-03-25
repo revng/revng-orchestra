@@ -3,6 +3,7 @@ import stat
 import time
 from collections import OrderedDict, defaultdict
 from textwrap import dedent
+from typing import Optional
 
 from loguru import logger
 
@@ -11,7 +12,7 @@ from .uninstall import uninstall
 from .util import run_user_script
 from .. import git_lfs
 from ..model.install_metadata import load_metadata, init_metadata_from_build, save_metadata, save_file_list, \
-    is_installed
+    is_installed, installed_component_license_path, installed_component_file_list_path, installed_component_metadata_path
 from ..util import OrchestraException
 
 
@@ -65,15 +66,14 @@ class InstallAction(ActionForBuild):
             raise OrchestraException(f"Could not find binary archive nor build: {self.build.qualified_name}")
         install_end_time = time.time()
 
-        # Binary archive symlinks always need to be updated,
-        # not only when the binary archive is rebuilt
+        # Binary archive symlinks always need to be updated, not only when the binary archive is rebuilt
         self.update_binary_archive_symlink()
 
         post_file_list = self._index_directory(tmp_root + orchestra_root, relative_to=tmp_root + orchestra_root)
         post_file_list.append(
-            os.path.relpath(self.config.installed_component_file_list_path(self.build.component.name), orchestra_root))
+            os.path.relpath(installed_component_file_list_path(self.component.name, self.config), orchestra_root))
         post_file_list.append(
-            os.path.relpath(self.config.installed_component_metadata_path(self.build.component.name), orchestra_root))
+            os.path.relpath(installed_component_metadata_path(self.component.name, self.config), orchestra_root))
         new_files = [f for f in post_file_list if f not in pre_file_list]
 
         if not self.no_merge:
@@ -107,8 +107,7 @@ class InstallAction(ActionForBuild):
         metadata.source = source
         metadata.manually_installed = metadata.manually_installed or set_manually_insalled
         metadata.install_time = install_time
-        binary_archive_path = os.path.join(self.build.binary_archive_dir, self.build.binary_archive_filename)
-        metadata.binary_archive_path = binary_archive_path
+        metadata.binary_archive_path = self.binary_archive_relative_path
 
         save_metadata(metadata, self.config)
 
@@ -141,7 +140,7 @@ class InstallAction(ActionForBuild):
     def _fetch_binary_archive(self):
         # TODO: better edge-case handling, when the binary archive exists but is not committed into the
         #   binary archives git-lfs repo (e.g. it has been locally created by the user)
-        binary_archive_path = self._binary_archive_filepath()
+        binary_archive_path = self.locate_binary_archive()
         binary_archive_repo_dir = os.path.dirname(binary_archive_path)
         while binary_archive_repo_dir != "/":
             if ".git" in os.listdir(binary_archive_repo_dir):
@@ -155,7 +154,7 @@ class InstallAction(ActionForBuild):
         if not self.binary_archive_exists():
             raise Exception("Binary archive not found!")
 
-        archive_filepath = self._binary_archive_filepath()
+        archive_filepath = self.locate_binary_archive()
         script = dedent(f"""
             mkdir -p "$TMP_ROOT$ORCHESTRA_ROOT"
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
@@ -209,7 +208,7 @@ class InstallAction(ActionForBuild):
         if self.build.component.license:
             logger.info("Copying license file")
             source = self.build.component.license
-            destination = self.config.installed_component_license_path(self.build.component.name)
+            destination = installed_component_license_path(self.build.component.name, self.config)
             script = dedent(f"""
                 DESTINATION_DIR="$TMP_ROOT$(dirname "{destination}")"
                 mkdir -p "$DESTINATION_DIR"
@@ -303,55 +302,44 @@ class InstallAction(ActionForBuild):
         copy_command = f'cp -farl "$TMP_ROOT/$ORCHESTRA_ROOT/." "$ORCHESTRA_ROOT"'
         self._run_internal_script(copy_command)
 
-    def _binary_archive_repo_name(self):
-        # Select the binary archives repository to employ
-        if self.component.binary_archives:
-            binary_archive_repo_name = self.component.binary_archives
-            if binary_archive_repo_name not in self.config.binary_archives_remotes.keys():
-                raise Exception(f"The {self.component.name} component wants to "
-                                f"push to an unknown binary-archives repository ({binary_archive_repo_name})")
-            return binary_archive_repo_name
-        elif self.config.binary_archives_remotes:
-            return list(self.config.binary_archives_remotes.keys())[0]
-        else:
-            return None
-
-    def _binary_archive_path(self):
-        archive_dirname = self.build.binary_archive_dir
-        archive_name = self.build.binary_archive_filename
-        binary_archive_repo_name = self._binary_archive_repo_name()
-        return f"$BINARY_ARCHIVES/{binary_archive_repo_name}/linux-x86-64/{archive_dirname}/{archive_name}"
-
     def _create_binary_archive(self):
         logger.info("Creating binary archive")
-        archive_name = self.build.binary_archive_filename
         binary_archive_path = self._binary_archive_path()
-        binary_archive_repo_name = self._binary_archive_repo_name()
-        binary_archive_tmp_path = f"$BINARY_ARCHIVES/{binary_archive_repo_name}/_tmp_{archive_name}"
         binary_archive_containing_dir = os.path.dirname(binary_archive_path)
+        binary_archive_repo_name = self._binary_archive_repo_name
+        relative_binary_archive_tmp_path = os.path.join(
+            binary_archive_repo_name,
+            f"_tmp_{self.binary_archive_filename}",
+        )
+        absolute_binary_archive_tmp_path = os.path.join(
+            self.config.binary_archives_dir,
+            relative_binary_archive_tmp_path,
+        )
         script = dedent(f"""
             mkdir -p "$BINARY_ARCHIVES"
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
-            rm -f "{binary_archive_tmp_path}"
-            tar cvaf "{binary_archive_tmp_path}" --owner=0 --group=0 *
-            mkdir -p "{binary_archive_containing_dir}"
-            mv "{binary_archive_tmp_path}" "{binary_archive_path}"
+            rm -f '{absolute_binary_archive_tmp_path}'
+            tar cvaf '{absolute_binary_archive_tmp_path}' --owner=0 --group=0 *
+            mkdir -p '{binary_archive_containing_dir}'
+            mv '{absolute_binary_archive_tmp_path}' '{binary_archive_path}'
             """)
         self._run_internal_script(script)
 
     def update_binary_archive_symlink(self):
+        """Creates/updates convenience symlinks to the binary archives.
+        Symlinks named <component_branch>_<orchestra_branch>.tar.gz point to the binary archives built for the
+        corresponding component and orchestra branches.
+        Example: fix-something_master.tar.gz -> abcdef_fedcba.tar.gz would be created if the binary archive
+        for component branch fix-something with orchestra configuration on the `master` branch is available.
+        """
         logger.info("Updating binary archive symlink")
 
-        binary_archive_repo_name = self._binary_archive_repo_name()
+        binary_archive_repo_name = self._binary_archive_repo_name
         if binary_archive_repo_name is None:
             logger.warning("No binary archive configured")
             return
 
-        archive_dirname = self.build.binary_archive_dir
-
-        orchestra_config_branch = self._try_get_script_output(
-            'git -C "$ORCHESTRA_DOTDIR" rev-parse --abbrev-ref HEAD',
-        )
+        orchestra_config_branch = self._try_get_script_output('git -C "$ORCHESTRA_DOTDIR" rev-parse --abbrev-ref HEAD')
         if orchestra_config_branch is None:
             logger.warning(
                 "Orchestra configuration is not inside a git repository. Defaulting to `master` as branch name")
@@ -359,20 +347,17 @@ class InstallAction(ActionForBuild):
         else:
             orchestra_config_branch = orchestra_config_branch.strip().replace("/", "-")
 
-        archive_path = os.path.join(self.environment["BINARY_ARCHIVES"],
-                                    binary_archive_repo_name,
-                                    "linux-x86-64",
-                                    archive_dirname)
+        archive_dir_path = os.path.dirname(self._binary_archive_path())
 
         def create_symlink(branch, commit):
             branch = branch.replace("/", "-")
-            target_name = f"{commit}_{self.build.component.recursive_hash}.tar.gz"
-            target = os.path.join(archive_path, target_name)
-            if os.path.exists(target):
-                symlink = os.path.join(archive_path, f"{branch}_{orchestra_config_branch}.tar.gz")
-                if os.path.exists(symlink):
-                    os.unlink(symlink)
-                os.symlink(target_name, symlink)
+            target_name = self._binary_archive_filename(commit, self.component.recursive_hash)
+            target_absolute_path = os.path.join(archive_dir_path, target_name)
+            symlink_absolute_path = os.path.join(archive_dir_path, f"{branch}_{orchestra_config_branch}.tar.gz")
+            if os.path.exists(target_absolute_path):
+                if os.path.exists(symlink_absolute_path):
+                    os.unlink(symlink_absolute_path)
+                os.symlink(target_name, symlink_absolute_path)
 
         if self.component.clone:
             for branch, commit in self.component.clone.heads().items():
@@ -402,24 +387,77 @@ class InstallAction(ActionForBuild):
     def _cleanup_tmproot(self):
         self._run_internal_script('rm -rf "$TMP_ROOT"')
 
-    def _binary_archive_filepath(self):
-        archives_dir = self.environment["BINARY_ARCHIVES"]
-        for name in self.config.binary_archives_remotes:
-            archive_dir = self.build.binary_archive_dir
-            archive_name = self.build.binary_archive_filename
-            try_archive_path = os.path.join(archives_dir, name, "linux-x86-64", archive_dir, archive_name)
-            if os.path.exists(try_archive_path):
-                return try_archive_path
-        return None
-
-    def binary_archive_exists(self):
-        return self._binary_archive_filepath() is not None
+    @property
+    def _binary_archive_repo_name(self):
+        """Returns the name of the binary archives repository where new archives should be created"""
+        if self.component.binary_archives:
+            binary_archive_repo_name = self.component.binary_archives
+            if binary_archive_repo_name not in self.config.binary_archives_remotes.keys():
+                raise Exception(f"The {self.component.name} component wants to push to an unknown binary-archives "
+                                f"repository ({binary_archive_repo_name})")
+            return binary_archive_repo_name
+        elif self.config.binary_archives_remotes:
+            return list(self.config.binary_archives_remotes.keys())[0]
+        else:
+            return None
 
     @property
-    def environment(self) -> OrderedDict:
+    def binary_archive_relative_path(self) -> str:
+        """Returns the path to the binary archive, relative to the binary archive repository"""
+        return os.path.join(
+            self.architecture,
+            self.component.name,
+            self.build.name,
+            self.binary_archive_filename,
+        )
+
+    @property
+    def binary_archive_filename(self) -> str:
+        """Returns the filename of the binary archive for the target build.
+        *Warning*: the filename is the same for all the builds of the same component. Use `binary_archive_relative_path`
+        to get a path which is unique to a single build
+        """
+        component_commit = self.component.commit() or "none"
+        return self._binary_archive_filename(component_commit, self.component.recursive_hash)
+
+    @staticmethod
+    def _binary_archive_filename(component_commit, component_recursive_hash) -> str:
+        return f'{component_commit}_{component_recursive_hash}.tar.gz'
+
+    def _binary_archive_path(self) -> str:
+        """Returns the absolute path where the binary archive should be created.
+        The binary archive is not necessarily to be found at this path. Use `locate_binary_archive` to locate the binary
+        archive to extract
+        """
+        return os.path.join(
+            self.config.binary_archives_dir,
+            self._binary_archive_repo_name,
+            self.binary_archive_relative_path,
+        )
+
+    def locate_binary_archive(self) -> Optional[str]:
+        """Returns the absolute path to the binary archive that can be extracted to install the target build.
+        *Note*: the path may be pointing to a git LFS pointer which needs to be downloaded and checked out (smudged)"""
+        binary_archives_path = self.config.binary_archives_dir
+        for name in self.config.binary_archives_remotes:
+            try_path = os.path.join(binary_archives_path, name, self.binary_archive_relative_path)
+            if os.path.exists(try_path):
+                return try_path
+        return None
+
+    def binary_archive_exists(self) -> bool:
+        """Returns True if the binary archive for the target build exists (cached or downloadable)"""
+        return self.locate_binary_archive() is not None
+
+    @property
+    def environment(self) -> "OrderedDict[str, str]":
         env = super().environment
-        env["DESTDIR"] = env["TMP_ROOT"]
+        env["DESTDIR"] = self.tmp_root
         return env
+
+    @property
+    def architecture(self):
+        return "linux-x86-64"
 
     def is_satisfied(self):
         return is_installed(

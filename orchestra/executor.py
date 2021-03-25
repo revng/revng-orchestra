@@ -405,7 +405,7 @@ class Executor:
             if not isinstance(action, InstallAction):
                 continue
             if not action.binary_archive_exists() and not action.allow_build:
-                binary_archive_filename = action.build.binary_archive_filename
+                binary_archive_filename = action.binary_archive_relative_path
                 qualified_name = action.build.qualified_name
                 raise Exception(
                     f"""Binary archive {binary_archive_filename} for {qualified_name} not found.

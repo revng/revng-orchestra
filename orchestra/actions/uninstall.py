@@ -2,12 +2,12 @@ import os
 
 from loguru import logger
 
-from ..model.install_metadata import load_file_list
+from ..model.install_metadata import load_file_list, installed_component_file_list_path, installed_component_metadata_path
 
 
 def uninstall(component_name, config):
-    index_path = config.installed_component_file_list_path(component_name)
-    metadata_path = config.installed_component_metadata_path(component_name)
+    index_path = installed_component_file_list_path(component_name, config)
+    metadata_path = installed_component_metadata_path(component_name, config)
 
     # Index and metadata files should be removed last,
     # so an interrupted uninstall can be resumed

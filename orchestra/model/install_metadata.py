@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List, Union
+from typing import List, Optional
 
 from . import build as bld
 from . import configuration
@@ -84,11 +84,11 @@ def is_installed(
     return correct_build and correct_hash
 
 
-def load_metadata(component_name, config: "configuration.Configuration") -> Union[None, InstallMetadata]:
+def load_metadata(component_name, config: "configuration.Configuration") -> Optional[InstallMetadata]:
     """Returns the metadata for an installed component.
-    If the component is not installed, returns None.
+    If the component is not installed, returns None
     """
-    metadata_path = config.installed_component_metadata_path(component_name)
+    metadata_path = installed_component_metadata_path(component_name, config)
     if not os.path.exists(metadata_path):
         return None
 
@@ -102,13 +102,16 @@ def save_metadata(metadata: InstallMetadata, config: "configuration.Configuratio
     """Writes metadata to disk"""
     _create_metadata_dir(config)
 
-    metadata_path = config.installed_component_metadata_path(metadata.component_name)
+    metadata_path = installed_component_metadata_path(metadata.component_name, config)
     with open(metadata_path, "w") as f:
         json.dump(metadata.serialize(), f)
 
 
-def load_file_list(component_name: str, config: "configuration.Configuration"):
-    file_list_path = config.installed_component_file_list_path(component_name)
+def load_file_list(component_name: str, config: "configuration.Configuration") -> Optional[List[str]]:
+    """Returns a list of the files associated with an installed component.
+    If the component is not installed, returns None
+    """
+    file_list_path = installed_component_file_list_path(component_name, config)
     with open(file_list_path) as f:
         paths = f.readlines()
     return paths
@@ -118,7 +121,7 @@ def save_file_list(component_name: str, file_list: List[str], config: "configura
     """Writes the installed file list to disk"""
     _create_metadata_dir(config)
 
-    file_list_path = config.installed_component_file_list_path(component_name)
+    file_list_path = installed_component_file_list_path(component_name, config)
     with open(file_list_path, "w") as f:
         new_files = [f"{f}\n" for f in file_list]
         f.writelines(new_files)
@@ -126,5 +129,20 @@ def save_file_list(component_name: str, file_list: List[str], config: "configura
 
 def _create_metadata_dir(config: "configuration.Configuration"):
     # Write file metadata and index
-    metadata_dir_path = config.installed_component_metadata_dir()
+    metadata_dir_path = config.installed_component_metadata_dir
     os.makedirs(metadata_dir_path, exist_ok=True)
+
+
+def installed_component_file_list_path(component_name: str, config: "configuration.Configuration") -> str:
+    """Returns the path of the index containing the list of installed files of a component"""
+    return os.path.join(config.installed_component_metadata_dir, component_name.replace("/", "_") + ".idx")
+
+
+def installed_component_metadata_path(component_name: str, config: "configuration.Configuration") -> str:
+    """Returns the path of the file containing metadata about an installed component"""
+    return os.path.join(config.installed_component_metadata_dir, component_name.replace("/", "_") + ".json")
+
+
+def installed_component_license_path(component_name: str, config: "configuration.Configuration") -> str:
+    """Returns the path of the file containing the license of an installed component"""
+    return os.path.join(config.installed_component_metadata_dir, component_name.replace("/", "_") + ".license")

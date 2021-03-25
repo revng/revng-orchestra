@@ -4,16 +4,16 @@ from collections import OrderedDict
 from tempfile import TemporaryDirectory
 from textwrap import dedent
 from typing import Dict
-from pkg_resources import parse_version
 
 from fuzzywuzzy import fuzz
 from loguru import logger
+from pkg_resources import parse_version
 
 from ._generate import generate_yaml_configuration
 from ..component import Component
 from ..remote_cache import RemoteHeadsCache
 from ...actions.util import try_run_internal_subprocess, try_get_subprocess_output
-from ...util import parse_component_name
+from ...util import parse_component_name, expand_variables
 from ...version import __version__, __parsed_version__
 
 
@@ -68,7 +68,27 @@ class Configuration:
         remote_heads_cache_path = os.path.join(self.orchestra_dotdir, "remote_refs_cache.json")
         self.remote_heads_cache = RemoteHeadsCache(self, remote_heads_cache_path)
 
+        self._initialize_paths()
         self._parse_components()
+
+    def _initialize_paths(self):
+        """Initialized various paths used by orchestra and passed to the user scripts.
+        The paths are guaranteed to be absolute
+        """
+        # Orchestra root directory. All components will be installed here
+        self.orchestra_root = self._get_user_path("orchestra_root", os.path.join("..", "root"))
+        # Directory containing cached source archives
+        self.source_archives = self._get_user_path("source_archives", "source_archives")
+        # Directory containing binary archives repositories
+        self.binary_archives_dir = self._get_user_path("binary_archives", "binary-archives")
+        # Directory containing temporary roots
+        self.tmproot = self._get_user_path("tmproot", "tmproot")
+        # Directory containing the source directories
+        self.sources_dir = self._get_user_path("sources_dir", os.path.join("..", "sources"))
+        # Directory containing the build directories
+        self.builds_dir = self._get_user_path("builds_dir", os.path.join("..", "build"))
+        # Directory containing metadata for the installed components
+        self.installed_component_metadata_dir = os.path.join(self.orchestra_root, "share", "orchestra")
 
     def get_build(self, comp_spec):
         component_name, build_name = parse_component_name(comp_spec)
@@ -81,7 +101,7 @@ class Configuration:
             build = component.default_build
         return build
 
-    def global_env(self) -> OrderedDict[str, str]:
+    def global_env(self) -> "OrderedDict[str, str]":
         env = OrderedDict()
         env["ORCHESTRA_DOTDIR"] = self.orchestra_dotdir
         env["ORCHESTRA_ROOT"] = self.orchestra_root
@@ -228,75 +248,28 @@ class Configuration:
             assert type(branch) is str, "branches must be a list of strings"
         return branches
 
-    def installed_component_file_list_path(self, component_name):
+    def _get_user_path(self, name, default):
+        """Returns a user-configured path after variable expansion and relative path resolution.
+        If the user did not configure the requested path the default is used. After determining the initial path
+        environment variables are expanded. Relative are evaluated relative to `$ORCHESTRA_DOTDIR`
         """
-        Returns the path of the index containing the list of installed files of a component
-        """
-        return os.path.join(self.installed_component_metadata_dir(), component_name.replace("/", "_") + ".idx")
-
-    def installed_component_metadata_path(self, component_name):
-        """
-        Returns the path of the file containing metadata about an installed component
-        """
-        return os.path.join(self.installed_component_metadata_dir(), component_name.replace("/", "_") + ".json")
-
-    def installed_component_license_path(self, component_name):
-        """
-        Returns the path of the file containing the license of an installed component
-        """
-        return os.path.join(self.installed_component_metadata_dir(), component_name.replace("/", "_") + ".license")
-
-    def installed_component_metadata_dir(self):
-        """
-        Returns the path of the directory containing indices of the installed components
-        """
-        return os.path.join(self.orchestra_root, "share", "orchestra")
-
-    @property
-    def orchestra_root(self):
-        return self._user_paths.get(
-            "orchestra_root",
-            os.path.realpath(os.path.join(self.orchestra_dotdir, "..", "root"))
-        )
-
-    @property
-    def source_archives(self):
-        return self._user_paths.get(
-            "source_archives",
-            os.path.realpath(os.path.join(self.orchestra_dotdir, "source_archives"))
-        )
-
-    @property
-    def binary_archives_dir(self):
-        return self._user_paths.get(
-            "binary_archives",
-            os.path.realpath(os.path.join(self.orchestra_dotdir, "binary-archives"))
-        )
-
-    @property
-    def tmproot(self):
-        return self._user_paths.get(
-            "tmproot",
-            os.path.realpath(os.path.join(self.orchestra_dotdir, "tmproot"))
-        )
-
-    @property
-    def sources_dir(self):
-        return self._user_paths.get(
-            "sources_dir",
-            os.path.realpath(os.path.join(self.orchestra_dotdir, "..", "sources"))
-        )
-
-    @property
-    def builds_dir(self):
-        return self._user_paths.get(
-            "builds_dir",
-            os.path.realpath(os.path.join(self.orchestra_dotdir, "..", "build"))
-        )
+        path = self._user_paths.get(name, default)
+        path = expand_variables(path)
+        if not os.path.isabs(path):
+            path = os.path.join(
+                self.orchestra_dotdir,
+                path
+            )
+        path = os.path.realpath(path)
+        return path
 
     @property
     def user_options_path(self):
         return os.path.join(self.orchestra_dotdir, "config", "user_options.yml")
+
+    def _expand_variables(self, string):
+        """Expands environment variables found in string using the system and orchestra environment"""
+        return expand_variables(string, additional_environment=self.global_env())
 
 
 def locate_orchestra_dotdir(cwd=None):

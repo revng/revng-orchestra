@@ -1,6 +1,4 @@
-import hashlib
 import json
-import os.path
 import re
 from itertools import repeat
 from typing import Union
@@ -88,17 +86,6 @@ class Build:
     @property
     def safe_name(self):
         return self.qualified_name.replace("@", "_").replace("/", "_")
-
-    @property
-    def binary_archive_dir(self):
-        """Returns the relative dirname where the binary archives should be created/found."""
-        return os.path.join(self.component.name, self.name)
-
-    @property
-    def binary_archive_filename(self):
-        """Returns the filename of the binary archive. Remember to os.path.join it with binary_archive_dir!"""
-        component_commit = self.component.commit() or "none"
-        return f'{component_commit}_{self.component.recursive_hash}.tar.gz'
 
     def serialize(self):
         return {

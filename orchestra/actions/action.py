@@ -4,10 +4,10 @@ from typing import Set
 
 from loguru import logger
 
-from .util import run_user_script, run_internal_script, get_script_output
-from .util import try_run_internal_script, try_get_script_output
 # Only used for type hints, package-relative import not possible due to circular reference
 import orchestra.model.configuration
+from .util import run_user_script, run_internal_script, get_script_output
+from .util import try_run_internal_script, try_get_script_output
 
 
 class Action:
@@ -53,7 +53,7 @@ class Action:
         raise NotImplementedError()
 
     @property
-    def environment(self) -> OrderedDict:
+    def environment(self) -> "OrderedDict[str, str]":
         """Returns additional environment variables provided to the script to be run"""
         return self.config.global_env()
 
@@ -101,14 +101,18 @@ class ActionForComponent(Action):
         self.component = component
 
     @property
-    def environment(self) -> OrderedDict:
+    def environment(self) -> "OrderedDict[str, str]":
         env = super().environment
-        env["SOURCE_DIR"] = os.path.join(self.config.sources_dir, self.component.name)
+        env["SOURCE_DIR"] = self.source_dir
         return env
 
     @property
     def _target_name(self):
         return self.component.name
+
+    @property
+    def source_dir(self) -> str:
+        return os.path.join(self.config.sources_dir, self.component.name)
 
 
 class ActionForBuild(ActionForComponent):
@@ -117,13 +121,23 @@ class ActionForBuild(ActionForComponent):
         self.build = build
 
     @property
-    def environment(self) -> OrderedDict:
+    def environment(self) -> "OrderedDict[str, str]":
         env = super().environment
-        env["BUILD_DIR"] = os.path.join(self.config.builds_dir,
-                                        self.build.component.name,
-                                        self.build.name)
-        env["TMP_ROOT"] = os.path.join(env["TMP_ROOTS"], self.build.safe_name)
+        env["BUILD_DIR"] = self.build_dir
+        env["TMP_ROOT"] = self.tmp_root
         return env
+
+    @property
+    def build_dir(self) -> str:
+        return os.path.join(
+            self.config.builds_dir,
+            self.build.component.name,
+            self.build.name
+        )
+
+    @property
+    def tmp_root(self) -> str:
+        return os.path.join(super().environment["TMP_ROOTS"], self.build.safe_name)
 
     @property
     def _target_name(self):
