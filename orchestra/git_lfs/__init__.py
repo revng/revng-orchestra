@@ -116,12 +116,11 @@ def find_lfs_files(checkout_dir):
     while True:
         try:
             if sep == b"\0":
-                path, attr, value = next(i), next(i), next(i)
+                path, _, value = next(i), next(i), next(i)
             else:
                 split_line = next(i).rsplit(b": ", 2)
                 if len(split_line) == 3:
-                    path, attr, value = split_line
-                    attr  # shut up pyflakes
+                    path, _, value = split_line
                 else:
                     continue
         except StopIteration:
