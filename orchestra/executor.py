@@ -417,12 +417,10 @@ class Executor:
     def _run_action(self, action: Action):
         self._running_actions.append(action)
         self._current_remaining -= 1
-        kwargs = {}
-        if isinstance(action, InstallAction):
-            kwargs["set_manually_installed"] = action in self.actions
+        explicitly_requested = action in self.actions
 
         try:
-            return action.run(pretend=self.pretend, **kwargs)
+            return action.run(pretend=self.pretend, explicitly_requested=explicitly_requested)
         finally:
             self._running_actions.remove(action)
 

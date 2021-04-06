@@ -57,7 +57,7 @@ class InstallAction(ActionForBuild):
         self.keep_tmproot = keep_tmproot
         self.run_tests = run_tests
 
-    def _run(self, set_manually_installed=False):
+    def _run(self, explicitly_requested=False):
         tmp_root = self.environment["TMP_ROOT"]
         orchestra_root = self.environment["ORCHESTRA_ROOT"]
 
@@ -103,7 +103,7 @@ class InstallAction(ActionForBuild):
                 new_files,
                 install_end_time - install_start_time,
                 source,
-                set_manually_installed,
+                explicitly_requested,
             )
 
         if not self.keep_tmproot:
