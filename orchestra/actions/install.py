@@ -112,7 +112,8 @@ class InstallAction(ActionForBuild):
         save_metadata(metadata, self.config)
 
     def _prepare_tmproot(self):
-        script = dedent("""
+        script = dedent(
+            """
             rm -rf "$TMP_ROOT"
             mkdir -p "$TMP_ROOT"
             mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/include"
@@ -124,7 +125,8 @@ class InstallAction(ActionForBuild):
             mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/share/"{info,doc,man,orchestra}
             touch "${TMP_ROOT}${ORCHESTRA_ROOT}/share/info/dir"
             mkdir -p "${TMP_ROOT}${ORCHESTRA_ROOT}/libexec"
-            """)
+            """
+        )
         self._run_internal_script(script)
 
     def _install_from_binary_archive(self):
@@ -155,11 +157,13 @@ class InstallAction(ActionForBuild):
             raise Exception("Binary archive not found!")
 
         archive_filepath = self.locate_binary_archive()
-        script = dedent(f"""
+        script = dedent(
+            f"""
             mkdir -p "$TMP_ROOT$ORCHESTRA_ROOT"
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             tar xaf "{archive_filepath}"
-            """)
+            """
+        )
         self._run_internal_script(script)
 
     def _implicit_dependencies(self):
@@ -209,7 +213,8 @@ class InstallAction(ActionForBuild):
             logger.info("Copying license file")
             source = self.build.component.license
             destination = installed_component_license_path(self.build.component.name, self.config)
-            script = dedent(f"""
+            script = dedent(
+                f"""
                 DESTINATION_DIR="$TMP_ROOT$(dirname "{destination}")"
                 mkdir -p "$DESTINATION_DIR"
                 for DIR in "$BUILD_DIR" "$SOURCE_DIR"; do
@@ -220,31 +225,42 @@ class InstallAction(ActionForBuild):
                 done
                 echo "Couldn't find {source}"
                 exit 1
-                """)
+                """
+            )
             self._run_internal_script(script)
 
     def _remove_conflicting_files(self):
-        script = dedent("""
-            if test -d "$TMP_ROOT/$ORCHESTRA_ROOT/share/info"; then rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/info"; fi
-            if test -d "$TMP_ROOT/$ORCHESTRA_ROOT/share/locale"; then rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/locale"; fi
-            """)
+        script = dedent(
+            """
+            if test -d "$TMP_ROOT/$ORCHESTRA_ROOT/share/info"; then
+                rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/info";
+            fi
+            if test -d "$TMP_ROOT/$ORCHESTRA_ROOT/share/locale"; then
+                rm -rf "$TMP_ROOT/$ORCHESTRA_ROOT/share/locale";
+            fi
+            """
+        )
         self._run_internal_script(script)
 
     def _drop_absolute_pkgconfig_paths(self):
-        script = dedent("""
+        script = dedent(
+            """
             cd "${TMP_ROOT}${ORCHESTRA_ROOT}"
             if [ -e lib/pkgconfig ]; then
                 find lib/pkgconfig \\
                     -name "*.pc" \\
                     -exec sed -i 's|/*'"$ORCHESTRA_ROOT"'/*|${pcfiledir}/../..|g' {} ';'
             fi
-            """)
+            """
+        )
         self._run_internal_script(script)
 
     def _purge_libtools_files(self):
-        script = dedent("""
+        script = dedent(
+            """
             find "${TMP_ROOT}${ORCHESTRA_ROOT}" -name "*.la" -type f -delete
-            """)
+            """
+        )
         self._run_internal_script(script)
 
     def _hard_to_symbolic(self):
@@ -267,7 +283,8 @@ class InstallAction(ActionForBuild):
 
     def _fix_rpath(self):
         replace_dynstr = os.path.join(os.path.dirname(__file__), "..", "support", "elf-replace-dynstr.py")
-        fix_rpath_script = dedent(f"""
+        fix_rpath_script = dedent(
+            f"""
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             # Fix rpath
             find . -type f -executable | while read EXECUTABLE; do
@@ -280,12 +297,14 @@ class InstallAction(ActionForBuild):
                     "{replace_dynstr}" "$EXECUTABLE" "$ORCHESTRA_ROOT" "$REPLACE" /
                 fi
             done
-            """)
+            """
+        )
         self._run_internal_script(fix_rpath_script)
 
     def _replace_ndebug(self, disable_debugging):
         debug, ndebug = ("0", "1") if disable_debugging else ("1", "0")
-        patch_ndebug_script = dedent(rf"""
+        patch_ndebug_script = dedent(
+            rf"""
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             find include/ -name "*.h" \
                 -exec \
@@ -295,7 +314,8 @@ class InstallAction(ActionForBuild):
                     -e 's|^\(\s*#\s*if\s\+.*\)!defined(NDEBUG)|\1{debug}|' \
                     -e 's|^\(\s*#\s*if\s\+.*\)defined(NDEBUG)|\1{ndebug}|' \
                     {{}} ';'
-            """)
+            """
+        )
         self._run_internal_script(patch_ndebug_script)
 
     def _merge(self):
@@ -315,14 +335,16 @@ class InstallAction(ActionForBuild):
             self.config.binary_archives_dir,
             relative_binary_archive_tmp_path,
         )
-        script = dedent(f"""
+        script = dedent(
+            f"""
             mkdir -p "$BINARY_ARCHIVES"
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             rm -f '{absolute_binary_archive_tmp_path}'
             tar cvaf '{absolute_binary_archive_tmp_path}' --owner=0 --group=0 *
             mkdir -p '{binary_archive_containing_dir}'
             mv '{absolute_binary_archive_tmp_path}' '{binary_archive_path}'
-            """)
+            """
+        )
         self._run_internal_script(script)
 
     def update_binary_archive_symlink(self):
@@ -342,7 +364,8 @@ class InstallAction(ActionForBuild):
         orchestra_config_branch = self._try_get_script_output('git -C "$ORCHESTRA_DOTDIR" rev-parse --abbrev-ref HEAD')
         if orchestra_config_branch is None:
             logger.warning(
-                "Orchestra configuration is not inside a git repository. Defaulting to `master` as branch name")
+                "Orchestra configuration is not inside a git repository. Defaulting to `master` as branch name"
+            )
             orchestra_config_branch = "master"
         else:
             orchestra_config_branch = orchestra_config_branch.strip().replace("/", "-")

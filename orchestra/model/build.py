@@ -107,8 +107,7 @@ class Build:
 
 
 def parse_dependency(dependency) -> (str, Union[str, None], bool):
-    """
-    Dependencies can be specified in the following formats:
+    """Dependencies can be specified in the following formats:
     - Simple:
         `component`
         Depend on the installation of the default build of `component`.
