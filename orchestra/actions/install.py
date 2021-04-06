@@ -11,24 +11,37 @@ from .action import ActionForBuild
 from .uninstall import uninstall
 from .util import run_user_script
 from .. import git_lfs
-from ..model.install_metadata import load_metadata, init_metadata_from_build, save_metadata, save_file_list, \
-    is_installed, installed_component_license_path, installed_component_file_list_path, installed_component_metadata_path
+from ..model.install_metadata import (
+    load_metadata,
+    init_metadata_from_build,
+    save_metadata,
+    save_file_list,
+    is_installed,
+    installed_component_license_path,
+    installed_component_file_list_path,
+    installed_component_metadata_path,
+)
 from ..util import OrchestraException
 
 
 class InstallAction(ActionForBuild):
-    def __init__(self,
-                 build, script, config,
-                 allow_build=True,
-                 allow_binary_archive=True,
-                 create_binary_archive=False,
-                 no_merge=False,
-                 keep_tmproot=False,
-                 run_tests=False,
-                 ):
+    def __init__(
+        self,
+        build,
+        script,
+        config,
+        allow_build=True,
+        allow_binary_archive=True,
+        create_binary_archive=False,
+        no_merge=False,
+        keep_tmproot=False,
+        run_tests=False,
+    ):
         if not allow_build and not allow_binary_archive:
-            raise Exception(f"You must allow at least one option between "
-                            f"building and installing from binary archives for {build.name}")
+            raise Exception(
+                f"You must allow at least one option between building and installing from binary archives for "
+                f"{build.name}"
+            )
         sources = []
         if allow_build:
             sources.append("build")
@@ -46,7 +59,7 @@ class InstallAction(ActionForBuild):
 
     def _run(self, set_manually_installed=False):
         tmp_root = self.environment["TMP_ROOT"]
-        orchestra_root = self.environment['ORCHESTRA_ROOT']
+        orchestra_root = self.environment["ORCHESTRA_ROOT"]
 
         logger.info("Preparing temporary root directory")
         self._prepare_tmproot()
@@ -71,9 +84,11 @@ class InstallAction(ActionForBuild):
 
         post_file_list = self._index_directory(tmp_root + orchestra_root, relative_to=tmp_root + orchestra_root)
         post_file_list.append(
-            os.path.relpath(installed_component_file_list_path(self.component.name, self.config), orchestra_root))
+            os.path.relpath(installed_component_file_list_path(self.component.name, self.config), orchestra_root)
+        )
         post_file_list.append(
-            os.path.relpath(installed_component_metadata_path(self.component.name, self.config), orchestra_root))
+            os.path.relpath(installed_component_metadata_path(self.component.name, self.config), orchestra_root)
+        )
         new_files = [f for f in post_file_list if f not in pre_file_list]
 
         if not self.no_merge:
@@ -84,10 +99,12 @@ class InstallAction(ActionForBuild):
             logger.info("Merging installed files into orchestra root directory")
             self._merge()
 
-            self._update_metadata(new_files,
-                                  install_end_time - install_start_time,
-                                  source,
-                                  set_manually_installed)
+            self._update_metadata(
+                new_files,
+                install_end_time - install_start_time,
+                source,
+                set_manually_installed,
+            )
 
         if not self.keep_tmproot:
             logger.info("Cleaning up tmproot")
@@ -141,7 +158,7 @@ class InstallAction(ActionForBuild):
 
     def _fetch_binary_archive(self):
         # TODO: better edge-case handling, when the binary archive exists but is not committed into the
-        #   binary archives git-lfs repo (e.g. it has been locally created by the user)
+        #       binary archives git-lfs repo (e.g. it has been locally created by the user)
         binary_archive_path = self.locate_binary_archive()
         binary_archive_repo_dir = os.path.dirname(binary_archive_path)
         while binary_archive_repo_dir != "/":
@@ -416,8 +433,10 @@ class InstallAction(ActionForBuild):
         if self.component.binary_archives:
             binary_archive_repo_name = self.component.binary_archives
             if binary_archive_repo_name not in self.config.binary_archives_remotes.keys():
-                raise Exception(f"The {self.component.name} component wants to push to an unknown binary-archives "
-                                f"repository ({binary_archive_repo_name})")
+                raise Exception(
+                    f"The {self.component.name} component wants to push to an unknown binary-archives "
+                    f"repository ({binary_archive_repo_name})"
+                )
             return binary_archive_repo_name
         elif self.config.binary_archives_remotes:
             return list(self.config.binary_archives_remotes.keys())[0]
@@ -445,7 +464,7 @@ class InstallAction(ActionForBuild):
 
     @staticmethod
     def _binary_archive_filename(component_commit, component_recursive_hash) -> str:
-        return f'{component_commit}_{component_recursive_hash}.tar.gz'
+        return f"{component_commit}_{component_recursive_hash}.tar.gz"
 
     def _binary_archive_path(self) -> str:
         """Returns the absolute path where the binary archive should be created.
@@ -487,5 +506,5 @@ class InstallAction(ActionForBuild):
             self.config,
             self.build.component.name,
             wanted_build=self.build.name,
-            wanted_recursive_hash=self.build.component.recursive_hash
+            wanted_recursive_hash=self.build.component.recursive_hash,
         )

@@ -8,16 +8,16 @@ from . import configuration
 
 class InstallMetadata:
     def __init__(
-            self,
-            component_name,
-            build_name,
-            self_hash,
-            recursive_hash,
-            *,
-            source=None,
-            manually_installed=None,
-            install_time=None,
-            binary_archive_path=None,
+        self,
+        component_name,
+        build_name,
+        self_hash,
+        recursive_hash,
+        *,
+        source=None,
+        manually_installed=None,
+        install_time=None,
+        binary_archive_path=None,
     ):
         self.component_name = component_name
         self.build_name = build_name
@@ -29,12 +29,15 @@ class InstallMetadata:
         self.binary_archive_path = binary_archive_path
 
     def serialize(self):
-        if any(prop is None for prop in [
-            self.source,
-            self.binary_archive_path,
-            self.manually_installed,
-            self.install_time,
-        ]):
+        if any(
+            prop is None
+            for prop in [
+                self.source,
+                self.binary_archive_path,
+                self.manually_installed,
+                self.install_time,
+            ]
+        ):
             raise Exception("Trying to serialize incomplete metadata")
 
         return self.__dict__
@@ -54,19 +57,14 @@ def _deserialize_metadata(serialized_metadata) -> InstallMetadata:
 
 
 def init_metadata_from_build(build: "bld.Build") -> InstallMetadata:
-    return InstallMetadata(
-        build.component.name,
-        build.name,
-        build.component.self_hash,
-        build.component.recursive_hash
-    )
+    return InstallMetadata(build.component.name, build.name, build.component.self_hash, build.component.recursive_hash)
 
 
 def is_installed(
-        config: "configuration.Configuration",
-        wanted_component_name: str,
-        wanted_build=None,
-        wanted_recursive_hash=None,
+    config: "configuration.Configuration",
+    wanted_component_name: str,
+    wanted_build=None,
+    wanted_recursive_hash=None,
 ):
     """Returns true if the component with the given properties is installed.
     :param config: a Configuration instance

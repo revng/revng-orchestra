@@ -8,4 +8,3 @@ def install_subcommand(sub_argparser):
 def handle_version(args):
     print(__version__)
     return 0
-

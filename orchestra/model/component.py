@@ -7,12 +7,7 @@ from ..actions import clone
 
 
 class Component:
-    def __init__(
-            self,
-            name: str,
-            serialized_component,
-            configuration
-    ):
+    def __init__(self, name: str, serialized_component, configuration):
         self.name = name
         self.builds: Dict[str, bld.Build] = {}
         self.skip_post_install = serialized_component.get("skip_post_install", False)
@@ -33,7 +28,7 @@ class Component:
             default_build_name = sorted(serialized_component["builds"])[0]
 
         if default_build_name not in serialized_component["builds"]:
-            raise Exception(f"Invalid default build \"{default_build_name}\" for component {name}")
+            raise Exception(f'Invalid default build "{default_build_name}" for component {name}')
 
         for build_name, build_yaml in serialized_component["builds"].items():
             build = bld.Build(build_name, build_yaml, self, configuration)
@@ -80,9 +75,7 @@ class Component:
             "add_to_path": self.add_to_path,
             "repository": self.repository,
             "default_build": self.default_build_name,
-            "builds": {
-                b.name: b.serialize() for b in self.builds.values()
-            },
+            "builds": {b.name: b.serialize() for b in self.builds.values()},
         }
 
         return serialized_component

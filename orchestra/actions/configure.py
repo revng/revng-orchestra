@@ -20,8 +20,9 @@ class ConfigureAction(ActionForBuild):
             os.remove(self._configure_successful_path)
         elif os.path.exists(self.environment["BUILD_DIR"]):
             logger.warning("Previous configure probably failed, running configure script in a dirty environment")
-            logger.warning(f"You might want to delete the build directory "
-                           f"(use `orchestra clean {self.build.qualified_name}`)")
+            logger.warning(
+                f"You might want to delete the build directory (use `orchestra clean {self.build.qualified_name}`)"
+            )
 
         self._run_user_script(self.script)
 

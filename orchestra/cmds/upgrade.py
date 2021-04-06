@@ -5,11 +5,12 @@ from ..model.install_metadata import load_metadata
 
 
 def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("upgrade",
-                                          handler=handle_upgrade,
-                                          help="Upgrade all manually installed components",
-                                          parents=[execution_options, build_options],
-                                          )
+    cmd_parser = sub_argparser.add_parser(
+        "upgrade",
+        handler=handle_upgrade,
+        help="Upgrade all manually installed components",
+        parents=[execution_options, build_options],
+    )
 
 
 def handle_upgrade(args):

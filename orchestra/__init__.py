@@ -20,7 +20,12 @@ def _main(argv):
 
     # Remove all handlers before installing ours
     logger.remove()
-    logger.add(TqdmWrapper(), level=args.loglevel, colorize=True, format="<level>[+] {level}</level> - {message}")
+    logger.add(
+        TqdmWrapper(),
+        level=args.loglevel,
+        colorize=True,
+        format="<level>[+] {level}</level> - {message}",
+    )
     orchestra.globals.loglevel = args.loglevel
 
     if args.orchestra_dir:

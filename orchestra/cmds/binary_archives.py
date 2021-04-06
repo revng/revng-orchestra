@@ -15,9 +15,11 @@ _subcmd_parser = None
 
 def install_subcommand(sub_argparser):
     global _cmd_parser, _subcmd_parser
-    _cmd_parser = sub_argparser.add_parser("binary-archives",
-                                           handler=_handle_archives_top_level,
-                                           help="Manipulate binary archives")
+    _cmd_parser = sub_argparser.add_parser(
+        "binary-archives",
+        handler=_handle_archives_top_level,
+        help="Manipulate binary archives",
+    )
     _subcmd_parser = _cmd_parser.add_subparsers(
         description="Available subcommands. Use <subcommand> --help",
         dest="archives_command_name",
@@ -37,15 +39,11 @@ def install_subcommand(sub_argparser):
         help="Fix symlinks in binary archives",
     )
 
-    clean_subcmd = _subcmd_parser.add_parser(
-        "clean",
-        handler=handle_clean,
-        help="Delete stale binary archives"
-    )
+    clean_subcmd = _subcmd_parser.add_parser("clean", handler=handle_clean, help="Delete stale binary archives")
     clean_subcmd.add_argument(
         "--pretend",
         action="store_true",
-        help="Only print what would be done. Deleted files are printed at DEBUG loglevel"
+        help="Only print what would be done. Deleted files are printed at DEBUG loglevel",
     )
 
 
@@ -86,9 +84,7 @@ def find_unreferenced_archives(binary_archive_path):
     :return: a set of paths of the unreferenced files. The paths are relative to binary_archive_path.
     """
 
-    all_tracked_files = set(
-        get_script_output(f"git lfs ls-files -n", cwd=binary_archive_path).splitlines()
-    )
+    all_tracked_files = set(get_script_output(f"git lfs ls-files -n", cwd=binary_archive_path).splitlines())
 
     files_still_linked = set()
     for dirpath, dirnames, filenames in os.walk(binary_archive_path):

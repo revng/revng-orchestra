@@ -12,11 +12,11 @@ from ..actions import install
 
 class Build:
     def __init__(
-            self,
-            name: str,
-            serialized_build,
-            component: 'comp.Component',
-            configuration,
+        self,
+        name: str,
+        serialized_build,
+        component: "comp.Component",
+        configuration,
     ):
         self.name = name
         self.component: comp.Component = component
@@ -93,7 +93,7 @@ class Build:
             "install": self.install.script,
             "dependencies": self._explicit_dependencies,
             "build_dependencies": self._explicit_build_dependencies,
-            "ndebug": self.ndebug
+            "ndebug": self.ndebug,
         }
 
     def _compute_build_hash(self):

@@ -57,10 +57,16 @@ def validate_configuration_schema(parsed_config):
         jsonschema.validate(parsed_config, parsed_config_schema)
     except jsonschema.ValidationError as e:
         # Do not use f-strings, as they will break dedent if `message` contains newlines
-        error_message = dedent("""
+        error_message = (
+            dedent(
+                """
                 Invalid configuration. Got the following error at path {path}:
                 {message}
-                """).format(path=error_path(e), message=e.message).strip()
+                """
+            )
+            .format(path=error_path(e), message=e.message)
+            .strip()
+        )
         raise Exception(error_message) from e
 
 
@@ -68,10 +74,10 @@ def validate_configuration_schema(parsed_config):
 # which implements this function directly as a property of the error
 # https://github.com/Julian/jsonschema/commit/1f37cb81c141df6a99bacc117b1549cc6702fa79
 def error_path(err: jsonschema.ValidationError):
-    path = '$'
+    path = "$"
     for elem in err.absolute_path:
         if isinstance(elem, int):
-            path += '[' + str(elem) + ']'
+            path += "[" + str(elem) + "]"
         else:
-            path += '.' + elem
+            path += "." + elem
     return path

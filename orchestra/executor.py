@@ -102,13 +102,14 @@ class Executor:
 
         return list(self._failed_actions)
 
-    def _create_dependency_graph(self,
-                                 remove_unreachable=True,
-                                 simplify_anyof=True,
-                                 remove_satisfied=True,
-                                 intra_component_ordering=True,
-                                 transitive_reduction=True,
-                                 ):
+    def _create_dependency_graph(
+        self,
+        remove_unreachable=True,
+        simplify_anyof=True,
+        remove_satisfied=True,
+        intra_component_ordering=True,
+        transitive_reduction=True,
+    ):
         # Recursively collect all dependencies of the root action in an initial graph
         dependency_graph = self._create_initial_dependency_graph()
 
@@ -164,11 +165,7 @@ class Executor:
 
         for dependency in action.dependencies:
             graph.add_edge(action, dependency)
-            self._collect_dependencies(
-                dependency,
-                graph,
-                already_visited_nodes=already_visited_nodes
-            )
+            self._collect_dependencies(dependency, graph, already_visited_nodes=already_visited_nodes)
 
     def _assign_choices(self, graph):
         # We can assign the choices for each strongly connected component independently
@@ -177,7 +174,8 @@ class Executor:
             strongly_connected_components.sort(key=len, reverse=True)
             for strongly_connected_component in strongly_connected_components:
                 any_of_nodes = [
-                    c for c in strongly_connected_component
+                    c
+                    for c in strongly_connected_component
                     if isinstance(c, AnyOfAction) and len(list(graph.successors(c))) > 1
                 ]
                 if not any_of_nodes:
@@ -191,9 +189,8 @@ class Executor:
         return graph
 
     def _assign_strongly_connected_component(self, graph, remaining, strongly_connected_component):
-        # TODO: the copy() operation ~halves performance.
-        #  The other edge/node add/removal operations have an impact as well.
-        #  We can avoid them using filtered views
+        # TODO: the copy() operation ~halves performance. The other edge/node add/removal
+        #       operations have an impact as well. We can avoid them using filtered views.
 
         # No more choices remain, check if the subgraph
         # of the stringly connected components is cyclic
@@ -218,7 +215,7 @@ class Executor:
         for alternative in alternatives:
             graph.add_edge(to_assign, alternative)
 
-            #  Assigning nodes that are not reachable from the root is pointless
+            # Assigning nodes that are not reachable from the root is pointless
             _, pointless = filter_out_unreachable(graph, remaining, [DUMMY_ROOT])
             for n in pointless:
                 remaining.remove(n)
@@ -333,25 +330,26 @@ class Executor:
         for component, group in groups_by_component.items():
             dependency_graph = self._try_group_orders(dependency_graph, group)
             if dependency_graph is None:
-                raise Exception(f"Could not enforce an order between actions of "
-                                f"component {component} pertaining to multiple builds")
+                raise Exception(
+                    f"Could not enforce an order between actions of "
+                    f"component {component} pertaining to multiple builds"
+                )
 
         return dependency_graph
 
     @staticmethod
     def _try_group_orders(dependency_graph, group):
         for permutation in permutations(group):
-            # TODO: duplicating the graph is not good for performance,
-            #  might be worth removing nodes manually
+            # TODO: duplicating the graph is not good for performance, might be worth removing nodes manually
             depgraph_copy = dependency_graph.copy()
 
             for g1, g2 in zip(permutation, permutation[1:]):
                 # Add edge from all nodes in g1 to all nodes in g2
                 for a1, a2 in product(g1, g2):
                     same_action = a1 is a2
-                    same_build = isinstance(a1, ActionForBuild) \
-                                 and isinstance(a2, ActionForBuild) \
-                                 and a1.build is a2.build
+                    same_build = (
+                        isinstance(a1, ActionForBuild) and isinstance(a2, ActionForBuild) and a1.build is a2.build
+                    )
 
                     # Don't add self loops or edges between actions for the same build.
                     # Self loops add an unbreakable cycle that we obviously don't want.
@@ -384,8 +382,7 @@ class Executor:
 
         condensed_graph = nx.algorithms.transitive_reduction(condensed_graph)
 
-        # TODO: review this code, it may be re-adding edges that
-        #  were taken out by the transitive reduction
+        # TODO: review this code, it may be re-adding edges that were taken out by the transitive reduction
         inflated_graph = nx.DiGraph()
         for condensed_node in condensed_graph.nodes:
             condensed_node_members = members[condensed_node]

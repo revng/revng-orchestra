@@ -14,13 +14,12 @@ if not os.path.exists(ytt_path):
     os.chmod(ytt_path, 0o755)
 
 setup(
-    name='orchestra',
-    version='3.0.0',
-    description='The orchestra meta build system',
-    author='Filippo Cremonese (rev.ng SRLs)',
-    author_email='filippocremonese@rev.ng',
-    # TODO
-    url='https://rev.ng/gitlab/',
+    name="orchestra",
+    version="3.0.0",
+    description="The orchestra meta build system",
+    author="Filippo Cremonese (rev.ng SRLs)",
+    author_email="filippocremonese@rev.ng",
+    url="https://github.com/revng/revng-orchestra",
     packages=find_packages(),
     package_data={
         "orchestra": [
@@ -41,4 +40,3 @@ setup(
     },
     zip_safe=False,
 )
-

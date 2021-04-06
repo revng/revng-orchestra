@@ -25,7 +25,11 @@ def install_subcommand(sub_argparser):
     cmd_parser = sub_argparser.add_parser("components", handler=handle_components, help="List components")
     cmd_parser.add_argument("component", nargs="?")
     cmd_parser.add_argument("--installed", action="store_true", help="Only print installed components")
-    cmd_parser.add_argument("--not-installed", action="store_true", help="Only print not installed components")
+    cmd_parser.add_argument(
+        "--not-installed",
+        action="store_true",
+        help="Only print not installed components",
+    )
     cmd_parser.add_argument("--deps", action="store_true", help="Print dependencies")
     cmd_parser.add_argument("--hashes", action="store_true", help="Show hashes")
     cmd_parser.add_argument("--repository-url", help="Show components from this repository URL")
@@ -35,9 +39,9 @@ def install_subcommand(sub_argparser):
 
 def handle_components(args):
     config = Configuration(use_config_cache=args.config_cache)
+
     if args.component:
         build = config.get_build(args.component)
-
         if not build:
             suggested_component_name = config.get_suggested_component_name(args.component)
             logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
@@ -59,10 +63,11 @@ def handle_components(args):
             if not component.clone:
                 continue
             repository = component.clone.repository
-            if not any(remote_base_url
-                       for remote_base_url
-                       in config.remotes.values()
-                       if normalize_repository_url(f"{remote_base_url}/{repository}") == repository_filter):
+            if not any(
+                remote_base_url
+                for remote_base_url in config.remotes.values()
+                if normalize_repository_url(f"{remote_base_url}/{repository}") == repository_filter
+            ):
                 continue
 
         # Filter by branch

@@ -129,11 +129,7 @@ class ActionForBuild(ActionForComponent):
 
     @property
     def build_dir(self) -> str:
-        return os.path.join(
-            self.config.builds_dir,
-            self.build.component.name,
-            self.build.name
-        )
+        return os.path.join(self.config.builds_dir, self.build.component.name, self.build.name)
 
     @property
     def tmp_root(self) -> str:

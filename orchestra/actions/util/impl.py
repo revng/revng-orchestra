@@ -14,13 +14,13 @@ set -o pipefail
 
 
 def _run_script(
-        script,
-        environment: [OrderedDict, dict] = None,
-        strict_flags=True,
-        cwd=None,
-        loglevel="INFO",
-        stdout=None,
-        stderr=None,
+    script,
+    environment: [OrderedDict, dict] = None,
+    strict_flags=True,
+    cwd=None,
+    loglevel="INFO",
+    stdout=None,
+    stderr=None,
 ):
     """Helper for running shell scripts.
     :param script: the script to run
@@ -112,11 +112,11 @@ def _run_user_script(script, environment: OrderedDict = None, check_returncode=T
 
 
 def _get_script_output(
-        script,
-        environment: OrderedDict = None,
-        check_returncode=True,
-        decode_as="utf-8",
-        cwd=None,
+    script,
+    environment: OrderedDict = None,
+    check_returncode=True,
+    decode_as="utf-8",
+    cwd=None,
 ):
     """Helper for getting stdout of a script
     :param script: the script to run
@@ -151,12 +151,12 @@ def _get_script_output(
 
 
 def _run_subprocess(
-        argv,
-        environment: [OrderedDict, dict] = None,
-        cwd=None,
-        loglevel="INFO",
-        stdout=None,
-        stderr=None,
+    argv,
+    environment: [OrderedDict, dict] = None,
+    cwd=None,
+    loglevel="INFO",
+    stdout=None,
+    stderr=None,
 ):
     """Helper for running a subprocess. Should not be used directly.
     :param argv: the argv passed to subprocess.run
@@ -173,10 +173,10 @@ def _run_subprocess(
 
 
 def _run_internal_subprocess(
-        argv,
-        environment: [OrderedDict, dict] = None,
-        cwd=None,
-        check_returncode=True,
+    argv,
+    environment: [OrderedDict, dict] = None,
+    cwd=None,
+    check_returncode=True,
 ):
     """Helper for running an internal subprocess. Not to be used directly.
     :param argv: the argv passed to subprocess.run
@@ -193,7 +193,7 @@ def _run_internal_subprocess(
         cwd=cwd,
         loglevel="DEBUG",
         stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT
+        stderr=subprocess.STDOUT,
     )
 
     if check_returncode and result.returncode != 0:
@@ -211,11 +211,11 @@ def _run_internal_subprocess(
 
 
 def _get_subprocess_output(
-        argv,
-        environment=None,
-        check_returncode=True,
-        decode_as="utf-8",
-        cwd=None,
+    argv,
+    environment=None,
+    check_returncode=True,
+    decode_as="utf-8",
+    cwd=None,
 ):
     """
     Helper to run a subprocess and get its output

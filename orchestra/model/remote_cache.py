@@ -19,12 +19,15 @@ class RemoteHeadsCache:
                 with open(cache_path) as f:
                     self._cached_remote_data = json.load(f)
             except IOError as e:
-                error_message = f"IO error while reading remote HEADs cache: {cache_path}. " \
-                                f"Try running `orchestra update`"
+                error_message = (
+                    f"IO error while reading remote HEADs cache: {cache_path}. Try running `orchestra update`"
+                )
                 raise Exception(error_message) from e
             except json.JSONDecodeError as e:
-                error_message = f"Error while parsing remote HEADs cache: {cache_path}. " \
-                                f"Try removing it and running `orchestra update`"
+                error_message = (
+                    f"Error while parsing remote HEADs cache: {cache_path}. "
+                    f"Try removing it and running `orchestra update`"
+                )
                 raise Exception(error_message) from e
         else:
             logger.warning("The remote HEADs cache does not exist, you should run `orchestra update`")

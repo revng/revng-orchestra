@@ -27,7 +27,13 @@ def main():
     parser.add_argument("elf_path", metavar="ELF", help="path to the ELF file.")
     parser.add_argument("search", metavar="SEARCH", help="string to search.")
     parser.add_argument("replace", metavar="REPLACE", help="replacement.")
-    parser.add_argument("padding", metavar="PADDING", nargs="?", default="\x00", help="padding (default NUL).")
+    parser.add_argument(
+        "padding",
+        metavar="PADDING",
+        nargs="?",
+        default="\x00",
+        help="padding (default NUL).",
+    )
     args = parser.parse_args()
 
     fail = False
@@ -42,28 +48,19 @@ def main():
 
     with open(args.elf_path, "rb+") as elf_file:
         elf = ELFFile(elf_file)
-        dynamic = unique_or_none([segment
-                                  for segment
-                                  in elf.iter_segments()
-                                  if type(segment) is DynamicSegment])
+        dynamic = unique_or_none([segment for segment in elf.iter_segments() if type(segment) is DynamicSegment])
 
         if dynamic is None:
             log("Not a dynamic executable")
             return 0
 
-        address = unique_or_none([tag.entry.d_val
-                                  for tag
-                                  in dynamic.iter_tags()
-                                  if tag.entry.d_tag == "DT_STRTAB"])
+        address = unique_or_none([tag.entry.d_val for tag in dynamic.iter_tags() if tag.entry.d_tag == "DT_STRTAB"])
 
         offset = None
         if address:
             offset = unique_or_none(list(elf.address_offsets(address)))
 
-        size = unique_or_none([tag.entry.d_val
-                               for tag
-                               in dynamic.iter_tags()
-                               if tag.entry.d_tag == "DT_STRSZ"])
+        size = unique_or_none([tag.entry.d_val for tag in dynamic.iter_tags() if tag.entry.d_tag == "DT_STRSZ"])
 
         if offset is None or size is None:
             log("DT_STRTAB not found")

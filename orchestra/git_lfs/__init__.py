@@ -47,14 +47,10 @@ def get_cache_dir(git_dir, oid):
 def get_lfs_endpoint_url(git_repo, checkout_dir):
     try:
         with in_dir(checkout_dir):
-            url = check_output(
-                "git config -f .lfsconfig --get lfs.url".split()
-            ).strip().decode("utf8")
+            url = check_output("git config -f .lfsconfig --get lfs.url".split()).strip().decode("utf8")
     except CalledProcessError:
         with in_dir(git_repo):
-            url = check_output(
-                "git config --get remote.origin.url".split()
-            ).strip().decode("utf8")
+            url = check_output("git config --get remote.origin.url".split()).strip().decode("utf8")
     if url.endswith("/"):
         url = url[:-1]
     if not url.endswith("/info/lfs"):
@@ -73,7 +69,7 @@ def get_lfs_endpoint_url(git_repo, checkout_dir):
     # need to get GHE auth token if available. issue cmd like this to get:
     # ssh git@git-server.com git-lfs-authenticate foo/bar.git download
     if path.endswith("/info/lfs"):
-        path = path[:-len("/info/lfs")]
+        path = path[: -len("/info/lfs")]
 
     auth_header = {}
     if not (url_split.username and url_split.password):
@@ -88,16 +84,15 @@ def get_lfs_endpoint_url(git_repo, checkout_dir):
 
 
 def get_lfs_api_token(host, path):
-    """ gets an authorization token to use to do further introspection on the
-        LFS info in the repository.   See documentation here for description of
-        the ssh command and response:
-        https://github.com/git-lfs/git-lfs/blob/master/docs/api/server-discovery.md
+    """gets an authorization token to use to do further introspection on the
+    LFS info in the repository.   See documentation here for description of
+    the ssh command and response:
+    https://github.com/git-lfs/git-lfs/blob/master/docs/api/server-discovery.md
     """
     header_info = {}
     query_cmd = "ssh " + host + " git-lfs-authenticate " + path + " download"
     # TODO: we're suppressing stderr
-    output = check_output(query_cmd.split(),
-                          stderr=PIPE).strip().decode("utf8")
+    output = check_output(query_cmd.split(), stderr=PIPE).strip().decode("utf8")
     if output:
         query_resp = json.loads(output)
         header_info = query_resp["header"]
@@ -107,13 +102,12 @@ def get_lfs_api_token(host, path):
 
 
 def find_lfs_files(checkout_dir):
-    """Yields the paths of the files managed by Git LFS
-    """
+    """Yields the paths of the files managed by Git LFS"""
     with in_dir(checkout_dir):
         repo_files = Popen("git ls-files -z".split(), stdout=PIPE)
         repo_files_attrs = check_output(
             "git check-attr --cached --stdin -z diff filter".split(),
-            stdin=repo_files.stdout
+            stdin=repo_files.stdout,
         )
     # In old versions of git, check-attr's `-z` flag only applied to input
     sep = b"\0" if b"\0" in repo_files_attrs else b"\n"
@@ -141,8 +135,7 @@ def find_lfs_files(checkout_dir):
 
 
 def read_lfs_metadata(checkout_dir):
-    """Yields (path, oid, size) tuples for all files managed by Git LFS
-    """
+    """Yields (path, oid, size) tuples for all files managed by Git LFS"""
     for path in find_lfs_files(checkout_dir):
         meta = git_show(checkout_dir, path).decode("utf8").strip().split("\n")
         if meta[0] != "version https://git-lfs.github.com/spec/v1":
@@ -155,8 +148,7 @@ def read_lfs_metadata(checkout_dir):
 
 
 def fetch_urls(lfs_url, lfs_auth_info, oid_list):
-    """Fetch the URLs of the files from the Git LFS endpoint
-    """
+    """Fetch the URLs of the files from the Git LFS endpoint"""
     data = json.dumps({"operation": "download", "objects": oid_list})
     headers = dict(POST_HEADERS)
     headers.update(lfs_auth_info)
@@ -166,8 +158,7 @@ def fetch_urls(lfs_url, lfs_auth_info, oid_list):
 
 
 def fetch(git_repo, checkout_dir=None, verbose=0, only=[]):
-    """Download all the files managed by Git LFS
-    """
+    """Download all the files managed by Git LFS"""
     git_dir = git_repo + "/.git" if os.path.isdir(git_repo + "/.git") else git_repo
     checkout_dir = checkout_dir or git_repo
     if checkout_dir == git_dir:
