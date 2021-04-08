@@ -1,0 +1,12 @@
+components:
+  component_A:
+    repository: component_A
+    builds:
+      default:
+        configure: |
+          mkdir -p "$BUILD_DIR"
+        install: |
+          echo "Initial component_A configuration"
+          cp "$SOURCE_DIR/somefile" "$TMP_ROOT$ORCHESTRA_ROOT"
+branches:
+  - master

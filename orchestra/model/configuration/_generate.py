@@ -24,7 +24,10 @@ def generate_yaml_configuration(orchestra_dotdir, use_cache=True):
     ytt = os.path.join(os.path.dirname(__file__), "..", "..", "support", "ytt")
     env = os.environ.copy()
     env["GOCG"] = "off"
-    expanded_yaml = get_subprocess_output([ytt, "-f", config_dir], environment=env)
+    expanded_yaml = get_subprocess_output(
+        [ytt, "--dangerous-allow-all-symlink-destinations", "-f", config_dir],
+        environment=env,
+    )
     parsed_config = yaml.safe_load(expanded_yaml)
 
     validate_configuration_schema(parsed_config)

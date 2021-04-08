@@ -1,0 +1,37 @@
+#@ load("@ytt:template", "template")
+#@ load("/builder.lib.yml", "component")
+
+components:
+  _: #@ template.replace(component("component_A", nbuilds=2))
+  _: #@ template.replace(component("component_B", nbuilds=2))
+  _: #@ template.replace(component("component_C", nbuilds=2))
+  _: #@ template.replace(component("component_D", nbuilds=2))
+  _: #@ template.replace(component("component_E", nbuilds=2))
+  _: #@ template.replace(component("component_F", nbuilds=2))
+
+  component_G:
+    builds:
+      build0:
+        configure: CONFIGURE_SCRIPT
+        install: INSTALL_SCRIPT
+        dependencies:
+          - component_A
+          - component_B~build1
+          - component_C@build1
+        build_dependencies:
+          - component_D
+          - component_E~build1
+          - component_F@build1
+        ndebug: true
+      build1:
+        configure: DUMMY_VALUE
+        install: DUMMY_VALUE
+    default_build: build0
+    license: LICENSE_FILENAME
+    binary_archives: BINARY_ARCHIVES_NAME
+    repository: REPOSITORY_NAME
+    build_from_source: true
+    skip_post_install: true
+    add_to_path:
+      - SOMETHING
+

@@ -1,0 +1,7 @@
+#@ load("@ytt:template", "template")
+#@ load("/builder.lib.yml", "component")
+
+components:
+  _: #@ template.replace(component("component_A"))
+  _: #@ template.replace(component("component_B"))
+  _: #@ template.replace(component("component_C", dependencies=["component_A"]))

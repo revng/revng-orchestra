@@ -1,0 +1,43 @@
+#@ load("@ytt:template", "template")
+#@ load("/builder.lib.yml", "component", "basic_build")
+
+---
+components:
+  #! test_simple_schedule
+  _: #@ template.replace(component("component_A", dependencies=["component_B"]))
+  _: #@ template.replace(component("component_B"))
+
+  #! test_avoid_cycle:
+  _: #@ template.replace(component("component_with_cyclic_dependency_A", dependencies=["component_with_cyclic_dependency_B~build0"]))
+  component_with_cyclic_dependency_B:
+    builds:
+      _: #@ template.replace(basic_build("component_with_cyclic_dependency_B", "build0", dependencies=["component_with_cyclic_dependency_C"]))
+      _: #@ template.replace(basic_build("component_with_cyclic_dependency_B", "build1"))
+  _: #@ template.replace(component("component_with_cyclic_dependency_C", dependencies=["component_with_cyclic_dependency_B~build0"]))
+
+  #! test_reject_simple_cycle
+  _: #@ template.replace(component("component_cyclic_A", dependencies=["component_cyclic_B"]))
+  _: #@ template.replace(component("component_cyclic_B", dependencies=["component_cyclic_A"]))
+
+  #! test_reject_choice_cycle
+  _: #@ template.replace(component("component_cyclic_C", dependencies=["component_cyclic_D~build0"]))
+  _: #@ template.replace(component("component_cyclic_D", dependencies=["component_cyclic_C"], nbuilds=2))
+
+  #! test_same_component_ordering
+  component_sco_A:
+    builds:
+      _: #@ template.replace(basic_build("component_sco_A", "build0", dependencies=["component_sco_A@build1"]))
+      _: #@ template.replace(basic_build("component_sco_A", "build1"))
+  _: #@ template.replace(component("component_sco_B", nbuilds=2))
+
+  #! test_toolchain_bootstrap
+  libc:
+    default_build: default
+    builds:
+      _: #@ template.replace(basic_build("libc", "default", dependencies=["gcc~stage1"]))
+      _: #@ template.replace(basic_build("libc", "headers"))
+  gcc:
+    default_build: stage2
+    builds:
+      _: #@ template.replace(basic_build("gcc", "stage1", dependencies=["libc~headers"]))
+      _: #@ template.replace(basic_build("gcc", "stage2", dependencies=["libc"]))

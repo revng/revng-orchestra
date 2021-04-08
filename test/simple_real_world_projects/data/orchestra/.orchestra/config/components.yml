@@ -1,0 +1,42 @@
+components:
+  sample_autotools_project:
+    builds:
+      default:
+        configure: |
+          if [[ ! -d "$PROJECT_SOURCES" ]]; then
+            echo "Sources not found" && exit 1
+          fi
+
+          mkdir -p "$(dirname "$SOURCE_DIR")"
+          cp -r "$PROJECT_SOURCES" "$SOURCE_DIR"
+
+          mkdir -p "$BUILD_DIR"
+          cd "$BUILD_DIR"
+          "$SOURCE_DIR/configure" \
+            --prefix="$ORCHESTRA_ROOT"
+
+        install: |
+          cd "$BUILD_DIR"
+          make
+          make install
+
+  sample_cmake_project:
+    builds:
+      default:
+        configure: |
+          if [[ ! -d "$PROJECT_SOURCES" ]]; then
+            echo "Sources not found" && exit 1
+          fi
+
+          mkdir -p "$(dirname "$SOURCE_DIR")"
+          cp -r "$PROJECT_SOURCES" "$SOURCE_DIR"
+
+          mkdir -p "$BUILD_DIR"
+          cd "$BUILD_DIR"
+          cmake \
+            -DCMAKE_INSTALL_PREFIX="$ORCHESTRA_ROOT" \
+            "$SOURCE_DIR"
+
+        install: |
+          cmake --build "$BUILD_DIR"
+          cmake --install "$BUILD_DIR"

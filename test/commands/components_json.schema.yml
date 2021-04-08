@@ -1,0 +1,93 @@
+"$schema": http://json-schema.org/draft-07/schema#
+"$ref": "#/definitions/Components"
+definitions:
+  Components:
+    type: array
+    items:
+      "$ref": "#/definitions/Component"
+    title: Components
+
+  Component:
+    type: object
+    additionalProperties: false
+    properties:
+      name:
+        type: string
+      installed:
+        type: boolean
+      manually_installed:
+        type: boolean
+      hash:
+        type: string
+      recursive_hash:
+        type: string
+      default_build:
+        type: string
+      builds:
+        type: object
+        additionalProperties:
+          "$ref": "#/definitions/Build"
+      license:
+        type:
+          - string
+          - "null"
+      repository:
+        type:
+          - string
+          - "null"
+      build_from_source:
+        type: boolean
+      skip_post_install:
+        type: boolean
+      add_to_path:
+        type: array
+        items:
+          type: string
+      installed_build_name:
+        type:
+          - "null"
+          - string
+    required:
+      - name
+      - installed
+      - manually_installed
+      - hash
+      - recursive_hash
+      - default_build
+      - builds
+      - license
+      - repository
+      - build_from_source
+      - skip_post_install
+      - add_to_path
+      - installed_build_name
+    title: Component
+
+  Build:
+    type: object
+    additionalProperties: false
+    properties:
+      dependencies:
+        type: array
+        items:
+          type: string
+      build_dependencies:
+        type: array
+        items:
+          type: string
+      ndebug:
+        type: boolean
+      qualified_name:
+        type: string
+      installed:
+        type: boolean
+      default:
+        type: boolean
+    required:
+      - dependencies
+      - build_dependencies
+      - ndebug
+      - qualified_name
+      - installed
+      - default
+    title: Build
