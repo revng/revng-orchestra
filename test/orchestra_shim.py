@@ -110,6 +110,8 @@ class OrchestraShim:
         if remote_url is None:
             remote_url = self.test_data_mgr.newdir(f"binary_archive_{name}_upstream")
             git.init(remote_url)
+            git.run(remote_url, "lfs", "track", "*.tar.*")
+            git.commit_all(remote_url, msg="Init .gitattributes")
 
         overlay = dedent(
             f"""

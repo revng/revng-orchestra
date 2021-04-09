@@ -4,7 +4,6 @@ from loguru import logger
 
 from . import CustomArgumentParser
 from .fix_binary_archives_symlinks import handle_fix_binary_archives_symlinks
-from .ls import handle_ls
 from ..actions.util import get_script_output
 from ..gitutils import is_root_of_git_repo
 from ..model.configuration import Configuration
@@ -27,10 +26,16 @@ def install_subcommand(sub_argparser):
         metavar="<subcommand>",
     )
 
-    _subcmd_parser.add_parser(
+    ls_subcmd = _subcmd_parser.add_parser(
         "ls",
         handler=handle_ls,
         help="Print binary archives directories",
+    )
+    ls_subcmd.add_argument(
+        "--include-non-cloned",
+        "-a",
+        action="store_true",
+        help="Include binary archives that have not yet been cloned (nonexisting paths)",
     )
 
     _subcmd_parser.add_parser(
@@ -59,8 +64,7 @@ def _handle_archives_top_level(args):
 
 def handle_clean(args):
     config = Configuration(use_config_cache=args.config_cache)
-    for name in config.binary_archives_remotes.keys():
-        path = os.path.join(config.binary_archives_dir, name)
+    for name, path in config.binary_archives_local_paths.items():
         if is_root_of_git_repo(path):
             logger.info(f"Cleaning binary archive {name}")
             unneeded_files = find_unreferenced_archives(path)
@@ -78,6 +82,15 @@ def handle_clean(args):
     return 0
 
 
+def handle_ls(args):
+    config = Configuration(use_config_cache=args.config_cache)
+    for name in config.binary_archives_remotes.keys():
+        path = os.path.join(config.binary_archives_dir, name)
+        if args.include_non_cloned or os.path.exists(path):
+            print(path)
+    return 0
+
+
 def find_unreferenced_archives(binary_archive_path):
     """Finds archives tracked by git-lfs but not referenced by any symlink
     :param binary_archive_path: path to the binary archive git lfs repository
@@ -85,6 +98,7 @@ def find_unreferenced_archives(binary_archive_path):
     """
 
     all_tracked_files = set(get_script_output(f"git lfs ls-files -n", cwd=binary_archive_path).splitlines())
+    logger.error(all_tracked_files)
 
     files_still_linked = set()
     for dirpath, dirnames, filenames in os.walk(binary_archive_path):

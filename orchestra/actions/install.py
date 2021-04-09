@@ -342,15 +342,11 @@ class InstallAction(ActionForBuild):
     def _create_binary_archive(self):
         logger.info("Creating binary archive")
         binary_archive_path = self._binary_archive_path()
-        binary_archive_containing_dir = os.path.dirname(binary_archive_path)
+        binary_archive_parent_dir = os.path.dirname(binary_archive_path)
         binary_archive_repo_name = self._binary_archive_repo_name
-        relative_binary_archive_tmp_path = os.path.join(
-            binary_archive_repo_name,
-            f"_tmp_{self.binary_archive_filename}",
-        )
         absolute_binary_archive_tmp_path = os.path.join(
-            self.config.binary_archives_dir,
-            relative_binary_archive_tmp_path,
+            self.config.binary_archives_local_paths[binary_archive_repo_name],
+            f"_tmp_{self.binary_archive_filename}",
         )
         script = dedent(
             f"""
@@ -358,7 +354,7 @@ class InstallAction(ActionForBuild):
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
             rm -f '{absolute_binary_archive_tmp_path}'
             tar cvaf '{absolute_binary_archive_tmp_path}' --owner=0 --group=0 *
-            mkdir -p '{binary_archive_containing_dir}'
+            mkdir -p '{binary_archive_parent_dir}'
             mv '{absolute_binary_archive_tmp_path}' '{binary_archive_path}'
             """
         )
@@ -468,12 +464,10 @@ class InstallAction(ActionForBuild):
 
     def _binary_archive_path(self) -> str:
         """Returns the absolute path where the binary archive should be created.
-        The binary archive is not necessarily to be found at this path. Use `locate_binary_archive` to locate the binary
-        archive to extract
+        Note: Use `locate_binary_archive` to locate the binary archive to extract when installing.
         """
         return os.path.join(
-            self.config.binary_archives_dir,
-            self._binary_archive_repo_name,
+            self.config.binary_archives_local_paths[self._binary_archive_repo_name],
             self.binary_archive_relative_path,
         )
 

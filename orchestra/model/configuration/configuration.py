@@ -90,6 +90,11 @@ class Configuration:
         # Directory containing metadata for the installed components
         self.installed_component_metadata_dir = os.path.join(self.orchestra_root, "share", "orchestra")
 
+        # Dictionary of binary archive name -> local path where the binary archive repo is cloned
+        self.binary_archives_local_paths = {
+            name: os.path.join(self.binary_archives_dir, name) for name in self.binary_archives_remotes
+        }
+
     def get_build(self, comp_spec):
         component_name, build_name = parse_component_name(comp_spec)
         component = self.components.get(component_name)
