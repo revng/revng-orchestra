@@ -28,8 +28,7 @@ def in_dir(dirpath):
 
 @contextmanager
 def TempDir(**kw):
-    """mkdtemp wrapper that automatically deletes the directory
-    """
+    """mkdtemp wrapper that automatically deletes the directory"""
     d = mkdtemp(**kw)
     try:
         yield d
@@ -40,8 +39,7 @@ def TempDir(**kw):
 
 @contextmanager
 def TempFile(**kw):
-    """NamedTemporaryFile wrapper that doesn't fail if you (re)move the file
-    """
+    """NamedTemporaryFile wrapper that doesn't fail if you (re)move the file"""
     f = NamedTemporaryFile(**kw)
     try:
         yield f

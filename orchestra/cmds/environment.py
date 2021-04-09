@@ -11,14 +11,16 @@ def install_subcommand(sub_argparser):
 
 def handle_environment(args):
     config = Configuration(use_config_cache=args.config_cache)
+
     if not args.component:
         print(export_environment(config.global_env()))
     else:
         build = config.get_build(args.component)
-
         if not build:
             suggested_component_name = config.get_suggested_component_name(args.component)
             logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
             return 1
 
         print(export_environment(build.install.environment))
+
+    return 0

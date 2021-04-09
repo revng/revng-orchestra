@@ -1,0 +1,112 @@
+components:
+  component_A:
+    builds:
+      default:
+        configure: |
+          mkdir -p "$BUILD_DIR"
+        install: |
+          echo "Executing install script"
+          cd "$BUILD_DIR"
+          touch "$TMP_ROOT$ORCHESTRA_ROOT/some_file"
+
+  component_B:
+    builds:
+      build0:
+        configure: |
+          mkdir -p "$BUILD_DIR"
+        install: |
+          cd "$BUILD_DIR"
+          echo "Executing install script"
+          touch "$TMP_ROOT$ORCHESTRA_ROOT/some_file"
+      build1:
+        configure: |
+          mkdir -p "$BUILD_DIR"
+        install: |
+          echo "Executing install script"
+          cd "$BUILD_DIR"
+          touch "$TMP_ROOT$ORCHESTRA_ROOT/some_other_file"
+
+  component_that_tests_test_option:
+    builds:
+      default:
+        configure: |
+          mkdir -p "$BUILD_DIR"
+        install: |
+          if [[ "$RUN_TESTS" != 1 ]]; then
+            echo "Error: RUN_TESTS != 1"
+            exit 1
+          else
+            echo "RUN_TESTS == 1, ok!"
+            exit 0
+          fi
+
+  component_that_tests_postinstall:
+    builds:
+      default:
+        configure: |
+          mkdir -p "$BUILD_DIR"
+        install: |
+          # test_postinstall_drop_absolute_pkgconfig_paths
+          cat > "$TMP_ROOT$ORCHESTRA_ROOT/lib/pkgconfig/test.pc" <<EOF
+          prefix=$ORCHESTRA_ROOT/usr
+          exec_prefix=\${prefix}
+          libdir=\${exec_prefix}/lib
+          sharedlibdir=\${libdir}
+          includedir=\${prefix}/include
+
+          Name: component_that_tests_pkgconfig_postinstall
+          Description: dummy test library
+          Version: 1.2.3
+          EOF
+
+          # test_postinstall_purge_libtool_files
+          echo "This file should be removed" > "$TMP_ROOT$ORCHESTRA_ROOT/usr/lib/test.la"
+
+          # test_postinstall_hard_to_symbolic
+          echo "Some content" > "$TMP_ROOT$ORCHESTRA_ROOT/file1"
+          cp -farl "$TMP_ROOT$ORCHESTRA_ROOT/file1" "$TMP_ROOT$ORCHESTRA_ROOT/file2"
+
+          cat > "$TMP_ROOT$ORCHESTRA_ROOT/include/test.h" <<EOF
+          # Whitespace is intentionally janky
+          #ifdef   NDEBUG
+          #endif
+          #ifndef   NDEBUG
+          #endif
+          #if   !defined(NDEBUG)
+          #endif
+          #if   defined(NDEBUG)
+          #endif
+          EOF
+
+  component_that_tests_postinstall_rpath:
+      builds:
+        default:
+          configure: |
+            if [[ ! -d "$PROJECT_SOURCES" ]]; then
+              echo "Sources not found" && exit 1
+            fi
+
+            mkdir -p "$(dirname "$SOURCE_DIR")"
+            cp -r "$PROJECT_SOURCES" "$SOURCE_DIR"
+            mkdir -p "$BUILD_DIR"
+          install: |
+            cd "$BUILD_DIR"
+            gcc -o test \
+              -Wl,--enable-new-dtags \
+              -Wl,-rpath="$RPATH_PLACEHOLDER" \
+              "$SOURCE_DIR/test.c"
+            cp test "$TMP_ROOT$ORCHESTRA_ROOT/bin"
+
+  component_that_skips_post_install:
+    skip_post_install: true
+    builds:
+      default:
+        configure: |
+          mkdir -p "$BUILD_DIR"
+        install: |
+          echo "Executing install script"
+          cd "$BUILD_DIR"
+          touch "$TMP_ROOT$ORCHESTRA_ROOT/some_file"
+
+          echo "Some content" > "$TMP_ROOT$ORCHESTRA_ROOT/file1"
+          cp -farl "$TMP_ROOT$ORCHESTRA_ROOT/file1" "$TMP_ROOT$ORCHESTRA_ROOT/file2"

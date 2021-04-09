@@ -11,10 +11,12 @@ class CloneAction(ActionForComponent):
 
     @property
     def script(self):
+        script = 'mkdir -p "$(dirname "$SOURCE_DIR")"\n'
+
         clone_cmds = []
         for remote_base_url in self.config.remotes.values():
             clone_cmds.append(f'git clone "{remote_base_url}/{self.repository}" "$SOURCE_DIR"')
-        script = " || \\\n  ".join(clone_cmds)
+        script += " || \\\n  ".join(clone_cmds)
         script += "\n"
 
         script += 'git -C "$SOURCE_DIR" branch -m orchestra-temporary\n'

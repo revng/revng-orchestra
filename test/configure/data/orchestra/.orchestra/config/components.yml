@@ -1,0 +1,20 @@
+#@ load("@ytt:template", "template")
+#@ load("/builder.lib.yml", "component")
+
+---
+#@ def component_that_may_fail_configure_parameters():
+configure: |
+  mkdir -p "$BUILD_DIR"
+  if [[ -n "${FAIL_CONFIGURE-}" ]]; then
+  exit 1
+  fi
+  echo "Configure successful"
+install: |
+  echo "Installing"
+#@ end
+
+---
+components:
+  _: #@ template.replace(component("component_A"))
+  _: #@ template.replace(component("component_B", dependencies=["component_A"]))
+  _: #@ template.replace(component("component_that_may_fail_configure", **component_that_may_fail_configure_parameters()))

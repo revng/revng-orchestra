@@ -14,13 +14,14 @@ def install_subcommand(sub_argparser):
     cmd_parser = sub_argparser.add_parser(
         "shell",
         handler=handle_shell,
-        help="Open a shell with orchestra environment (experimental)."
+        help="Open a shell with orchestra environment (experimental).",
     )
     cmd_parser.add_argument(
-        "--component", "-c",
+        "--component",
+        "-c",
         help="Execute in the context of this component. "
-             "The shell will start in the component build directory, if it exists. "
-             "Otherwise, the CWD will not be changed.",
+        "The shell will start in the component build directory, if it exists. "
+        "Otherwise, the CWD will not be changed.",
     )
     cmd_parser.add_argument("command", nargs=argparse.REMAINDER)
 
@@ -35,7 +36,6 @@ def handle_shell(args):
         cd_to = os.getcwd()
     else:
         build = config.get_build(args.component)
-
         if not build:
             suggested_component_name = config.get_suggested_component_name(args.component)
             logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
@@ -55,7 +55,7 @@ def handle_shell(args):
             environment=env,
             strict_flags=False,
             cwd=cd_to,
-            loglevel="DEBUG"
+            loglevel="DEBUG",
         )
         return p.returncode
 

@@ -1,0 +1,101 @@
+"$schema": http://json-schema.org/draft-07/schema#
+"$ref": "#/definitions/OrchestraConfig"
+definitions:
+  OrchestraConfig:
+    type: object
+    additionalProperties: false
+    properties:
+      components:
+        "$ref": "#/definitions/Components"
+      add_to_path:
+        type: array
+        items:
+          type: string
+      environment:
+        type: array
+        items:
+          type: object
+          additionalProperties:
+            type: string
+      paths:
+        type: object
+        additionalProperties:
+          type: string
+      remote_base_urls:
+        type: array
+        items:
+          type: object
+          additionalProperties:
+            type: string
+      binary_archives:
+        type: array
+        items:
+          "$ref": "#/definitions/BinaryArchive"
+      branches:
+        type: array
+        items:
+          type: string
+      min_orchestra_version:
+        type: string
+    required:
+      - components
+    title: OrchestraConfig
+  BinaryArchive:
+    type: object
+    additionalProperties:
+      type: string
+    title: BinaryArchive
+  Components:
+    type: object
+    additionalProperties:
+      "$ref": "#/definitions/Component"
+    title: Components
+  Component:
+    type: object
+    additionalProperties: false
+    properties:
+      builds:
+        type: object
+        additionalProperties:
+          "$ref": "#/definitions/Build"
+      default_build:
+        type: string
+      license:
+        type: string
+      binary_archives:
+        type: string
+      repository:
+        type: string
+      build_from_source:
+        type: boolean
+      skip_post_install:
+        type: boolean
+      add_to_path:
+        type: array
+        items:
+          type: string
+    required:
+      - builds
+    title: Component
+  Build:
+    type: object
+    additionalProperties: false
+    properties:
+      configure:
+        type: string
+      install:
+        type: string
+      dependencies:
+        type: array
+        items:
+          type: string
+      build_dependencies:
+        type: array
+        items:
+          type: string
+      ndebug:
+        type: boolean
+    required:
+      - configure
+      - install
+    title: Build

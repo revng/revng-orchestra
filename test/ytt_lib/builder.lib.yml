@@ -1,0 +1,62 @@
+#@ load("@ytt:template", "template")
+
+#@yaml/text-templated-strings
+---
+#@ def basic_build(
+#@      component_name,
+#@      build_name,
+#@      dependencies=[],
+#@      build_dependencies=[],
+#@      configure=None,
+#@      install=None,
+#@      repository=None,
+#@ ):
+(@= build_name @):
+  #@ if configure:
+  configure: #@ configure
+  #@ else:
+  configure: |
+    mkdir -p "$SOURCE_DIR"
+    mkdir -p "$BUILD_DIR"
+  #@ end
+
+  #@ if install:
+  install: #@ install
+  #@ else:
+  install: |
+    cd "$BUILD_DIR"
+    touch "(@= component_name @)_file"
+    touch "(@= component_name @)_(@= build_name @)_file"
+    touch "$TMP_ROOT$ORCHESTRA_ROOT/(@= component_name @)_file"
+    touch "$TMP_ROOT$ORCHESTRA_ROOT/(@= component_name @)_(@= build_name @)_file"
+  #@ end
+
+  dependencies: #@ dependencies
+  build_dependencies: #@ build_dependencies
+#@ end
+
+#@yaml/text-templated-strings
+---
+#@ def component(
+#@      component_name,
+#@      dependencies=[],
+#@      build_dependencies=[],
+#@      repository=None,
+#@      nbuilds=1,
+#@      configure=None,
+#@      install=None,
+#@      skip_post_install=False,
+#@ ):
+(@= component_name @):
+  builds:
+    #@ for nbuild in range(nbuilds):
+    #@ build_name = "build" + str(nbuild)
+    _: #@ template.replace(basic_build(component_name, build_name, dependencies=dependencies, build_dependencies=build_dependencies, configure=configure, install=install))
+    #@ end
+
+  #@ if/end repository:
+  repository: #@ repository
+
+  #@ if/end skip_post_install:
+  skip_post_install: #@ skip_post_install
+#@ end

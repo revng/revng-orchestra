@@ -3,5 +3,5 @@
 from . import main
 
 if __name__ == "__main__":
-    return_value = main() or 0
+    return_value = main()
     exit(return_value)

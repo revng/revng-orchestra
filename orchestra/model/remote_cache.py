@@ -1,6 +1,6 @@
 import json
 import os
-from multiprocessing.pool import ThreadPool
+from concurrent.futures import ThreadPoolExecutor
 
 from loguru import logger
 from tqdm import tqdm
@@ -19,12 +19,15 @@ class RemoteHeadsCache:
                 with open(cache_path) as f:
                     self._cached_remote_data = json.load(f)
             except IOError as e:
-                error_message = f"IO error while reading remote HEADs cache: {cache_path}. " \
-                                f"Try running `orchestra update`"
+                error_message = (
+                    f"IO error while reading remote HEADs cache: {cache_path}. Try running `orchestra update`"
+                )
                 raise Exception(error_message) from e
             except json.JSONDecodeError as e:
-                error_message = f"Error while parsing remote HEADs cache: {cache_path}. " \
-                                f"Try removing it and running `orchestra update`"
+                error_message = (
+                    f"Error while parsing remote HEADs cache: {cache_path}. "
+                    f"Try removing it and running `orchestra update`"
+                )
                 raise Exception(error_message) from e
         else:
             logger.warning("The remote HEADs cache does not exist, you should run `orchestra update`")
@@ -38,9 +41,7 @@ class RemoteHeadsCache:
 
         clonable_components = list(filter(lambda c: c.clone is not None, self.config.components.values()))
 
-        progress_bar = tqdm(total=len(clonable_components), unit="component")
-
-        def get_branches_with_update(component):
+        def get_branches(component):
             logger.debug(f"Fetching the latest remote commit for {component.name}")
 
             remotes = [f"{base_url}/{component.clone.repository}" for base_url in self.config.remotes.values()]
@@ -50,16 +51,20 @@ class RemoteHeadsCache:
                     self._cached_remote_data[component.name] = result
                     break
 
-            progress_bar.update()
+        progress_bar = tqdm(total=len(clonable_components), unit="component")
+        with ThreadPoolExecutor(max_workers=parallelism) as executor:
+            for _ in executor.map(get_branches, clonable_components):
+                progress_bar.update()
 
-        map_to_threadpool(get_branches_with_update, clonable_components, parallelism=parallelism)
+        self._persist_cache()
 
+    def _persist_cache(self):
         with open(self.cache_path, "w") as f:
             json.dump(self._cached_remote_data, f)
 
-
-def map_to_threadpool(func, args_list, parallelism=4):
-    thread_pool = ThreadPool(parallelism)
-    thread_pool.map(func, args_list)
-    thread_pool.close()
-    thread_pool.join()
+    def set_entry(self, component_name, branch_name, commit):
+        """Sets a cache entry and persists the cache to disk. Not thread safe!"""
+        current_cached_info = self._cached_remote_data.get(component_name, {})
+        current_cached_info[branch_name] = commit
+        self._cached_remote_data[component_name] = current_cached_info
+        self._persist_cache()

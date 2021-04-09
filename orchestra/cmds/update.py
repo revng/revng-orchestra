@@ -77,35 +77,41 @@ def handle_update(args):
     if failed_pulls:
         formatted_failed_pulls = "\n".join([f"  - {repo}" for repo in failed_pulls])
         # Note: f-strings don't account for indentation, using a template is more practical
-        failed_git_pull_template = dedent("""
-        Could not git pull --ff-only the following repositories:
-        {formatted_failed_pulls}
+        failed_git_pull_template = dedent(
+            """
+            Could not git pull --ff-only the following repositories:
+            {formatted_failed_pulls}
 
-        Suggestions:
-            - check your network connection
-            - commit your work
-            - `git pull --rebase`, to pull remote changes and apply your commits on top
-            - `git push` your changes to the remotes
-        """)
+            Suggestions:
+                - check your network connection
+                - commit your work
+                - `git pull --rebase`, to pull remote changes and apply your commits on top
+                - `git push` your changes to the remotes
+            """
+        )
         failed_git_pull_suggestion = failed_git_pull_template.format(formatted_failed_pulls=formatted_failed_pulls)
         logger.error(failed_git_pull_suggestion)
 
     if failed_clones:
         formatted_failed_clones = "\n".join([f"  - {repo}" for repo in failed_clones])
         # Note: f-strings don't account for indentation, using a template is more practical
-        failed_git_clone_template = dedent("""
-                Could not clone the following repositories:
-                {formatted_failed_clones}
+        failed_git_clone_template = dedent(
+            """
+            Could not clone the following repositories:
+            {formatted_failed_clones}
 
-                Suggestions:
-                    - check your network connection
-                    - check your ssh and git configuration (try manually cloning the repositories)
-                """)
+            Suggestions:
+                - check your network connection
+                - check your ssh and git configuration (try manually cloning the repositories)
+            """
+        )
         failed_git_clone_suggestion = failed_git_clone_template.format(formatted_failed_clones=formatted_failed_clones)
         logger.error(failed_git_clone_suggestion)
 
     if failed_pulls or failed_clones:
         return 1
+    else:
+        return 0
 
 
 def clone_binary_archive(name, url, config):
@@ -130,7 +136,7 @@ def pull_binary_archive(name, config):
     # clean removes untracked files
     git_clean(binary_archive_path)
     # reset restores tracked files to their committed version
-    git_reset_hard(binary_archive_path)
+    git_reset_hard(binary_archive_path, ref="origin/master")
     return git_pull(binary_archive_path)
 
 
@@ -141,11 +147,7 @@ def git_clean(directory):
 def git_reset_hard(directory, ref="master"):
     env = os.environ.copy()
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
-    return run_internal_subprocess(
-        ["git", "reset", "--hard", ref],
-        cwd=directory,
-        environment=env
-    )
+    return run_internal_subprocess(["git", "reset", "--hard", ref], cwd=directory, environment=env)
 
 
 def git_pull(directory):
@@ -153,9 +155,5 @@ def git_pull(directory):
     Returns a boolean value representing the operation success."""
     env = os.environ.copy()
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
-    returncode = try_run_internal_subprocess(
-        ["git", "pull", "--ff-only"],
-        environment=env,
-        cwd=directory
-    )
+    returncode = try_run_internal_subprocess(["git", "pull", "--ff-only"], environment=env, cwd=directory)
     return returncode == 0

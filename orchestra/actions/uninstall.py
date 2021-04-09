@@ -2,20 +2,25 @@ import os
 
 from loguru import logger
 
+from ..model.install_metadata import (
+    load_file_list,
+    installed_component_file_list_path,
+    installed_component_metadata_path,
+)
+
 
 def uninstall(component_name, config):
-    index_path = config.installed_component_file_list_path(component_name)
-    metadata_path = config.installed_component_metadata_path(component_name)
+    index_path = installed_component_file_list_path(component_name, config)
+    metadata_path = installed_component_metadata_path(component_name, config)
 
     # Index and metadata files should be removed last,
     # so an interrupted uninstall can be resumed
     postpone_removal_paths = [
         os.path.relpath(index_path, config.orchestra_root),
-        os.path.relpath(metadata_path, config.orchestra_root)
+        os.path.relpath(metadata_path, config.orchestra_root),
     ]
 
-    with open(index_path) as f:
-        paths = f.readlines()
+    paths = load_file_list(component_name, config)
 
     # Ensure depth first visit by reverse-sorting
     # paths.sort(reverse=True)
@@ -28,7 +33,7 @@ def uninstall(component_name, config):
         if path in postpone_removal_paths:
             continue
 
-        path_to_delete = os.path.join(config.global_env()['ORCHESTRA_ROOT'], path)
+        path_to_delete = os.path.join(config.global_env()["ORCHESTRA_ROOT"], path)
 
         if os.path.isfile(path_to_delete) or os.path.islink(path_to_delete):
             logger.debug(f"Deleting {path_to_delete}")

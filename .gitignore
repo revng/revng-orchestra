@@ -7,3 +7,4 @@ orchestra.egg-info
 venv
 # ytt is downloaded by setup.py
 orchestra/support/ytt
+.pytest_cache
