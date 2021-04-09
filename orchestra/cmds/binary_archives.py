@@ -54,7 +54,7 @@ def _handle_archives_top_level(args):
         _cmd_parser.print_help()
         return 1
 
-    subcommand_parser.handler(args)
+    return subcommand_parser.handler(args)
 
 
 def handle_clean(args):
