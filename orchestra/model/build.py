@@ -70,7 +70,7 @@ class Build:
             else:
                 preferred_build = dep_component.default_build
 
-            if not exact_build_required:
+            if not exact_build_required and len(dep_component.builds) > 1:
                 alternatives = {b.install for b in dep_component.builds.values()}
                 dependency_action = any_of.AnyOfAction(alternatives, preferred_build.install)
             else:
