@@ -49,10 +49,10 @@ def _deserialize_metadata(serialized_metadata) -> InstallMetadata:
         serialized_metadata["build_name"],
         serialized_metadata["self_hash"],
         serialized_metadata["recursive_hash"],
-        source=serialized_metadata["source"],
-        manually_installed=serialized_metadata["manually_installed"],
-        install_time=serialized_metadata["install_time"],
-        binary_archive_path=serialized_metadata["binary_archive_path"],
+        source=serialized_metadata.get("source"),
+        manually_installed=serialized_metadata.get("manually_installed"),
+        install_time=serialized_metadata.get("install_time"),
+        binary_archive_path=serialized_metadata.get("binary_archive_path"),
     )
 
 
