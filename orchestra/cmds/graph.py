@@ -1,13 +1,14 @@
 import networkx as nx
 from loguru import logger
 
+from . import SubCommandParser
 from .common import build_options
 from ..executor import Executor
 from ..model.configuration import Configuration
 
 
-def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser(
+def install_subcommand(sub_argparser: SubCommandParser):
+    cmd_parser = sub_argparser.add_subcmd(
         "graph",
         handler=handle_graph,
         help="Print dependency graph (dot format)",

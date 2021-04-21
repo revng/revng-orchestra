@@ -1,8 +1,9 @@
+from . import SubCommandParser
 from ..version import __version__
 
 
-def install_subcommand(sub_argparser):
-    sub_argparser.add_parser("version", handler=handle_version, help="Print orchestra version")
+def install_subcommand(sub_argparser: SubCommandParser):
+    sub_argparser.add_subcmd("version", handler=handle_version, help="Print orchestra version")
 
 
 def handle_version(args):

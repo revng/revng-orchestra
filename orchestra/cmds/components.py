@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from loguru import logger
 
+from . import SubCommandParser
 from ..model.configuration import Configuration
 from ..model.install_metadata import load_metadata, is_installed
 
@@ -21,8 +22,8 @@ def normalize_repository_url(url):
     return url
 
 
-def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("components", handler=handle_components, help="List components")
+def install_subcommand(sub_argparser: SubCommandParser):
+    cmd_parser = sub_argparser.add_subcmd("components", handler=handle_components, help="List components")
     cmd_parser.add_argument("component", nargs="?")
     cmd_parser.add_argument("--installed", action="store_true", help="Only print installed components")
     cmd_parser.add_argument(

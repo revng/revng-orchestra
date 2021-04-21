@@ -1,8 +1,9 @@
+from . import SubCommandParser
 from ..model.configuration import Configuration
 
 
-def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser(
+def install_subcommand(sub_argparser: SubCommandParser):
+    cmd_parser = sub_argparser.add_subcmd(
         "fix-binary-archives-symlinks",
         handler=handle_fix_binary_archives_symlinks,
         help="Fix symlinks in binary archives",

@@ -2,12 +2,13 @@ import shutil
 
 from loguru import logger
 
+from . import SubCommandParser
 from .common import execution_options
 from ..model.configuration import Configuration
 
 
-def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser(
+def install_subcommand(sub_argparser: SubCommandParser):
+    cmd_parser = sub_argparser.add_subcmd(
         "clean",
         handler=handle_clean,
         help="Remove build/source directories",

@@ -2,11 +2,12 @@ import os
 
 from loguru import logger
 
+from . import SubCommandParser
 from ..model.configuration import Configuration
 
 
-def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("ls", handler=handle_ls, help="List orchestra-related directories")
+def install_subcommand(sub_argparser: SubCommandParser):
+    cmd_parser = sub_argparser.add_subcmd("ls", handler=handle_ls, help="List orchestra-related directories")
     cmd_parser.add_argument(
         "--git-sources",
         action="store_true",

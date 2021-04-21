@@ -1,11 +1,12 @@
+from . import SubCommandParser
 from .common import execution_options, build_options
 from ..executor import Executor
 from ..model.configuration import Configuration
 from ..model.install_metadata import load_metadata
 
 
-def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser(
+def install_subcommand(sub_argparser: SubCommandParser):
+    cmd_parser = sub_argparser.add_subcmd(
         "upgrade",
         handler=handle_upgrade,
         help="Upgrade all manually installed components",

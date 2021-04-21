@@ -1,13 +1,14 @@
 from loguru import logger
 
+from . import SubCommandParser
 from ..actions.install import uninstall
 from ..model.configuration import Configuration
 from ..model.install_metadata import is_installed
 from ..util import parse_component_name
 
 
-def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("uninstall", handler=handle_uninstall, help="Uninstall a component")
+def install_subcommand(sub_argparser: SubCommandParser):
+    cmd_parser = sub_argparser.add_subcmd("uninstall", handler=handle_uninstall, help="Uninstall a component")
     cmd_parser.add_argument("components", nargs="+", help="Name of the components to uninstall")
 
 
