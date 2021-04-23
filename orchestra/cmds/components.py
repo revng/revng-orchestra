@@ -152,6 +152,11 @@ def print_human_readable(components, config, args):
             component_infos.append(f"recursive hash: {component.recursive_hash}")
         component_infos_s = stringify_infos(component_infos)
 
+        if component.commit():
+            component_infos.append(f"commit: {component.commit()}")
+        if component.branch():
+            component_infos.append(f"branch: {component.branch()}")
+
         builds_rows = []
         for build_name, build in component.builds.items():
             build_infos = []
