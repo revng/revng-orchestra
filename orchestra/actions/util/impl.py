@@ -85,8 +85,7 @@ def _run_user_script(script, environment: OrderedDict = None, check_returncode=T
     :param cwd: if not None, the command is executed in the specified path
     """
 
-    quiet = globals.loglevel not in ["TRACE", "DEBUG", "INFO"]
-    if quiet:
+    if globals.quiet:
         stdout = subprocess.PIPE
         stderr = subprocess.STDOUT
     else:
@@ -96,7 +95,7 @@ def _run_user_script(script, environment: OrderedDict = None, check_returncode=T
     result = _run_script(
         script,
         environment=environment,
-        loglevel="INFO",
+        loglevel="DEBUG",
         stdout=stdout,
         stderr=stderr,
         cwd=cwd,
@@ -106,7 +105,7 @@ def _run_user_script(script, environment: OrderedDict = None, check_returncode=T
         err_msg = f"Script failed with return code {result.returncode}"
         logger.error(err_msg)
         logger.error(f"The script was: \n{script}")
-        if quiet:
+        if globals.quiet:
             logger.error(f"The output was: \n{try_decode(result.stdout)}")
         raise OrchestraException(err_msg)
 

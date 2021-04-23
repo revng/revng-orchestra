@@ -27,6 +27,7 @@ def _main(argv):
         format="<level>[+] {level}</level> - {message}",
     )
     orchestra.globals.loglevel = args.loglevel
+    orchestra.globals.quiet = args.quiet
 
     if args.orchestra_dir:
         os.chdir(args.orchestra_dir)

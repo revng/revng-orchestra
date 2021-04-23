@@ -1,6 +1,8 @@
 from . import SubCommandParser
 from ..model.configuration import Configuration
 
+from loguru import logger
+
 
 def install_subcommand(sub_argparser: SubCommandParser):
     cmd_parser = sub_argparser.add_subcmd(
@@ -15,6 +17,7 @@ def handle_fix_binary_archives_symlinks(args):
 
     for _, component in config.components.items():
         for _, build in component.builds.items():
+            logger.info(f"Updating binary archive symlink for {build.qualified_name}")
             build.install.update_binary_archive_symlink()
 
     return 0

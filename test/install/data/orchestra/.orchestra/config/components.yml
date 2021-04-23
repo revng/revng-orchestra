@@ -5,7 +5,7 @@ components:
         configure: |
           mkdir -p "$BUILD_DIR"
         install: |
-          echo "Executing install script"
+          echo "Executing" "install" "script"
           cd "$BUILD_DIR"
           touch "$TMP_ROOT$ORCHESTRA_ROOT/some_file"
 
@@ -16,13 +16,13 @@ components:
           mkdir -p "$BUILD_DIR"
         install: |
           cd "$BUILD_DIR"
-          echo "Executing install script"
+          echo "Executing" "install" "script"
           touch "$TMP_ROOT$ORCHESTRA_ROOT/some_file"
       build1:
         configure: |
           mkdir -p "$BUILD_DIR"
         install: |
-          echo "Executing install script"
+          echo "Executing" "install" "script"
           cd "$BUILD_DIR"
           touch "$TMP_ROOT$ORCHESTRA_ROOT/some_other_file"
 
@@ -104,7 +104,7 @@ components:
         configure: |
           mkdir -p "$BUILD_DIR"
         install: |
-          echo "Executing install script"
+          echo "Executing" "install" "script"
           cd "$BUILD_DIR"
           touch "$TMP_ROOT$ORCHESTRA_ROOT/some_file"
 

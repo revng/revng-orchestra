@@ -77,7 +77,6 @@ def find_unreferenced_archives(binary_archive_path):
     """
 
     all_tracked_files = set(get_script_output(f"git lfs ls-files -n", cwd=binary_archive_path).splitlines())
-    logger.error(all_tracked_files)
 
     files_still_linked = set()
     for dirpath, dirnames, filenames in os.walk(binary_archive_path):

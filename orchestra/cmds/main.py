@@ -21,6 +21,12 @@ from . import version
 main_parser = SubCommandParser()
 logging_group = main_parser.add_argument_group(title="Logging options")
 logging_group.add_argument(
+    "--quiet",
+    "-q",
+    action="store_true",
+    help="Do not show the output of the executed scripts unless they have failed",
+)
+logging_group.add_argument(
     "--loglevel",
     "-v",
     default="INFO",

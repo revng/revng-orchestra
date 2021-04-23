@@ -6,6 +6,7 @@ from ..conftest import OrchestraShim
 
 def test_upgrade_when_remote_config_changes(orchestra: OrchestraShim, capsys):
     """Checks that `orchestra upgrade` does upgrade components when the remote configuration changes"""
+    orchestra.loglevel = "DEBUG"
     orchestra("install", "-b", "component_A")
     out, err = capsys.readouterr()
     assert "Initial component_A configuration" in out
