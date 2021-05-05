@@ -34,9 +34,11 @@ components:
           mkdir -p "$BUILD_DIR"
           cd "$BUILD_DIR"
           cmake \
+            -G"Unix Makefiles" \
             -DCMAKE_INSTALL_PREFIX="$ORCHESTRA_ROOT" \
             "$SOURCE_DIR"
 
         install: |
-          cmake --build "$BUILD_DIR"
-          cmake --install "$BUILD_DIR"
+          cd "$BUILD_DIR"
+          make
+          make install

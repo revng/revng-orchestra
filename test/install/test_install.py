@@ -51,6 +51,7 @@ def test_install_from_source_with_no_binary_archives_configured(orchestra: Orche
     """Checks that --fallback-build (-b) causes installation from source if no binary archives repositories are
     configured
     """
+    orchestra.loglevel = "DEBUG"
     orchestra("install", "-b", "component_A")
 
     # Check the install script was run
@@ -67,6 +68,7 @@ def test_install_from_source_if_binary_archive_unavailable(orchestra: OrchestraS
     orchestra.add_binary_archive("origin")
     orchestra("update")
 
+    orchestra.loglevel = "DEBUG"
     orchestra("install", "-b", "component_A")
 
     # Check the install script was run
@@ -78,6 +80,7 @@ def test_install_from_source_if_binary_archive_unavailable(orchestra: OrchestraS
 
 def test_forced_install_from_source(orchestra: OrchestraShim, capsys):
     """Checks that --from-source (-B) forces installation from source, even if a binary archive is available"""
+    orchestra.loglevel = "DEBUG"
     orchestra.add_binary_archive("origin")
     orchestra("update")
     orchestra("install", "-b", "--create-binary-archives", "component_A")
@@ -96,6 +99,7 @@ def test_forced_install_from_source(orchestra: OrchestraShim, capsys):
 
 def test_install_from_binary_archives(orchestra: OrchestraShim, capsys):
     """Checks that installation from binary archives works"""
+    orchestra.loglevel = "DEBUG"
     orchestra.add_binary_archive("origin")
     orchestra("update")
     orchestra("install", "-b", "--create-binary-archives", "component_A")

@@ -5,13 +5,14 @@ from textwrap import dedent
 
 from loguru import logger
 
+from . import SubCommandParser
 from ..actions.util import get_script_output
 from ..actions.util.impl import _run_script
 from ..model.configuration import Configuration
 
 
-def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser(
+def install_subcommand(sub_argparser: SubCommandParser):
+    cmd_parser = sub_argparser.add_subcmd(
         "shell",
         handler=handle_shell,
         help="Open a shell with orchestra environment (experimental).",

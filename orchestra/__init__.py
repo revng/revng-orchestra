@@ -5,7 +5,7 @@ from loguru import logger
 from tqdm import tqdm
 
 import orchestra.globals
-from orchestra.cmds.main import main_parser, main_subparsers
+from orchestra.cmds.main import main_parser
 
 
 class TqdmWrapper:
@@ -27,16 +27,12 @@ def _main(argv):
         format="<level>[+] {level}</level> - {message}",
     )
     orchestra.globals.loglevel = args.loglevel
+    orchestra.globals.quiet = args.quiet
 
     if args.orchestra_dir:
         os.chdir(args.orchestra_dir)
 
-    cmd_parser = main_subparsers.choices.get(args.command_name)
-    if not cmd_parser:
-        main_parser.print_help()
-        return 1
-
-    return_code = cmd_parser.handler(args)
+    return_code = main_parser.parse_and_execute(argv)
     if not isinstance(return_code, int):
         raise Exception(f"Handler for command {args.command_name} did not return an integer return code")
     return return_code

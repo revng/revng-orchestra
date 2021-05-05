@@ -18,4 +18,4 @@ def test_cmake_project(orchestra: OrchestraShim, test_data_mgr, monkeypatch):
 
     orchestra("install", "-b", "--keep-tmproot", "sample_cmake_project")
 
-    assert (orchestra.orchestra_root / "bin" / "test").exists()
+    assert (orchestra.orchestra_root / "bin" / "testprogram").exists()

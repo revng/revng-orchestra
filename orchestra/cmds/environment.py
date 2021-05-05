@@ -1,11 +1,12 @@
 from loguru import logger
 
+from . import SubCommandParser
 from ..model.configuration import Configuration
 from ..util import export_environment
 
 
-def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("environment", handler=handle_environment, help="Print environment variables")
+def install_subcommand(sub_argparser: SubCommandParser):
+    cmd_parser = sub_argparser.add_subcmd("environment", handler=handle_environment, help="Print environment variables")
     cmd_parser.add_argument("component", nargs="?")
 
 

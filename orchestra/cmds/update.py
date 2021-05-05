@@ -4,13 +4,14 @@ from textwrap import dedent
 from loguru import logger
 from tqdm import tqdm
 
+from . import SubCommandParser
 from ..model.configuration import Configuration
 from ..actions.util import run_internal_subprocess, try_run_internal_subprocess
 from ..gitutils import is_root_of_git_repo
 
 
-def install_subcommand(sub_argparser):
-    cmd_parser = sub_argparser.add_parser("update", handler=handle_update, help="Update components")
+def install_subcommand(sub_argparser: SubCommandParser):
+    cmd_parser = sub_argparser.add_subcmd("update", handler=handle_update, help="Update components")
     cmd_parser.add_argument("--no-config", action="store_true", help="Don't pull orchestra config")
     cmd_parser.add_argument("--parallelism", type=int, default=1, help="Maximum parallel processes")
 

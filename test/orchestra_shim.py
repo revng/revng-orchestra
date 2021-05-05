@@ -5,8 +5,8 @@ from textwrap import dedent
 
 import orchestra as orc
 from orchestra.model.configuration import Configuration
-from .utils import git
 from .data_manager import TestDataManager
+from .utils import git
 
 
 class OrchestraShim:
@@ -86,6 +86,8 @@ class OrchestraShim:
         # Create an empty user_config.yml if not already there
         self.user_config.touch(exist_ok=True)
 
+        self.loglevel = "INFO"
+
     def __call__(self, *args, should_fail=False):
         """
         Invokes orchestra with the given cmdline arguments, checking the return code.
@@ -93,8 +95,14 @@ class OrchestraShim:
         :param should_fail: if True the return code is expected to be != 0
         :param args: arguments used to invoke orchestra
         """
-        args = ("--orchestra-dir", str(self.orchestra_dir)) + args
-        returncode = orc._main(args)
+        orchestra_args = (
+            "--orchestra-dir",
+            str(self.orchestra_dir),
+            "--loglevel",
+            self.loglevel,
+        )
+        orchestra_args += args
+        returncode = orc._main(orchestra_args)
         if should_fail:
             assert returncode != 0
         else:

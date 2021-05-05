@@ -30,8 +30,6 @@ def generate_yaml_configuration(orchestra_dotdir, use_cache=True):
     )
     parsed_config = yaml.safe_load(expanded_yaml)
 
-    validate_configuration_schema(parsed_config)
-
     if use_cache:
         with open(config_cache_file, "w") as f:
             json.dump({"config_hash": config_hash, "config": parsed_config}, f)

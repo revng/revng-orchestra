@@ -111,7 +111,7 @@ def load_file_list(component_name: str, config: "configuration.Configuration") -
     """
     file_list_path = installed_component_file_list_path(component_name, config)
     with open(file_list_path) as f:
-        paths = f.readlines()
+        paths = f.read().splitlines()
     return paths
 
 

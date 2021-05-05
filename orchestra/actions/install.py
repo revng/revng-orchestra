@@ -61,7 +61,7 @@ class InstallAction(ActionForBuild):
         tmp_root = self.environment["TMP_ROOT"]
         orchestra_root = self.environment["ORCHESTRA_ROOT"]
 
-        logger.info("Preparing temporary root directory")
+        logger.debug("Preparing temporary root directory")
         self._prepare_tmproot()
 
         pre_file_list = self._index_directory(tmp_root + orchestra_root, relative_to=tmp_root + orchestra_root)
@@ -93,10 +93,10 @@ class InstallAction(ActionForBuild):
 
         if not self.no_merge:
             if is_installed(self.config, self.build.component.name):
-                logger.info("Uninstalling previously installed build")
+                logger.debug("Uninstalling previously installed build")
                 uninstall(self.build.component.name, self.config)
 
-            logger.info("Merging installed files into orchestra root directory")
+            logger.debug("Merging installed files into orchestra root directory")
             self._merge()
 
             self._update_metadata(
@@ -107,7 +107,7 @@ class InstallAction(ActionForBuild):
             )
 
         if not self.keep_tmproot:
-            logger.info("Cleaning up tmproot")
+            logger.debug("Cleaning up tmproot")
             self._cleanup_tmproot()
 
     def _update_metadata(self, file_list, install_time, source, set_manually_insalled):
@@ -148,12 +148,12 @@ class InstallAction(ActionForBuild):
 
     def _install_from_binary_archive(self):
         # TODO: handle nonexisting binary archives
-        logger.info("Fetching binary archive")
+        logger.debug("Fetching binary archive")
         self._fetch_binary_archive()
-        logger.info("Extracting binary archive")
+        logger.debug("Extracting binary archive")
         self._extract_binary_archive()
 
-        logger.info("Removing conflicting files")
+        logger.debug("Removing conflicting files")
         self._remove_conflicting_files()
 
     def _fetch_binary_archive(self):
@@ -196,38 +196,38 @@ class InstallAction(ActionForBuild):
         env = self.environment
         env["RUN_TESTS"] = "1" if self.run_tests else "0"
 
-        logger.info("Executing install script")
+        logger.debug("Executing install script")
         run_user_script(self.script, environment=env)
 
-        logger.info("Removing conflicting files")
+        logger.debug("Removing conflicting files")
         self._remove_conflicting_files()
 
         if self.build.component.skip_post_install:
-            logger.info("Skipping post install")
+            logger.debug("Skipping post install")
         else:
             self._post_install()
 
     def _post_install(self):
-        logger.info("Dropping absolute paths from pkg-config")
+        logger.debug("Dropping absolute paths from pkg-config")
         self._drop_absolute_pkgconfig_paths()
 
-        logger.info("Purging libtools' files")
+        logger.debug("Purging libtools' files")
         self._purge_libtools_files()
 
         # TODO: maybe this should be put into the configuration and not in orchestra itself
-        logger.info("Converting hardlinks to symbolic")
+        logger.debug("Converting hardlinks to symbolic")
         self._hard_to_symbolic()
 
         # TODO: maybe this should be put into the configuration and not in orchestra itself
-        logger.info("Fixing RPATHs")
+        logger.debug("Fixing RPATHs")
         self._fix_rpath()
 
         # TODO: this should be put into the configuration and not in orchestra itself
-        logger.info("Replacing NDEBUG preprocessor statements")
+        logger.debug("Replacing NDEBUG preprocessor statements")
         self._replace_ndebug(self.build.ndebug)
 
         if self.build.component.license:
-            logger.info("Copying license file")
+            logger.debug("Copying license file")
             source = self.build.component.license
             destination = installed_component_license_path(self.build.component.name, self.config)
             script = dedent(
@@ -340,7 +340,7 @@ class InstallAction(ActionForBuild):
         self._run_internal_script(copy_command)
 
     def _create_binary_archive(self):
-        logger.info("Creating binary archive")
+        logger.debug("Creating binary archive")
         binary_archive_path = self._binary_archive_path()
         binary_archive_parent_dir = os.path.dirname(binary_archive_path)
         binary_archive_repo_name = self._binary_archive_repo_name
@@ -367,7 +367,7 @@ class InstallAction(ActionForBuild):
         Example: fix-something_master.tar.gz -> abcdef_fedcba.tar.gz would be created if the binary archive
         for component branch fix-something with orchestra configuration on the `master` branch is available.
         """
-        logger.info("Updating binary archive symlink")
+        logger.debug("Updating binary archive symlink")
 
         binary_archive_repo_name = self._binary_archive_repo_name
         if binary_archive_repo_name is None:

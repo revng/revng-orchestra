@@ -1,12 +1,12 @@
 import argparse
 
-from . import CustomArgumentParser
+from . import SubCommandParser
 from . import binary_archives
 from . import clean
 from . import clone
 from . import components
 from . import configure
-from . import dumpconfig
+from . import inspect
 from . import environment
 from . import fix_binary_archives_symlinks
 from . import graph
@@ -18,8 +18,14 @@ from . import update
 from . import upgrade
 from . import version
 
-main_parser = argparse.ArgumentParser()
+main_parser = SubCommandParser()
 logging_group = main_parser.add_argument_group(title="Logging options")
+logging_group.add_argument(
+    "--quiet",
+    "-q",
+    action="store_true",
+    help="Do not show the output of the executed scripts unless they have failed",
+)
 logging_group.add_argument(
     "--loglevel",
     "-v",
@@ -41,13 +47,6 @@ config_group.add_argument(
     help="Behave as if orchestra was launched in this directory",
 )
 
-main_subparsers = main_parser.add_subparsers(
-    description="Available subcommands. Use <subcommand> --help",
-    dest="command_name",
-    parser_class=CustomArgumentParser,
-    metavar="<subcommand>",
-)
-
 subcommands = [
     components,
     environment,
@@ -62,10 +61,10 @@ subcommands = [
     shell,
     ls,
     fix_binary_archives_symlinks,
-    dumpconfig,
+    inspect,
     binary_archives,
     version,
 ]
 
 for cmd in subcommands:
-    cmd.install_subcommand(main_subparsers)
+    cmd.install_subcommand(main_parser)

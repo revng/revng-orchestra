@@ -19,7 +19,12 @@ class TestDataManager:
     def __init__(self, request, tmpdir):
         rootpath = request.config.rootpath
         curpath = Path(request.fspath.dirpath())
-        assert curpath.is_relative_to(rootpath)
+        # is_relative_to only added in python 3.9
+        try:
+            curpath.relative_to(rootpath)
+        except ValueError:
+            raise Exception(f"{curpath} should be relative to {rootpath}")
+
         self._search_paths: List[Path] = []
         while curpath != rootpath:
             self._search_paths.append(curpath / "data" / request.function.__name__)

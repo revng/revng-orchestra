@@ -18,6 +18,7 @@ def test_configure_component_with_dependencies(orchestra: OrchestraShim):
 
 def test_configure_retriggers_on_failure(orchestra: OrchestraShim, capsys, monkeypatch):
     """Checks that configure is triggered again if it did not execute successfully"""
+    orchestra.loglevel = "DEBUG"
     monkeypatch.setenv("FAIL_CONFIGURE", "1")
     orchestra("install", "-b", "component_that_may_fail_configure", should_fail=True)
 

@@ -9,7 +9,7 @@ from fuzzywuzzy import fuzz
 from loguru import logger
 from pkg_resources import parse_version
 
-from ._generate import generate_yaml_configuration
+from ._generate import generate_yaml_configuration, validate_configuration_schema
 from ..component import Component
 from ..remote_cache import RemoteHeadsCache
 from ...actions.util import try_run_internal_subprocess, try_get_subprocess_output
@@ -58,6 +58,8 @@ class Configuration:
         self.parsed_yaml = generate_yaml_configuration(self.orchestra_dotdir, use_cache=use_config_cache)
 
         self._check_minimum_version()
+
+        validate_configuration_schema(self.parsed_yaml)
 
         self.remotes = self._get_remotes()
         self.binary_archives_remotes = self._get_binary_archives_remotes()

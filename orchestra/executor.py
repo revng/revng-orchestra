@@ -34,6 +34,7 @@ class Executor:
         self._queued_actions: Dict[futures.Future, Action] = {}
         self._running_actions: List[Action] = []
         self._failed_actions: List[Action] = []
+        self._stop_the_world = False
 
         self._total_remaining = None
         self._current_remaining = None
@@ -63,6 +64,8 @@ class Executor:
 
         signal.signal(signal.SIGINT, self._sigint_handler)
 
+        self._stop_the_world = False
+
         # Schedule and run the actions
         while (self._toposorter.is_active() and not self._failed_actions) or self._queued_actions:
             for action in self._toposorter.get_ready():
@@ -88,10 +91,10 @@ class Executor:
                         future.cancel()
                     self._failed_actions.append(action)
                     if isinstance(exception, OrchestraException):
-                        logger.error("An action failed, waiting for running actions to terminate")
+                        logger.error(f"{action} failed, waiting for running actions to terminate")
                         logger.error(str(exception))
                     else:
-                        logger.error("An unexpected exception occurred, waiting for running actions to terminate")
+                        logger.error(f"An unexpected exception occurred while running {action}")
                         logger.error(exception)
                 else:
                     self._toposorter.done(action)
@@ -420,7 +423,12 @@ class Executor:
         explicitly_requested = action in self.actions
 
         try:
+            if self._stop_the_world:
+                return
             return action.run(pretend=self.pretend, explicitly_requested=explicitly_requested)
+        except Exception as e:
+            self._stop_the_world = True
+            raise e
         finally:
             self._running_actions.remove(action)
 

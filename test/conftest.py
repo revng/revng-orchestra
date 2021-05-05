@@ -4,6 +4,13 @@ from .data_manager import TestDataManager
 from .git_repos_manager import GitReposManager
 from .orchestra_shim import OrchestraShim
 
+from orchestra.support.ensure_ytt import ensure_ytt
+
+
+@pytest.fixture(autouse=True, scope="session")
+def download_ytt():
+    ensure_ytt()
+
 
 @pytest.fixture(scope="function")
 def test_data_mgr(request, tmpdir):

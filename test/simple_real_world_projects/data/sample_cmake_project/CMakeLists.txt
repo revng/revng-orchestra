@@ -1,6 +1,8 @@
+cmake_minimum_required(VERSION 3.10)
+
 project("SampleProject")
 
 # add the executable
-add_executable(test test.c)
+add_executable(testprogram test.c)
 
-install(TARGETS test)
+install(TARGETS testprogram DESTINATION bin)
