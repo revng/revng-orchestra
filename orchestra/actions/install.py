@@ -353,7 +353,7 @@ class InstallAction(ActionForBuild):
         self._run_internal_script(patch_ndebug_script)
 
     def _merge(self):
-        copy_command = f'cp -farl "$TMP_ROOT/$ORCHESTRA_ROOT/." "$ORCHESTRA_ROOT"'
+        copy_command = f'cp -far --reflink=auto "$TMP_ROOT/$ORCHESTRA_ROOT/." "$ORCHESTRA_ROOT"'
         self._run_internal_script(copy_command)
 
     def _create_binary_archive(self):
