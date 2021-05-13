@@ -96,7 +96,7 @@ def handle_components(args):
 
 def print_json(components, config):
     components_json = []
-    for component in components:
+    for component in sorted(components, key=lambda c: c.name):
         component_name = component.name
         metadata = load_metadata(component_name, config)
         is_installed = metadata is not None
@@ -131,14 +131,14 @@ def print_json(components, config):
                 "ndebug": build.ndebug,
             }
             if build.configure:
-                build_info["dependencies"] = [d.name_for_components for d in build.configure.dependencies]
+                build_info["dependencies"] = sorted([d.name_for_components for d in build.configure.dependencies])
 
             if build.install:
-                build_info["build_dependencies"] = [d.name_for_components for d in build.install.dependencies]
+                build_info["build_dependencies"] = sorted([d.name_for_components for d in build.install.dependencies])
 
             component_info["builds"][build_name] = build_info
         components_json.append(component_info)
-    print(json.dumps(components_json))
+    print(json.dumps(components_json, sort_keys=True))
 
 
 def print_human_readable(components, config, args):
