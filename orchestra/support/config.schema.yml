@@ -95,6 +95,8 @@ definitions:
           type: string
       ndebug:
         type: boolean
+      asan:
+        type: boolean
     required:
       - configure
       - install

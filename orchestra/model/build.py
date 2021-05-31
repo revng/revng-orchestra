@@ -22,6 +22,7 @@ class Build:
         self.component: comp.Component = component
 
         self.ndebug = serialized_build.get("ndebug", True)
+        self.asan = serialized_build.get("asan", False)
 
         configure_script = serialized_build["configure"]
         self.configure = configure.ConfigureAction(self, configure_script, configuration)
@@ -69,7 +70,7 @@ class Build:
             else:
                 preferred_build = dep_component.default_build
 
-            if not exact_build_required:
+            if not exact_build_required and len(dep_component.builds) > 1:
                 alternatives = {b.install for b in dep_component.builds.values()}
                 dependency_action = any_of.AnyOfAction(alternatives, preferred_build.install)
             else:
@@ -110,7 +111,7 @@ def parse_dependency(dependency) -> (str, Union[str, None], bool):
     """Dependencies can be specified in the following formats:
     - Simple:
         `component`
-        Depend on the installation of the default build of `component`.
+        Depend on the installation of any build of `component`, preferring the default build
     - Exact:
         `component@build`
         Depend on the installation of a specific build of `component`
@@ -130,7 +131,7 @@ def parse_dependency(dependency) -> (str, Union[str, None], bool):
         raise Exception(f"Invalid dependency specified: {dependency}")
 
     component = match.group("component")
-    exact_build_required = False if match.group("type") == "~" else True
+    exact_build_required = match.group("type") == "@"
     build = match.group("build")
 
     return component, build, exact_build_required

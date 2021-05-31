@@ -362,15 +362,19 @@ class Executor:
                     if same_action or same_build:
                         continue
 
-                    depgraph_copy.add_edge(a1, a2)
+                    depgraph_copy.add_edge(a1, a2, label="Intra-component ordering")
 
             if not has_unsatisfied_cycles(depgraph_copy):
                 return depgraph_copy
 
     @staticmethod
     def _transitive_reduction(graph):
+        labels = nx.get_edge_attributes(graph, "label")
+
         if nx.is_directed_acyclic_graph(graph):
-            return nx.algorithms.dag.transitive_reduction(graph)
+            reduced_graph = nx.algorithms.dag.transitive_reduction(graph)
+            nx.set_edge_attributes(reduced_graph, labels, "label")
+            return reduced_graph
 
         # It is not possible (rather, it is expensive and not uniquely defined)
         # to compute the transitive reduction on a graph with cycles
@@ -397,6 +401,7 @@ class Executor:
                 if condensed_graph.has_edge(condensed_node, v_condensed_node):
                     inflated_graph.add_edge(u, v)
 
+        nx.set_edge_attributes(inflated_graph, labels, "label")
         return inflated_graph
 
     @staticmethod
