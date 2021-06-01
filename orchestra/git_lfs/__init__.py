@@ -133,9 +133,11 @@ def find_lfs_files(checkout_dir):
         yield path.decode("ascii")
 
 
-def read_lfs_metadata(checkout_dir):
+def read_lfs_metadata(checkout_dir, only=None):
     """Yields (path, oid, size) tuples for all files managed by Git LFS"""
     for path in find_lfs_files(checkout_dir):
+        if only is not None and path not in only:
+            continue
         meta = git_show(checkout_dir, path).decode("utf8").strip().split("\n")
         if meta[0] != "version https://git-lfs.github.com/spec/v1":
             continue
@@ -156,8 +158,13 @@ def fetch_urls(lfs_url, lfs_auth_info, oid_list):
     return resp["objects"]
 
 
-def fetch(git_repo, checkout_dir=None, only=[]):
-    """Download all the files managed by Git LFS"""
+def fetch(git_repo, checkout_dir=None, only=None):
+    """Download and smudge files managed by Git LFS
+    :param git_repo: path to the root of a git working directory (the parent directory of the .git directory),
+                     or to the .git directory itself
+    :param checkout_dir: optional path specifying where the repository is checked out
+    :param only: optional list of files to be checked out. By default, all files will be fetched
+    """
     git_dir = git_repo + "/.git" if os.path.isdir(git_repo + "/.git") else git_repo
     checkout_dir = checkout_dir or git_repo
     if checkout_dir == git_dir:
@@ -173,10 +180,12 @@ def fetch(git_repo, checkout_dir=None, only=[]):
 
     # Read the LFS metadata
     found = False
+    if only is None:
+        only = []
     only_enabled = len(only) > 0
     only = [os.path.relpath(os.path.abspath(path), checkout_dir) for path in only]
     oid_list, lfs_files = [], {}
-    for path, oid, size in read_lfs_metadata(checkout_dir):
+    for path, oid, size in read_lfs_metadata(checkout_dir, only=only):
         if only_enabled:
             if path not in only:
                 continue
