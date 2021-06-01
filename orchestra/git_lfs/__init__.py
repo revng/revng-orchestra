@@ -156,7 +156,7 @@ def fetch_urls(lfs_url, lfs_auth_info, oid_list):
     return resp["objects"]
 
 
-def fetch(git_repo, checkout_dir=None, verbose=0, only=[]):
+def fetch(git_repo, checkout_dir=None, only=[]):
     """Download all the files managed by Git LFS"""
     git_dir = git_repo + "/.git" if os.path.isdir(git_repo + "/.git") else git_repo
     checkout_dir = checkout_dir or git_repo
@@ -189,8 +189,7 @@ def fetch(git_repo, checkout_dir=None, verbose=0, only=[]):
         # Skip the file if it looks like it's already there
         with ignore_missing_file():
             if os.stat(dst).st_size == size:
-                if verbose > 1:
-                    logger.info(f"Skipping {path} (already present)")
+                logger.trace(f"Skipping {path} (already present)")
                 continue
 
         # If we have the file in the cache, link to it
@@ -198,8 +197,7 @@ def fetch(git_repo, checkout_dir=None, verbose=0, only=[]):
             cached = get_cache_dir(git_dir, oid) + "/" + oid
             if os.stat(cached).st_size == size:
                 force_link(cached, dst)
-                if verbose > 0:
-                    logger.info(f"Linked {path} from the cache")
+                logger.debug(f"Linked {path} from the cache")
                 continue
 
         oid_list.append(dict(oid=oid, size=size))
@@ -216,18 +214,15 @@ def fetch(git_repo, checkout_dir=None, verbose=0, only=[]):
         return False
 
     if not oid_list:
-        if verbose > 0:
-            logger.info("Nothing to fetch.")
+        logger.debug("Nothing to fetch.")
         return True
 
     # Fetch the URLs of the files from the Git LFS endpoint
     lfs_url, lfs_auth_info = get_lfs_endpoint_url(git_repo, checkout_dir)
 
-    if verbose > 0:
-        logger.info(f"Fetching URLs from {lfs_url} ...")
-    if verbose > 1:
-        logger.debug(f"Authorization info for URL: {lfs_auth_info}")
-        logger.debug(f"oid_list: {pprint.pformat(oid_list)}")
+    logger.debug(f"Fetching URLs from {lfs_url} ...")
+    logger.trace(f"Authorization info for URL: {lfs_auth_info}")
+    logger.trace(f"oid_list: {pprint.pformat(oid_list)}")
     objects = fetch_urls(lfs_url, lfs_auth_info, oid_list)
 
     # Download the files
@@ -243,8 +238,7 @@ def fetch(git_repo, checkout_dir=None, verbose=0, only=[]):
         with TempFile(dir=tmp_dir) as f:
             url = obj["actions"]["download"]["href"]
             head = obj["actions"]["download"]["header"]
-            logged_url = url if verbose > 0 else url[:40]
-            logger.info(f"Downloading {path} ({(size / (1024 ** 2)):.2f} MB) from {logged_url}...")
+            logger.info(f"Downloading {path} ({(size / (1024 ** 2)):.2f} MB) from {url}...")
             h = urlretrieve(url, headers=head)
             while True:
                 buf = h.read(10240)
@@ -256,9 +250,8 @@ def fetch(git_repo, checkout_dir=None, verbose=0, only=[]):
             dst1 = cache_dir + "/" + oid
             if not os.path.exists(cache_dir):
                 os.makedirs(cache_dir)
-            if verbose > 1:
-                logger.debug("temp download file: " + f.name)
-                logger.debug("cache file name: " + dst1)
+            logger.trace("temp download file: " + f.name)
+            logger.trace("cache file name: " + dst1)
             os.rename(f.name, dst1)
 
         # Copy into checkout_dir
