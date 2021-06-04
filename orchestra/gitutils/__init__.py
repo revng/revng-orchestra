@@ -4,14 +4,14 @@ from pathlib import Path
 from typing import Optional, Union
 
 from ..actions.util import get_subprocess_output, try_get_subprocess_output, run_internal_subprocess
-from ..util import OrchestraException
+from ..exceptions import InternalException, InternalCommandException
 
 
 def run_git(
     *args,
     workdir: Optional[Union[str, Path]] = None,
 ):
-    """Run a git command. Raises an OrchestraException if git returns a non-zero exit code.
+    """Run a git command. Raises an InternalSubprocessException if git returns a non-zero exit code.
     :param workdir: Git behaves as if it was invoked in this working directory (optional)
     """
     git_cmd = [
@@ -43,7 +43,7 @@ def current_branch_info(repo_path):
         branch_name = get_subprocess_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_path).strip()
         commit = get_subprocess_output(["git", "rev-parse", "HEAD"], cwd=repo_path).strip()
         return branch_name, commit
-    except OrchestraException:
+    except InternalCommandException:
         return None, None
 
 
@@ -67,4 +67,4 @@ def get_worktree_root(absolute_path_to_file_in_worktree: Union[str, Path]) -> Pa
     if (absolute_path_to_file_in_worktree / ".git").exists():
         return absolute_path_to_file_in_worktree
 
-    raise OrchestraException(f"{absolute_path_to_file_in_worktree} is not inside a git worktree")
+    raise InternalException(f"{absolute_path_to_file_in_worktree} is not inside a git worktree")

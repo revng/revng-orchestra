@@ -29,16 +29,15 @@ class InstallMetadata:
         self.binary_archive_path = binary_archive_path
 
     def serialize(self):
-        if any(
-            prop is None
+        assert all(
+            prop is not None
             for prop in [
                 self.source,
                 self.binary_archive_path,
                 self.manually_installed,
                 self.install_time,
             ]
-        ):
-            raise Exception("Trying to serialize incomplete metadata")
+        ), "Trying to serialize incomplete metadata"
 
         return self.__dict__
 

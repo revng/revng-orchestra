@@ -5,9 +5,10 @@ from loguru import logger
 from tqdm import tqdm
 
 from . import SubCommandParser
-from ..model.configuration import Configuration
 from ..actions.util import run_internal_subprocess, try_run_internal_subprocess
+from ..exceptions import UserException
 from ..gitutils import is_root_of_git_repo
+from ..model.configuration import Configuration
 
 
 def install_subcommand(sub_argparser: SubCommandParser):
@@ -133,7 +134,7 @@ def pull_binary_archive(name, config):
     # This check is to ensure we are called with the path of an existing binary archive
     # and don't clean/reset orchestra configuration
     if not is_root_of_git_repo(binary_archive_path):
-        raise Exception(f"{binary_archive_path} is not the root of a git repo, aborting")
+        raise UserException(f"{binary_archive_path} is not the root of a git repo, aborting")
     # clean removes untracked files
     git_clean(binary_archive_path)
     # reset restores tracked files to their committed version

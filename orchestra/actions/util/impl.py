@@ -4,7 +4,8 @@ from collections import OrderedDict
 from loguru import logger
 
 from ... import globals
-from ...util import export_environment, OrchestraException
+from ...util import export_environment
+from ...exceptions import UserScriptException, InternalScriptException, InternalSubprocessException
 
 bash_prelude = """
 set -o errexit
@@ -50,7 +51,7 @@ def _run_internal_script(script, environment: OrderedDict = None, check_returnco
     """Helper for running internal scripts.
     :param script: the script to run
     :param environment: optional additional environment variables
-    :param check_returncode: if True, log an error and raise an OrchestraException
+    :param check_returncode: if True, log an error and raise an InternalScriptException
                              when the script returns a nonzero exit code
     :param cwd: if not None, the command is executed in the specified path
     :returns: the exit code of the script
@@ -65,13 +66,14 @@ def _run_internal_script(script, environment: OrderedDict = None, check_returnco
     )
 
     if check_returncode and result.returncode != 0:
-        err_msg = f"Script failed with return code {result.returncode}"
-        logger.error(err_msg)
-        logger.error(f"The script was: \n{script}")
-        logger.error(f"The output was: \n{try_decode(result.stdout)}")
-        raise OrchestraException(err_msg)
+        raise InternalScriptException(
+            script=script,
+            exitcode=result.returncode,
+            stdout=result.stdout,
+            stderr=result.stderr,
+        )
 
-    logger.debug(f"The script output was: \n{try_decode(result.stdout)}")
+    logger.debug(f"Script output was: \n{try_decode(result.stdout)}")
 
     return result.returncode
 
@@ -80,7 +82,7 @@ def _run_user_script(script, environment: OrderedDict = None, check_returncode=T
     """Helper for running user scripts
     :param script: the script to run
     :param environment: optional additional environment variables
-    :param check_returncode: if True, log an error and raise an OrchestraException
+    :param check_returncode: if True, log an error and raise an UserScriptException
                              when the script returns a nonzero exit code
     :param cwd: if not None, the command is executed in the specified path
     """
@@ -95,19 +97,19 @@ def _run_user_script(script, environment: OrderedDict = None, check_returncode=T
     result = _run_script(
         script,
         environment=environment,
-        loglevel="DEBUG",
+        loglevel="INFO",
         stdout=stdout,
         stderr=stderr,
         cwd=cwd,
     )
 
     if check_returncode and result.returncode != 0:
-        err_msg = f"Script failed with return code {result.returncode}"
-        logger.error(err_msg)
-        logger.error(f"The script was: \n{script}")
-        if globals.quiet:
-            logger.error(f"The output was: \n{try_decode(result.stdout)}")
-        raise OrchestraException(err_msg)
+        raise UserScriptException(
+            script=script,
+            exitcode=result.returncode,
+            stdout=result.stdout,
+            stderr=result.stderr,
+        )
 
 
 def _get_script_output(
@@ -120,7 +122,7 @@ def _get_script_output(
     """Helper for getting stdout of a script
     :param script: the script to run
     :param environment: optional additional environment variables
-    :param check_returncode: if True, log an error and raise an OrchestraException
+    :param check_returncode: if True, log an error and raise an InternalScriptException
                              when the script returns a nonzero exit code
     :param decode_as: decode the script output using this encoding
     :param cwd: if not None, the command is executed in the specified path
@@ -136,12 +138,12 @@ def _get_script_output(
     )
 
     if check_returncode and result.returncode != 0:
-        err_msg = f"Script failed with return code {result.returncode}"
-        logger.error(err_msg)
-        logger.error(f"The script was: \n{script}")
-        logger.error(f"Stdout was: \n{try_decode(result.stdout)}")
-        logger.error(f"Stderr was: \n{try_decode(result.stderr)}")
-        raise OrchestraException(err_msg)
+        raise InternalScriptException(
+            script=script,
+            exitcode=result.returncode,
+            stdout=result.stdout,
+            stderr=result.stderr,
+        )
 
     if result.returncode == 0:
         return result.stdout.decode(decode_as)
@@ -181,7 +183,7 @@ def _run_internal_subprocess(
     :param argv: the argv passed to subprocess.run
     :param environment: environment variables
     :param cwd: if not None, the command is executed in the specified path
-    :param check_returncode: if True, log an error and raise an OrchestraException
+    :param check_returncode: if True, log an error and raise an InternalSubprocessException
                              when the script returns a nonzero exit code
     :returns: the exit code of the subprocess
     """
@@ -196,13 +198,12 @@ def _run_internal_subprocess(
     )
 
     if check_returncode and result.returncode != 0:
-        err_msg = f"Subprocess failed with return code {result.returncode}"
-        logger.error(err_msg)
-        logger.error(f"The command was: \n{argv}")
-        if cwd:
-            logger.error(f"Run in directory: {cwd}")
-        logger.error(f"Output was: \n{try_decode(result.stdout)}")
-        raise OrchestraException(err_msg)
+        raise InternalSubprocessException(
+            subprocess_args=argv,
+            exitcode=result.returncode,
+            stdout=result.stdout,
+            stderr=result.stderr,
+        )
 
     logger.debug(f"The subprocess output was: \n{try_decode(result.stdout)}")
 
@@ -220,7 +221,7 @@ def _get_subprocess_output(
     Helper to run a subprocess and get its output
     :param argv: the argv passed to subprocess.run
     :param environment: environment variables
-    :param check_returncode: if True, log an error and raise an OrchestraException
+    :param check_returncode: if True, log an error and raise an InternalSubprocessException
                              when the subprocess returns a nonzero exit code
     :param decode_as: decode the output using this encoding
     :param cwd: if not None, the command is executed in the specified path
@@ -236,12 +237,12 @@ def _get_subprocess_output(
     )
 
     if check_returncode and result.returncode != 0:
-        err_msg = f"Subprocess failed with return code {result.returncode}"
-        logger.error(err_msg)
-        logger.error(f"The command was: \n{argv}")
-        logger.error(f"Stdout was: \n{try_decode(result.stdout)}")
-        logger.error(f"Stderr was: \n{try_decode(result.stderr)}")
-        raise OrchestraException(err_msg)
+        raise InternalSubprocessException(
+            subprocess_args=argv,
+            exitcode=result.returncode,
+            stdout=result.stdout,
+            stderr=result.stderr,
+        )
 
     if result.returncode == 0:
         return result.stdout.decode(decode_as)

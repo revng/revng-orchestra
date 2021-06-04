@@ -7,6 +7,21 @@ import jsonschema
 import yaml
 
 from ...actions.util import get_script_output, get_subprocess_output
+from ...exceptions import InternalSubprocessException, YTTException, UserException
+
+
+def run_ytt(config_dir):
+    ytt = os.path.join(os.path.dirname(__file__), "..", "..", "support", "ytt")
+    env = os.environ.copy()
+    env["GOCG"] = "off"
+    try:
+        expanded_yaml = get_subprocess_output(
+            [ytt, "--dangerous-allow-all-symlink-destinations", "-f", config_dir],
+            environment=env,
+        )
+        return expanded_yaml
+    except InternalSubprocessException as e:
+        raise YTTException from e
 
 
 def generate_yaml_configuration(orchestra_dotdir, use_cache=True):
@@ -21,13 +36,7 @@ def generate_yaml_configuration(orchestra_dotdir, use_cache=True):
             if config_hash == cached_config.get("config_hash"):
                 return cached_config["config"]
 
-    ytt = os.path.join(os.path.dirname(__file__), "..", "..", "support", "ytt")
-    env = os.environ.copy()
-    env["GOCG"] = "off"
-    expanded_yaml = get_subprocess_output(
-        [ytt, "--dangerous-allow-all-symlink-destinations", "-f", config_dir],
-        environment=env,
-    )
+    expanded_yaml = run_ytt(config_dir)
     parsed_config = yaml.safe_load(expanded_yaml)
 
     if use_cache:
@@ -65,7 +74,7 @@ def validate_configuration_schema(parsed_config):
             .format(path=error_path(e), message=e.message)
             .strip()
         )
-        raise Exception(error_message) from e
+        raise UserException(error_message)
 
 
 # pip release of jsonschema does not yet include this commit

@@ -9,7 +9,7 @@ from .impl import _run_user_script
 
 def run_internal_script(script, environment: OrderedDict = None, cwd=None):
     """Helper for running internal scripts.
-    If the script returns a nonzero exit code an error is logged and an OrchestraException is raised.
+    If the script returns a nonzero exit code an error is logged and an InternalScriptException is raised.
     :param script: the script to run
     :param environment: optional additional environment variables
     :param cwd: if not None, the command is executed in the specified path
@@ -29,7 +29,7 @@ def try_run_internal_script(script, environment: OrderedDict = None, cwd=None):
 
 def run_user_script(script, environment: OrderedDict = None, cwd=None):
     """Helper for running user scripts.
-    If the script returns a nonzero exit code an OrchestraException is raised.
+    If the script returns a nonzero exit code an UserScriptException is raised.
     :param script: the script to run
     :param environment: optional additional environment variables
     :param cwd: if not None, the command is executed in the specified path
@@ -39,7 +39,7 @@ def run_user_script(script, environment: OrderedDict = None, cwd=None):
 
 def get_script_output(script, environment: OrderedDict = None, decode_as="utf-8", cwd=None):
     """Helper for getting stdout of a script.
-    If the script returns a nonzero exit code an error is logged and an OrchestraException is raised.
+    If the script returns a nonzero exit code an error is logged and an InternalScriptException is raised.
     :param script: the script to run
     :param environment: optional additional environment variables
     :param decode_as: decode the script output using this encoding
@@ -78,7 +78,7 @@ def run_internal_subprocess(
     cwd=None,
 ):
     """Helper for running an internal subprocess.
-    If the subprocess returns a nonzero exit code an error is logged and OrchestraException is raised.
+    If the subprocess returns a nonzero exit code an error is logged and InternalSubprocessException is raised.
     :param argv: the argv passed to subprocess.run
     :param environment: environment variables
     :param cwd: if not None, the command is executed in the specified path
@@ -108,7 +108,7 @@ def get_subprocess_output(
 ):
     """
     Helper to run a subprocess and get its output.
-    If the subprocess returns a nonzero exit code an error is logged and an OrchestraException is raised.
+    If the subprocess returns a nonzero exit code an error is logged and an InternalSubprocessException is raised.
     :param argv: the argv passed to subprocess.run
     :param environment: environment variables
     :param decode_as: decode the output using this encoding

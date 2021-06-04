@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from loguru import logger
 from tqdm import tqdm
 
+from ..exceptions import UserException
 from ..gitutils import ls_remote
 
 
@@ -22,13 +23,13 @@ class RemoteHeadsCache:
                 error_message = (
                     f"IO error while reading remote HEADs cache: {cache_path}. Try running `orchestra update`"
                 )
-                raise Exception(error_message) from e
+                raise UserException(error_message) from e
             except json.JSONDecodeError as e:
                 error_message = (
                     f"Error while parsing remote HEADs cache: {cache_path}. "
                     f"Try removing it and running `orchestra update`"
                 )
-                raise Exception(error_message) from e
+                raise UserException(error_message) from e
         else:
             logger.warning("The remote HEADs cache does not exist, you should run `orchestra update`")
 

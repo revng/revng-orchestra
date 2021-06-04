@@ -4,6 +4,7 @@ from . import build as bld
 from ._hash import hash
 from ..actions import any_of
 from ..actions import clone
+from ..exceptions import UserException
 
 
 class Component:
@@ -29,7 +30,7 @@ class Component:
             default_build_name = sorted(serialized_component["builds"])[0]
 
         if default_build_name not in serialized_component["builds"]:
-            raise Exception(f'Invalid default build "{default_build_name}" for component {name}')
+            raise UserException(f'Invalid default build "{default_build_name}" for component {name}')
 
         for build_name, build_yaml in serialized_component["builds"].items():
             build = bld.Build(build_name, build_yaml, self, configuration)

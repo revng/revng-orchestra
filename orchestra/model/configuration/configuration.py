@@ -13,6 +13,7 @@ from ._generate import generate_yaml_configuration, validate_configuration_schem
 from ..component import Component
 from ..remote_cache import RemoteHeadsCache
 from ...actions.util import try_run_internal_subprocess, try_get_subprocess_output
+from ...exceptions import UserException
 from ...util import parse_component_name, expand_variables
 from ...version import __version__, __parsed_version__
 
@@ -56,7 +57,7 @@ class Configuration:
 
         self.orchestra_dotdir = locate_orchestra_dotdir(cwd=orchestra_dotdir)
         if not self.orchestra_dotdir:
-            raise Exception("Directory .orchestra not found!")
+            raise UserException("Directory .orchestra not found!")
 
         self._create_default_user_options()
         self.parsed_yaml = generate_yaml_configuration(self.orchestra_dotdir, use_cache=use_config_cache)
@@ -171,7 +172,7 @@ class Configuration:
         if min_version:
             parsed_min_version = parse_version(min_version)
             if __parsed_version__ < parsed_min_version:
-                raise Exception(
+                raise UserException(
                     f"This configuration requires orchestra version >= {min_version}, you have {__version__}"
                 )
 

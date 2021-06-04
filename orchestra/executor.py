@@ -16,7 +16,8 @@ from loguru import logger
 
 from .actions import AnyOfAction, InstallAction
 from .actions.action import Action, ActionForBuild
-from .util import set_terminal_title, OrchestraException
+from .util import set_terminal_title
+from .exceptions import UserException, OrchestraException, InternalException
 
 DUMMY_ROOT = "Dummy root"
 
@@ -52,7 +53,7 @@ class Executor:
         try:
             self._toposorter.prepare()
         except graphlib.CycleError as e:
-            raise Exception(f"A cycle was found in the dependency graph: {e.args[1]}. This should never happen.")
+            raise InternalException(f"A cycle was found in the solved dependency graph: {e.args[1]}")
 
         if not self._toposorter.is_active():
             logger.info("No actions to perform")
@@ -91,8 +92,7 @@ class Executor:
                         future.cancel()
                     self._failed_actions.append(action)
                     if isinstance(exception, OrchestraException):
-                        logger.error(f"{action} failed, waiting for running actions to terminate")
-                        logger.error(str(exception))
+                        exception.log_error()
                     else:
                         logger.error(f"An unexpected exception occurred while running {action}")
                         logger.error(exception)
@@ -119,7 +119,7 @@ class Executor:
         # Find an assignment for all the choices so the graph becomes acyclic
         dependency_graph = self._assign_choices(dependency_graph)
         if dependency_graph is None:
-            raise Exception("Could not find an acyclic assignment for the given dependency graph")
+            raise UserException("Could not find an acyclic assignment for the given dependency graph")
 
         if remove_unreachable:
             self._remove_unreachable_actions(dependency_graph, [DUMMY_ROOT])
@@ -333,7 +333,7 @@ class Executor:
         for component, group in groups_by_component.items():
             dependency_graph = self._try_group_orders(dependency_graph, group)
             if dependency_graph is None:
-                raise Exception(
+                raise UserException(
                     f"Could not enforce an order between actions of "
                     f"component {component} pertaining to multiple builds"
                 )
@@ -412,7 +412,7 @@ class Executor:
             if not action.binary_archive_exists() and not action.allow_build:
                 binary_archive_filename = action.binary_archive_relative_path
                 qualified_name = action.build.qualified_name
-                raise Exception(
+                raise UserException(
                     f"""Binary archive {binary_archive_filename} for {qualified_name} not found.
                     Try `orc update` or run `orc install` with `-b`."""
                 )

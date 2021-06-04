@@ -8,6 +8,7 @@ from ._hash import hash
 from ..actions import any_of
 from ..actions import configure
 from ..actions import install
+from ..exceptions import UserException
 
 
 class Build:
@@ -127,7 +128,7 @@ def parse_dependency(dependency) -> (str, Union[str, None], bool):
     dependency_re = re.compile(r"(?P<component>[\w\-_/]+)((?P<type>[@~])(?P<build>[\w\-_/]+))?")
     match = dependency_re.fullmatch(dependency)
     if not match:
-        raise Exception(f"Invalid dependency specified: {dependency}")
+        raise UserException(f"Invalid dependency specified: {dependency}")
 
     component = match.group("component")
     exact_build_required = match.group("type") == "@"

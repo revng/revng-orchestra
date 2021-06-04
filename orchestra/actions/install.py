@@ -24,7 +24,7 @@ from ..model.install_metadata import (
     installed_component_file_list_path,
     installed_component_metadata_path,
 )
-from ..util import OrchestraException
+from ..exceptions import UserException
 
 
 class InstallAction(ActionForBuild):
@@ -40,11 +40,9 @@ class InstallAction(ActionForBuild):
         keep_tmproot=False,
         run_tests=False,
     ):
-        if not allow_build and not allow_binary_archive:
-            raise Exception(
-                f"You must allow at least one option between building and installing from binary archives for "
-                f"{build.name}"
-            )
+        assert (
+            allow_build or allow_binary_archive
+        ), f"You must allow at least one option between building and installing from binary archives for {build.name}"
         sources = []
         if allow_build:
             sources.append("build")
@@ -79,7 +77,7 @@ class InstallAction(ActionForBuild):
                 self._create_binary_archive()
             source = "build"
         else:
-            raise OrchestraException(f"Could not find binary archive nor build: {self.build.qualified_name}")
+            raise UserException(f"Could not find binary archive nor build: {self.build.qualified_name}")
         install_end_time = time.time()
 
         # Binary archive symlinks always need to be updated, not only when the binary archive is rebuilt
@@ -177,7 +175,7 @@ class InstallAction(ActionForBuild):
 
     def _extract_binary_archive(self):
         if not self.binary_archive_exists():
-            raise Exception("Binary archive not found!")
+            raise UserException("Binary archive not found!")
 
         archive_filepath = self.locate_binary_archive()
         script = dedent(
@@ -454,8 +452,8 @@ class InstallAction(ActionForBuild):
         if self.component.binary_archives:
             binary_archive_repo_name = self.component.binary_archives
             if binary_archive_repo_name not in self.config.binary_archives_remotes.keys():
-                raise Exception(
-                    f"The {self.component.name} component wants to push to an unknown binary-archives "
+                raise UserException(
+                    f"Component {self.component.name} wants to push to an unknown binary-archives "
                     f"repository ({binary_archive_repo_name})"
                 )
             return binary_archive_repo_name

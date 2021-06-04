@@ -1,5 +1,7 @@
 import argparse
 
+from loguru import logger
+
 
 class SubCommandParser(argparse.ArgumentParser):
     _DEST_COUNTER = 0
