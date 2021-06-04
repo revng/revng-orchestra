@@ -48,7 +48,7 @@ def handle_update(args):
         os.remove(ls_remote_cache)
 
     logger.info("Updating ls-remote cached info")
-    config.remote_heads_cache.rebuild_cache(parallelism=args.parallelism)
+    failed_ls_remotes = config.remote_heads_cache.rebuild_cache(parallelism=args.parallelism)
 
     to_pull = []
     for _, component in config.components.items():
@@ -110,7 +110,23 @@ def handle_update(args):
         failed_git_clone_suggestion = failed_git_clone_template.format(formatted_failed_clones=formatted_failed_clones)
         logger.error(failed_git_clone_suggestion)
 
-    if failed_pulls or failed_clones:
+    if failed_ls_remotes:
+        formatted_failed_ls_remotes = "\n".join([f"  - {repo}" for repo in failed_ls_remotes])
+        # Note: f-strings don't account for indentation, using a template is more practical
+        failed_git_clone_template = dedent(
+            """
+            Could not find the following repositories in any remote:
+            {formatted_failed_ls_remotes}
+
+            You will not be able to install components that depend on them.
+            """
+        )
+        failed_ls_remote_suggestion = failed_git_clone_template.format(
+            formatted_failed_ls_remotes=formatted_failed_ls_remotes
+        )
+        logger.info(failed_ls_remote_suggestion)
+
+    if failed_pulls or failed_clones or failed_ls_remotes:
         return 1
     else:
         return 0

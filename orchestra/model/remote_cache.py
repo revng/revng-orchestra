@@ -46,18 +46,26 @@ class RemoteHeadsCache:
             logger.debug(f"Fetching the latest remote commit for {component.name}")
 
             remotes = [f"{base_url}/{component.clone.repository}" for base_url in self.config.remotes.values()]
+            result = None
             for remote in remotes:
                 result = ls_remote(remote)
                 if result:
                     self._cached_remote_data[component.name] = result
                     break
 
+            if not result:
+                return component.clone.repository
+
+        failed_repositories = []
         progress_bar = tqdm(total=len(clonable_components), unit="component")
         with ThreadPoolExecutor(max_workers=parallelism) as executor:
-            for _ in executor.map(get_branches, clonable_components):
+            for failed_repository in executor.map(get_branches, clonable_components):
+                if failed_repository is not None:
+                    failed_repositories.append(failed_repository)
                 progress_bar.update()
 
         self._persist_cache()
+        return failed_repositories
 
     def _persist_cache(self):
         with open(self.cache_path, "w") as f:
