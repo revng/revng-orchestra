@@ -433,7 +433,7 @@ class Executor:
         self._stop_updating_display = False
         # Display manager and status bar must be initialized in main thread
         self._display_manager = enlighten.get_manager()
-        self._status_bar = self._display_manager.status_bar()
+        self._status_bar = self._display_manager.status_bar(leave=False)
         self._display_thread = threading.Thread(target=self._update_display, name="Display updater")
         self._display_thread.start()
 
@@ -459,8 +459,10 @@ class Executor:
                 self._status_bar.status_format = "[{current}/{total}] Running {jobs}"
                 self._status_bar.update(**self._status_bar_args)
                 self._status_bar.refresh()
-                time.sleep(0.3)
+                time.sleep(0.1)
         finally:
+            self._status_bar.status_format = "Done"
+            self._status_bar.refresh()
             self._status_bar.close()
             self._display_thread = None
 
