@@ -34,7 +34,7 @@ def generate_yaml_configuration(orchestra_dotdir, use_cache=True):
         with open(config_cache_file) as f:
             cached_config = json.load(f)
             if config_hash == cached_config.get("config_hash"):
-                return cached_config["config"]
+                return cached_config["config"], config_hash
 
     expanded_yaml = run_ytt(config_dir)
     parsed_config = yaml.safe_load(expanded_yaml)
@@ -46,7 +46,7 @@ def generate_yaml_configuration(orchestra_dotdir, use_cache=True):
         with open(yaml_config_cache_file, "w") as f:
             f.write(expanded_yaml)
 
-    return parsed_config
+    return parsed_config, config_hash
 
 
 def hash_config_dir(orchestra_dotdir):

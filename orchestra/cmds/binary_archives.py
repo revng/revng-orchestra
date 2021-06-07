@@ -55,6 +55,13 @@ def handle_clean(args):
                     if not args.pretend:
                         os.unlink(abspath)
 
+                hash_material_filename = binary_archive_to_hash_material_filename(file)
+                hash_material_path = os.path.join(path, hash_material_filename)
+                if os.path.exists(hash_material_path):
+                    logger.debug(f"Deleting {hash_material_filename}")
+                    if not args.pretend:
+                        os.unlink(hash_material_path)
+
         elif os.path.exists(path):
             logger.warning(f"Path {path} is not the root of a git repository, skipping")
 
@@ -92,3 +99,9 @@ def find_unreferenced_archives(binary_archive_path):
                     files_still_linked.add(relative_link_dst)
 
     return all_tracked_files - files_still_linked
+
+
+def binary_archive_to_hash_material_filename(binary_archive_path: str):
+    while binary_archive_path != os.path.splitext(binary_archive_path)[0]:
+        binary_archive_path = os.path.splitext(binary_archive_path)[0]
+    return f"{binary_archive_path}.hash-material.yml"

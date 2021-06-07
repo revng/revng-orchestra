@@ -48,8 +48,6 @@ class Build:
         self._explicit_dependencies = serialized_build.get("dependencies", [])
         self._explicit_build_dependencies = serialized_build.get("build_dependencies", [])
 
-        self.build_hash = self._compute_build_hash()
-
         self._resolve_dependencies_called = False
 
     def resolve_dependencies(self, configuration):
@@ -96,9 +94,6 @@ class Build:
             "build_dependencies": self._explicit_build_dependencies,
             "ndebug": self.ndebug,
         }
-
-    def _compute_build_hash(self):
-        return hash(json.dumps(self.serialize(), sort_keys=True))
 
     def __str__(self):
         return f"Build {self.component.name}@{self.name}"

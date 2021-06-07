@@ -24,7 +24,6 @@ def assert_component_A_installed_properly(orchestra: OrchestraShim, metadata_ove
         "component_name": "component_A",
         "build_name": "default",
         "source": "build",
-        "self_hash": component.self_hash,
         "recursive_hash": component.recursive_hash,
         "binary_archive_path": component.default_build.install.binary_archive_relative_path,
         "manually_installed": True,

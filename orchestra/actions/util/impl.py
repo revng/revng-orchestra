@@ -127,6 +127,9 @@ def _get_script_output(
     :param decode_as: decode the script output using this encoding
     :param cwd: if not None, the command is executed in the specified path
     :return: the stdout produced by the script or None if the script exits with a nonzero exit code
+    :return: a tuple:
+        - subprocess returncode
+        - the decoded stdout
     """
     result = _run_script(
         script,
@@ -145,10 +148,7 @@ def _get_script_output(
             stderr=result.stderr,
         )
 
-    if result.returncode == 0:
-        return result.stdout.decode(decode_as)
-    else:
-        return None
+    return result.returncode, result.stdout.decode(decode_as)
 
 
 def _run_subprocess(
@@ -225,7 +225,9 @@ def _get_subprocess_output(
                              when the subprocess returns a nonzero exit code
     :param decode_as: decode the output using this encoding
     :param cwd: if not None, the command is executed in the specified path
-    :return: the decoded stdout of the subprocess or None if the subprocess exits with nonzero exit code
+    :return: a tuple:
+        - subprocess returncode
+        - the decoded stdout
     """
     result = _run_subprocess(
         argv,
@@ -244,10 +246,7 @@ def _get_subprocess_output(
             stderr=result.stderr,
         )
 
-    if result.returncode == 0:
-        return result.stdout.decode(decode_as)
-    else:
-        return None
+    return result.returncode, result.stdout.decode(decode_as)
 
 
 def try_decode(stream, encoding="utf-8"):

@@ -46,13 +46,14 @@ def get_script_output(script, environment: OrderedDict = None, decode_as="utf-8"
     :param cwd: if not None, the command is executed in the specified path
     :return: the stdout produced by the script
     """
-    return _get_script_output(
+    _, output = _get_script_output(
         script,
         environment=environment,
         check_returncode=True,
         decode_as=decode_as,
         cwd=cwd,
     )
+    return output
 
 
 def try_get_script_output(script, environment: OrderedDict = None, decode_as="utf-8", cwd=None):
@@ -61,15 +62,18 @@ def try_get_script_output(script, environment: OrderedDict = None, decode_as="ut
     :param environment: optional additional environment variables
     :param decode_as: decode the script output using this encoding
     :param cwd: if not None, the command is executed in the specified path
-    :return: the stdout produced by the script or None if the script exits with a nonzero exit code
+    :return: a tuple:
+        - script returncode
+        - the decoded stdout
     """
-    return _get_script_output(
+    returncode, output = _get_script_output(
         script,
         environment=environment,
         check_returncode=False,
         decode_as=decode_as,
         cwd=cwd,
     )
+    return returncode, output
 
 
 def run_internal_subprocess(
@@ -108,20 +112,19 @@ def get_subprocess_output(
 ):
     """
     Helper to run a subprocess and get its output.
-    If the subprocess returns a nonzero exit code an error is logged and an InternalSubprocessException is raised.
     :param argv: the argv passed to subprocess.run
     :param environment: environment variables
     :param decode_as: decode the output using this encoding
     :param cwd: if not None, the command is executed in the specified path
     :return: the decoded stdout of the subprocess
     """
-    return _get_subprocess_output(
+    _, output = _get_subprocess_output(
         argv,
         environment=environment,
         decode_as=decode_as,
-        check_returncode=True,
         cwd=cwd,
     )
+    return output
 
 
 def try_get_subprocess_output(
@@ -131,17 +134,20 @@ def try_get_subprocess_output(
     cwd=None,
 ):
     """
-    Helper to run a subprocess and get its output that might fail.
+    Helper to run a subprocess and get its output.
     :param argv: the argv passed to subprocess.run
     :param environment: environment variables
     :param decode_as: decode the output using this encoding
     :param cwd: if not None, the command is executed in the specified path
-    :return: the decoded stdout of the subprocess or None if the subprocess exits with nonzero exit code
+    :return: a tuple:
+        - subprocess returncode
+        - the decoded stdout
     """
-    return _get_subprocess_output(
+    returncode, output = _get_subprocess_output(
         argv,
         environment=environment,
         decode_as=decode_as,
         check_returncode=False,
         cwd=cwd,
     )
+    return returncode, output

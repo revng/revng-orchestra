@@ -11,7 +11,6 @@ class InstallMetadata:
         self,
         component_name,
         build_name,
-        self_hash,
         recursive_hash,
         *,
         source=None,
@@ -21,7 +20,6 @@ class InstallMetadata:
     ):
         self.component_name = component_name
         self.build_name = build_name
-        self.self_hash = self_hash
         self.recursive_hash = recursive_hash
         self.source = source
         self.manually_installed = manually_installed
@@ -46,7 +44,6 @@ def _deserialize_metadata(serialized_metadata) -> InstallMetadata:
     return InstallMetadata(
         serialized_metadata["component_name"],
         serialized_metadata["build_name"],
-        serialized_metadata["self_hash"],
         serialized_metadata["recursive_hash"],
         source=serialized_metadata.get("source"),
         manually_installed=serialized_metadata.get("manually_installed"),
@@ -56,7 +53,7 @@ def _deserialize_metadata(serialized_metadata) -> InstallMetadata:
 
 
 def init_metadata_from_build(build: "bld.Build") -> InstallMetadata:
-    return InstallMetadata(build.component.name, build.name, build.component.self_hash, build.component.recursive_hash)
+    return InstallMetadata(build.component.name, build.name, build.component.recursive_hash)
 
 
 def is_installed(

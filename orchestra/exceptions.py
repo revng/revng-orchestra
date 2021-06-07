@@ -1,9 +1,15 @@
+import sys
 from abc import ABC
 from shlex import quote
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import List
 from typing import Optional
 
 from loguru import logger
+
+import orchestra.globals
+import orchestra.actions.util
 
 
 class OrchestraException(Exception, ABC):
@@ -186,6 +192,72 @@ class InternalScriptException(InternalCommandException):
             s += f"Error stream:\n{try_decode(self.stderr)}\n"
 
         return s
+
+
+class BinaryArchiveNotFoundException(UserException):
+    def __init__(self, action: "orchestra.actions.InstallAction"):
+        super().__init__(
+            f"Binary archive {action.binary_archive_relative_path} for {action.build.qualified_name} not found. "
+            "Try `orc update` or run `orc install -b`"
+        )
+        self.action = action
+
+    def log_error(self):
+        diffs = {}
+        with NamedTemporaryFile("w", prefix="current_hash_material_") as f:
+            f.write(self.action.build.component.recursive_hash_material())
+            f.flush()
+
+            for available_binary_archive in self.action.available_binary_archives():
+                available_binary_archive = Path(available_binary_archive)
+                stem = available_binary_archive.name.partition(".")[0]
+                available_hash_material_path = available_binary_archive.with_name(f"{stem}.hash-material.yml")
+                if not available_hash_material_path.exists():
+                    logger.debug(f"Hash material for binary archive {available_binary_archive} not found")
+                    continue
+
+                if sys.stdout.isatty():
+                    color = "--color=always"
+                else:
+                    color = "--color=auto"
+
+                _, output = orchestra.actions.util.try_get_subprocess_output(
+                    [
+                        "diff",
+                        "-u",
+                        color,
+                        str(available_hash_material_path),
+                        f.name,
+                    ],
+                )
+                diffs[available_binary_archive] = output
+
+        message = self.message
+
+        # Unless loglevel is at least DEBUG, log only the smallest diff
+        # Priority levels are inverted (DEBUG has lower priority), so the comparison is correct
+        is_debug = logger.level(orchestra.globals.loglevel).no <= logger.level("DEBUG").no
+
+        sorted_diffs = sorted(
+            diffs.values(),
+            key=lambda diff: len(diff.splitlines()),
+        )
+
+        if len(sorted_diffs) == 0:
+            message += "\nNo hash material available to diff"
+        elif not is_debug:
+            message += "\nDiff between current hash material and most similar available archive:"
+            sorted_diffs = sorted_diffs[:1]
+        else:
+            message += "\nDiff between current hash material and other available binary archives hash material:"
+
+        for diff in sorted_diffs:
+            message += "\n" + diff
+
+        if not is_debug and len(diffs) > 1:
+            message += "\nUse `--loglevel DEBUG` to diff against all available archives"
+
+        logger.error(message)
 
 
 def try_decode(stream, encoding="utf-8"):

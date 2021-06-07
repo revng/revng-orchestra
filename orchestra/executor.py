@@ -14,7 +14,7 @@ import networkx as nx
 import networkx.classes.filters as nxfilters
 from loguru import logger
 
-from .actions import AnyOfAction, InstallAction
+from .actions import AnyOfAction
 from .actions.action import Action, ActionForBuild
 from .util import set_terminal_title
 from .exceptions import UserException, OrchestraException, InternalException
@@ -46,7 +46,7 @@ class Executor:
     def run(self):
         dependency_graph = self._create_dependency_graph()
 
-        self._verify_binary_archives_exist(dependency_graph)
+        self._verify_prerequisites(dependency_graph)
 
         self._init_toposorter(dependency_graph)
 
@@ -405,17 +405,9 @@ class Executor:
         return inflated_graph
 
     @staticmethod
-    def _verify_binary_archives_exist(dependency_graph):
+    def _verify_prerequisites(dependency_graph):
         for action in dependency_graph.nodes:
-            if not isinstance(action, InstallAction):
-                continue
-            if not action.binary_archive_exists() and not action.allow_build:
-                binary_archive_filename = action.binary_archive_relative_path
-                qualified_name = action.build.qualified_name
-                raise UserException(
-                    f"""Binary archive {binary_archive_filename} for {qualified_name} not found.
-                    Try `orc update` or run `orc install` with `-b`."""
-                )
+            action.assert_prerequisites_are_met()
 
     def _init_toposorter(self, dependency_graph):
         for action in dependency_graph.nodes:

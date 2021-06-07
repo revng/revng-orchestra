@@ -3,7 +3,8 @@ import re
 from pathlib import Path
 from typing import Optional, Union
 
-from ..actions.util import get_subprocess_output, try_get_subprocess_output, run_internal_subprocess
+
+from ..actions.util import get_subprocess_output, run_internal_subprocess
 from ..exceptions import InternalException, InternalCommandException
 
 
@@ -29,8 +30,9 @@ def ls_remote(remote):
     env = os.environ.copy()
     env["GIT_SSH_COMMAND"] = "ssh -oControlPath=~/.ssh/ssh-mux-%r@%h:%p -oControlMaster=auto -o ControlPersist=10"
     env["GIT_ASKPASS"] = "/bin/true"
-    result = try_get_subprocess_output(["git", "ls-remote", "-h", "--refs", remote], environment=env)
-    if result is None:
+    try:
+        result = get_subprocess_output(["git", "ls-remote", "-h", "--refs", remote], environment=env)
+    except InternalCommandException:
         return {}
 
     parse_regex = re.compile(r"(?P<commit>[a-f0-9]*)\W*refs/heads/(?P<branch>.*)")

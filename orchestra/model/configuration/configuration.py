@@ -12,8 +12,8 @@ from pkg_resources import parse_version
 from ._generate import generate_yaml_configuration, validate_configuration_schema
 from ..component import Component
 from ..remote_cache import RemoteHeadsCache
-from ...actions.util import try_run_internal_subprocess, try_get_subprocess_output
-from ...exceptions import UserException
+from ...actions.util import try_run_internal_subprocess, get_subprocess_output
+from ...exceptions import UserException, InternalException
 from ...util import parse_component_name, expand_variables
 from ...version import __version__, __parsed_version__
 
@@ -59,8 +59,12 @@ class Configuration:
         if not self.orchestra_dotdir:
             raise UserException("Directory .orchestra not found!")
 
+        self.use_config_cache = use_config_cache
+
         self._create_default_user_options()
-        self.parsed_yaml = generate_yaml_configuration(self.orchestra_dotdir, use_cache=use_config_cache)
+        parsed_yaml, config_hash = generate_yaml_configuration(self.orchestra_dotdir, use_cache=use_config_cache)
+        self.parsed_yaml = parsed_yaml
+        self.config_hash = config_hash
 
         self._check_minimum_version()
 
@@ -96,6 +100,8 @@ class Configuration:
         self.builds_dir = self._get_user_path("builds_dir", os.path.join("..", "build"))
         # Directory containing metadata for the installed components
         self.installed_component_metadata_dir = os.path.join(self.orchestra_root, "share", "orchestra")
+        # Directory containing cache files
+        self.cache_dir = os.path.join(self.orchestra_dotdir, "cache")
 
         # Dictionary of binary archive name -> local path where the binary archive repo is cloned
         self.binary_archives_local_paths = {
@@ -188,17 +194,18 @@ class Configuration:
         logger.info("Populating default remotes for repositories and binary archives")
         logger.info("Remember to run `orc update` next")
 
-        git_output = try_get_subprocess_output(
-            [
-                "git",
-                "-C",
-                self.orchestra_dotdir,
-                "config",
-                "--get-regexp",
-                r"remote\.[^.]*\.url",
-            ]
-        )
-        if git_output is None:
+        try:
+            git_output = get_subprocess_output(
+                [
+                    "git",
+                    "-C",
+                    self.orchestra_dotdir,
+                    "config",
+                    "--get-regexp",
+                    r"remote\.[^.]*\.url",
+                ]
+            )
+        except InternalException as e:
             logger.error(f"Could not get default remotes, manually configure {relative_path}")
             exit(1)
 

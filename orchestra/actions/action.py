@@ -26,6 +26,12 @@ class Action:
         """Executes the action"""
         self._run_user_script(self.script)
 
+    def assert_prerequisites_are_met(self):
+        """Checks that the action will not fail early due to missing prerequisites.
+        :raises UserException if the action is destined to fail
+        """
+        return
+
     @property
     def script(self):
         """Unless _run is overridden, should return the script to run"""

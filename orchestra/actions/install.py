@@ -1,8 +1,10 @@
+import glob
 import os
 import pathlib
 import stat
 import time
 from collections import OrderedDict, defaultdict
+from pathlib import Path
 from textwrap import dedent
 from typing import Optional
 
@@ -12,7 +14,10 @@ from .action import ActionForBuild
 from .uninstall import uninstall
 from .util import run_user_script
 from ..exceptions import (
+    BinaryArchiveNotFoundException,
+    InternalCommandException,
     InternalSubprocessException,
+    UserException,
 )
 from ..gitutils import lfs
 from ..gitutils import get_worktree_root
@@ -26,7 +31,6 @@ from ..model.install_metadata import (
     installed_component_file_list_path,
     installed_component_metadata_path,
 )
-from ..exceptions import UserException
 
 
 class InstallAction(ActionForBuild):
@@ -122,7 +126,6 @@ class InstallAction(ActionForBuild):
         if metadata is None:
             metadata = init_metadata_from_build(self.build)
 
-        metadata.self_hash = self.component.self_hash
         metadata.recursive_hash = self.component.recursive_hash
         metadata.source = source
         metadata.manually_installed = metadata.manually_installed or set_manually_insalled
@@ -384,6 +387,12 @@ class InstallAction(ActionForBuild):
             """
         )
         self._run_internal_script(script)
+        self._save_hash_material()
+
+    def _save_hash_material(self):
+        logger.debug("Saving hash material")
+        hash_material_path = Path(self._hash_material_path())
+        hash_material_path.write_text(self.component.recursive_hash_material())
 
     def update_binary_archive_symlink(self):
         """Creates/updates convenience symlinks to the binary archives.
@@ -399,14 +408,14 @@ class InstallAction(ActionForBuild):
             logger.warning("No binary archive configured")
             return
 
-        orchestra_config_branch = self._try_get_script_output('git -C "$ORCHESTRA_DOTDIR" rev-parse --abbrev-ref HEAD')
-        if orchestra_config_branch is None:
+        try:
+            orchestra_config_branch = self._get_script_output('git -C "$ORCHESTRA_DOTDIR" rev-parse --abbrev-ref HEAD')
+            orchestra_config_branch = orchestra_config_branch.strip().replace("/", "-")
+        except InternalCommandException:
             logger.warning(
                 "Orchestra configuration is not inside a git repository. Defaulting to `master` as branch name"
             )
             orchestra_config_branch = "master"
-        else:
-            orchestra_config_branch = orchestra_config_branch.strip().replace("/", "-")
 
         archive_dir_path = os.path.dirname(self._binary_archive_path())
 
@@ -468,10 +477,16 @@ class InstallAction(ActionForBuild):
     def binary_archive_relative_path(self) -> str:
         """Returns the path to the binary archive, relative to the binary archive repository"""
         return os.path.join(
-            self.architecture,
-            self.component.name,
-            self.build.name,
+            self.binary_archive_relative_dir,
             self.binary_archive_filename,
+        )
+
+    @property
+    def hash_material_relative_path(self) -> str:
+        """Returns the path to the hash material, relative to the binary archive repository"""
+        return os.path.join(
+            self.binary_archive_relative_dir,
+            self.hash_material_filename,
         )
 
     @property
@@ -483,9 +498,32 @@ class InstallAction(ActionForBuild):
         component_commit = self.component.commit() or "none"
         return self._binary_archive_filename(component_commit, self.component.recursive_hash)
 
+    @property
+    def binary_archive_relative_dir(self) -> str:
+        """Returns the path to the directory containing the binary archives for the associated build, relative to the
+        binary archive repository"""
+        return os.path.join(
+            self.architecture,
+            self.component.name,
+            self.build.name,
+        )
+
+    @property
+    def hash_material_filename(self) -> str:
+        """Returns the filename of the hash material for the target build.
+        *Warning*: the filename is the same for all the builds of the same component. Use `hash_material_relative_path`
+        to get a path which is unique to a single build
+        """
+        component_commit = self.component.commit() or "none"
+        return self._hash_material_filename(component_commit, self.component.recursive_hash)
+
     @staticmethod
     def _binary_archive_filename(component_commit, component_recursive_hash) -> str:
         return f"{component_commit}_{component_recursive_hash}.tar.xz"
+
+    @staticmethod
+    def _hash_material_filename(component_commit, component_recursive_hash) -> str:
+        return f"{component_commit}_{component_recursive_hash}.hash-material.yml"
 
     def _binary_archive_path(self) -> str:
         """Returns the absolute path where the binary archive should be created.
@@ -494,6 +532,27 @@ class InstallAction(ActionForBuild):
         return os.path.join(
             self.config.binary_archives_local_paths[self._binary_archive_repo_name],
             self.binary_archive_relative_path,
+        )
+
+    def available_binary_archives(self):
+        """Returns all available binary archives related to this build"""
+        available_binary_archives = set()
+        for binary_archive_repo in self.config.binary_archives_local_paths.values():
+            binary_archives_glob = os.path.join(
+                binary_archive_repo, f"{self.build.install.binary_archive_relative_dir}/*.tar.*"
+            )
+            for binary_archive in glob.glob(binary_archives_glob):
+                binary_archive_path = Path(binary_archive)
+                if not binary_archive_path.exists() or binary_archive_path.is_symlink():
+                    continue
+                available_binary_archives.add(binary_archive)
+        return available_binary_archives
+
+    def _hash_material_path(self) -> str:
+        """Returns the absolute path where the material used to compute the component hash should be created"""
+        return os.path.join(
+            self.config.binary_archives_local_paths[self._binary_archive_repo_name],
+            self.hash_material_relative_path,
         )
 
     def locate_binary_archive(self) -> Optional[str]:
@@ -530,3 +589,13 @@ class InstallAction(ActionForBuild):
             wanted_build=self.build.name,
             wanted_recursive_hash=self.build.component.recursive_hash,
         )
+
+    def assert_prerequisites_are_met(self):
+        super().assert_prerequisites_are_met()
+        # Verify either sources or ls-remote info are available
+        if self.component.clone is not None and self.component.commit() is None:
+            raise UserException(f"HEAD commit for {self.component.name} not available. Run `orc update`.")
+
+        # Verify binary archive is available
+        if not self.allow_build and not self.binary_archive_exists():
+            raise BinaryArchiveNotFoundException(self)
