@@ -236,7 +236,7 @@ class InstallAction(ActionForBuild):
         self._replace_ndebug(self.build.ndebug)
 
         # TODO: this should be put into the configuration and not in orchestra itself
-        logger.info("Replacing ASAN preprocessor statements")
+        logger.debug("Replacing ASAN preprocessor statements")
         self._replace_asan(self.build.asan)
 
         if self.build.component.license:
