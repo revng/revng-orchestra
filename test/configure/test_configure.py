@@ -23,7 +23,7 @@ def test_configure_retriggers_on_failure(orchestra: OrchestraShim, capsys, monke
     orchestra("install", "-b", "component_that_may_fail_configure", should_fail=True)
 
     out, err = capsys.readouterr()
-    assert "Install" not in out
+    assert "Action Install" not in out
 
     monkeypatch.delenv("FAIL_CONFIGURE")
     orchestra("install", "-b", "component_that_may_fail_configure")

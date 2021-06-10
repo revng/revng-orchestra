@@ -1,5 +1,6 @@
 import glob
 import os
+import pathlib
 import stat
 import time
 from collections import OrderedDict, defaultdict
@@ -11,7 +12,8 @@ from loguru import logger
 from .action import ActionForBuild
 from .uninstall import uninstall
 from .util import run_user_script
-from .. import git_lfs
+from ..gitutils import lfs
+from ..gitutils import get_worktree_root
 from ..model.install_metadata import (
     load_metadata,
     init_metadata_from_build,
@@ -158,17 +160,12 @@ class InstallAction(ActionForBuild):
         self._remove_conflicting_files()
 
     def _fetch_binary_archive(self):
-        # TODO: better edge-case handling, when the binary archive exists but is not committed into the
-        #       binary archives git-lfs repo (e.g. it has been locally created by the user)
         binary_archive_path = self.locate_binary_archive()
-        binary_archive_repo_dir = os.path.dirname(binary_archive_path)
-        while binary_archive_repo_dir != "/":
-            if ".git" in os.listdir(binary_archive_repo_dir):
-                break
-            binary_archive_repo_dir = os.path.dirname(binary_archive_repo_dir)
-        if binary_archive_repo_dir == "/":
-            raise Exception("Binary archives are not a git repository!")
-        git_lfs.fetch(binary_archive_repo_dir, only=[os.path.realpath(binary_archive_path)])
+        assert binary_archive_path is not None
+        binary_archive_path = pathlib.Path(binary_archive_path)
+        binary_archive_root = get_worktree_root(binary_archive_path)
+        binary_archive_relative_path = binary_archive_path.relative_to(binary_archive_root)
+        lfs.fetch(binary_archive_root, include=[binary_archive_relative_path])
 
     def _extract_binary_archive(self):
         if not self.binary_archive_exists():
