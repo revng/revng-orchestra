@@ -86,7 +86,7 @@ def handle_hash_material(args):
 
 def handle_config(args):
     config = Configuration(use_config_cache=args.config_cache)
-    with open(os.path.join(config.orchestra_dotdir, "config_cache.yml")) as f:
+    with open(os.path.join(config.cache_dir, "config_cache.yml")) as f:
         print(f.read())
 
     return 0

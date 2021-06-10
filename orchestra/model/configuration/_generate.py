@@ -1,9 +1,11 @@
 import json
 import os
+from pathlib import Path
 from textwrap import dedent
-import pkg_resources
+from typing import Optional
 
 import jsonschema
+import pkg_resources
 import yaml
 
 from ...actions.util import get_script_output, get_subprocess_output
@@ -24,22 +26,26 @@ def run_ytt(config_dir):
         raise YTTException from e
 
 
-def generate_yaml_configuration(orchestra_dotdir, use_cache=True):
-    config_dir = os.path.join(orchestra_dotdir, "config")
-    config_cache_file = os.path.join(orchestra_dotdir, "config_cache.json")
-    yaml_config_cache_file = os.path.join(orchestra_dotdir, "config_cache.yml")
-    config_hash = hash_config_dir(orchestra_dotdir)
+def generate_yaml_configuration(
+    config_dir,
+    cache_dir: Optional[Path] = None,
+):
+    config_hash = hash_config_dir(config_dir)
 
-    if use_cache and os.path.exists(config_cache_file):
-        with open(config_cache_file) as f:
-            cached_config = json.load(f)
-            if config_hash == cached_config.get("config_hash"):
-                return cached_config["config"], config_hash
+    if cache_dir is not None:
+        os.makedirs(cache_dir, exist_ok=True)
+        config_cache_file = cache_dir / "config_cache.json"
+        yaml_config_cache_file = cache_dir / "config_cache.yml"
+        if config_cache_file.exists():
+            with open(config_cache_file) as f:
+                cached_config = json.load(f)
+                if config_hash == cached_config.get("config_hash"):
+                    return cached_config["config"], config_hash
 
     expanded_yaml = run_ytt(config_dir)
     parsed_config = yaml.safe_load(expanded_yaml)
 
-    if use_cache:
+    if cache_dir is not None:
         with open(config_cache_file, "w") as f:
             json.dump({"config_hash": config_hash, "config": parsed_config}, f)
 
@@ -49,8 +55,7 @@ def generate_yaml_configuration(orchestra_dotdir, use_cache=True):
     return parsed_config, config_hash
 
 
-def hash_config_dir(orchestra_dotdir):
-    config_dir = os.path.join(orchestra_dotdir, "config")
+def hash_config_dir(config_dir):
     hash_script = f"""find "{config_dir}" -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum"""
     config_hash = get_script_output(hash_script).strip().partition(" ")[0]
     return config_hash

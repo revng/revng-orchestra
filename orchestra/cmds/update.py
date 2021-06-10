@@ -43,7 +43,7 @@ def handle_update(args):
                 failed_clones.append(f"Binary archive {name} ({url})!")
 
     logger.info("Resetting ls-remote cached info")
-    ls_remote_cache = os.path.join(config.orchestra_dotdir, "remote_refs_cache.json")
+    ls_remote_cache = os.path.join(config.cache_dir, "remote_refs_cache.json")
     if os.path.exists(ls_remote_cache):
         os.remove(ls_remote_cache)
 

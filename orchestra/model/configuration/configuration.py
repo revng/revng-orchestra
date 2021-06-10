@@ -1,6 +1,7 @@
 import os
 import re
 from collections import OrderedDict
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from textwrap import dedent
 from typing import Dict
@@ -59,10 +60,19 @@ class Configuration:
         if not self.orchestra_dotdir:
             raise UserException("Directory .orchestra not found!")
 
+        # Directory containing the user yaml configuration to be processed
+        self.config_dir = os.path.join(self.orchestra_dotdir, "config")
+
+        # Directory containing cache files
+        self.cache_dir = os.path.join(self.orchestra_dotdir, "cache")
+
         self.use_config_cache = use_config_cache
 
         self._create_default_user_options()
-        parsed_yaml, config_hash = generate_yaml_configuration(self.orchestra_dotdir, use_cache=use_config_cache)
+        parsed_yaml, config_hash = generate_yaml_configuration(
+            self.config_dir,
+            cache_dir=Path(self.cache_dir) if use_config_cache else None,
+        )
         self.parsed_yaml = parsed_yaml
         self.config_hash = config_hash
 
@@ -76,7 +86,7 @@ class Configuration:
 
         self._user_paths = self.parsed_yaml.get("paths", {})
 
-        remote_heads_cache_path = os.path.join(self.orchestra_dotdir, "remote_refs_cache.json")
+        remote_heads_cache_path = os.path.join(self.cache_dir, "remote_refs_cache.json")
         self.remote_heads_cache = RemoteHeadsCache(self, remote_heads_cache_path)
 
         self._initialize_paths()
@@ -100,8 +110,6 @@ class Configuration:
         self.builds_dir = self._get_user_path("builds_dir", os.path.join("..", "build"))
         # Directory containing metadata for the installed components
         self.installed_component_metadata_dir = os.path.join(self.orchestra_root, "share", "orchestra")
-        # Directory containing cache files
-        self.cache_dir = os.path.join(self.orchestra_dotdir, "cache")
 
         # Dictionary of binary archive name -> local path where the binary archive repo is cloned
         self.binary_archives_local_paths = {
