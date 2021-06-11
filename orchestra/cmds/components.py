@@ -77,7 +77,7 @@ def handle_components(args):
                 continue
 
             branch, _ = component.clone.branch()
-            if not fnmatch(branch, args.branch):
+            if branch is None or not fnmatch(branch, args.branch):
                 continue
 
         # Filter by install status
