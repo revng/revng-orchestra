@@ -493,12 +493,12 @@ class InstallAction(ActionForBuild):
         *Note*: the path may be pointing to a git LFS pointer which needs to be downloaded and checked out (smudged)"""
         binary_archives_path = self.config.binary_archives_dir
         for name in self.config.binary_archives_remotes:
-            # Try any .tar.* extension
-            archive_relative_path_glob = os.path.splitext(self.binary_archive_relative_path)[0] + "*"
-            try_archive_glob_path = os.path.join(binary_archives_path, name, archive_relative_path_glob)
-            matching_archives = glob.glob(try_archive_glob_path)
-            if matching_archives:
-                return matching_archives[0]
+            relative_path_without_extension = os.path.splitext(self.binary_archive_relative_path)[0]
+            extensions = [".xz", ".gz", ""]
+            for extension in extensions:
+                try_path = os.path.join(binary_archives_path, name, relative_path_without_extension + extension)
+                if os.path.exists(try_path):
+                    return try_path
         return None
 
     def binary_archive_exists(self) -> bool:
