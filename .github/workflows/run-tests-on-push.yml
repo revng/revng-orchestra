@@ -1,0 +1,52 @@
+name: Run tests on push
+on: push
+jobs:
+  run_testsuite:
+    name: Runs orchestra testsuite on multiple python versions
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: [ 3.6, 3.7, 3.8, 3.9 ]
+    steps:
+      # Checkout orchestra source
+      - uses: actions/checkout@v2
+      # Install python
+      - uses: actions/setup-python@v2
+        if: "!endsWith(matrix.python-version, '-dev')"
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: deadsnakes/action@v2.1.1
+        if: endsWith(matrix.python-version, '-dev')
+        with:
+          python-version: ${{ matrix.python-version }}
+      # Install orchestra dependencies
+      - name: Install system dependencies
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get update
+          sudo apt-get install -y \
+            tree \
+            python3-pygraphviz \
+            libgraphviz-dev \
+            graphviz \
+            build-essential \
+            cmake \
+            make \
+            autoconf \
+            git \
+            git-lfs
+      - name: Install python dependencies
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          python -m venv venv
+          source ./venv/bin/activate
+          pip install -r requirements.txt
+          pip install -r dev_requirements.txt
+          pip install pygraphviz==1.6
+      # Run the testsuite
+      - name: Run tests
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          source ./venv/bin/activate
+          python -m pytest test
