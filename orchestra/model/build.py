@@ -52,8 +52,7 @@ class Build:
         self._resolve_dependencies_called = False
 
     def resolve_dependencies(self, configuration):
-        if self._resolve_dependencies_called:
-            raise Exception("Called resolve_dependencies twice")
+        assert not self._resolve_dependencies_called, "Called resolve_dependencies twice"
         self._resolve_dependencies_called = True
 
         # List of (dependency_name: str, build_only: bool)
