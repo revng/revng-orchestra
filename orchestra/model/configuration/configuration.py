@@ -158,6 +158,10 @@ class Configuration:
         for component in self.components.values():
             component.resolve_dependencies(self)
 
+        # Third pass: compute recursive hash
+        for component in self.components.values():
+            component.compute_recursive_hash()
+
     def _check_minimum_version(self):
         min_version = self.parsed_yaml.get("min_orchestra_version")
         if min_version:

@@ -17,6 +17,7 @@ class Component:
         self.add_to_path = serialized_component.get("add_to_path", [])
         self.repository = serialized_component.get("repository")
         self._recursive_hash = None
+        self._resolve_dependencies_called = False
 
         self.clone: Union[clone.CloneAction, None] = None
         if self.repository:
@@ -53,18 +54,16 @@ class Component:
 
     @property
     def recursive_hash(self):
-        if self._recursive_hash is None:
-            raise Exception("Accessed recursive_hash before calling resolve_dependencies")
+        assert self._recursive_hash is not None, "Accessed recursive_hash before calling compute_recursive_hash"
         return self._recursive_hash
 
     def resolve_dependencies(self, configuration):
-        if self._recursive_hash is not None:
-            raise Exception("Called resolve_dependencies twice")
+        assert not self._resolve_dependencies_called, "Called resolve_dependencies twice"
 
         for build in self.builds.values():
             build.resolve_dependencies(configuration)
 
-        self._recursive_hash = self._compute_recursive_hash()
+        self._resolve_dependencies_called = True
 
     def serialize(self):
         serialized_component = {
@@ -121,8 +120,12 @@ class Component:
             to_hash += d.self_hash
         return to_hash
 
-    def _compute_recursive_hash(self) -> str:
-        return hash(self._recursive_hash_material())
+    def compute_recursive_hash(self):
+        assert self._resolve_dependencies_called, "Called compute_recursive_hash before resolve_dependencies"
+
+        if self._recursive_hash is None:
+            hash_material = self._recursive_hash_material()
+            self._recursive_hash = hash(hash_material)
 
     def __str__(self):
         return f"Component {self.name}"
@@ -136,7 +139,7 @@ class Component:
 
 def collect_dependencies(root_action, collected_actions):
     if root_action in collected_actions:
-        return collected_actions
+        return
 
     collected_actions.add(root_action)
     for d in root_action.dependencies_for_hash:
