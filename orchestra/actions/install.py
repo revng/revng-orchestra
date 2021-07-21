@@ -1,4 +1,3 @@
-import glob
 import os
 import pathlib
 import stat
@@ -12,6 +11,9 @@ from loguru import logger
 from .action import ActionForBuild
 from .uninstall import uninstall
 from .util import run_user_script
+from ..exceptions import (
+    InternalSubprocessException,
+)
 from ..gitutils import lfs
 from ..gitutils import get_worktree_root
 from ..model.install_metadata import (
@@ -168,7 +170,7 @@ class InstallAction(ActionForBuild):
             try:
                 lfs.fetch(binary_archive_root, include=[binary_archive_relative_path])
                 break
-            except OrchestraException as e:
+            except InternalSubprocessException as e:
                 failures += 1
                 if failures >= self.config.max_lfs_retries:
                     raise e
