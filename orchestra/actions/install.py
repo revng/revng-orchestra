@@ -165,7 +165,15 @@ class InstallAction(ActionForBuild):
         binary_archive_path = pathlib.Path(binary_archive_path)
         binary_archive_root = get_worktree_root(binary_archive_path)
         binary_archive_relative_path = binary_archive_path.relative_to(binary_archive_root)
-        lfs.fetch(binary_archive_root, include=[binary_archive_relative_path])
+        failures = 0
+        while True:
+            try:
+                lfs.fetch(binary_archive_root, include=[binary_archive_relative_path])
+                break
+            except OrchestraException as e:
+                failures += 1
+                if failures >= self.config.max_lfs_retries:
+                    raise e
 
     def _extract_binary_archive(self):
         if not self.binary_archive_exists():
