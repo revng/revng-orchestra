@@ -2,7 +2,10 @@ from pathlib import Path
 from typing import List, Optional, Union
 
 from . import run_git
-from ..exceptions import InternalException, InternalSubprocessException
+from ..exceptions import UserException, InternalSubprocessException
+
+
+_lfs_install_checked = False
 
 
 def fetch(
@@ -44,9 +47,22 @@ def fetch(
 
 
 def assert_lfs_installed():
-    """Checks whether git-lfs is installed and raises an InternalException if it is not"""
+    """Checks whether git-lfs is installed and raises an OrchestraException if it is not"""
+    global _lfs_install_checked
+
+    if _lfs_install_checked:
+        return True
+
     try:
         run_git("lfs")
-        return True
-    except InternalSubprocessException as e:
-        raise InternalException("Could not invoke `git lfs`, is it installed?") from e
+    except InternalSubprocessException:
+        raise UserException("Could not invoke `git lfs`, is it installed?")
+
+    try:
+        run_git("config", "--get", "filter.lfs.smudge")
+    except InternalSubprocessException:
+        raise UserException("GIT LFS does not seem to be installed properly. Run `git lfs install`.")
+
+    _lfs_install_checked = True
+
+    return True
