@@ -368,6 +368,9 @@ class InstallAction(ActionForBuild):
         self._run_internal_script(copy_command)
 
     def _create_binary_archive(self):
+        if self.binary_archive_exists():
+            logger.debug(f"Binary archive for {self.component.name} already exists, skipping its creation")
+            return
         logger.debug("Creating binary archive")
         binary_archive_path = self._binary_archive_path()
         binary_archive_parent_dir = os.path.dirname(binary_archive_path)
