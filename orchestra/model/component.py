@@ -1,4 +1,5 @@
 import os
+import json
 import yaml
 from functools import lru_cache
 from pathlib import Path
@@ -84,19 +85,56 @@ class Component:
         return hash_material
 
     def _get_cached_hash_material(self) -> Optional[str]:
+        assert self._resolve_dependencies_called, "Called _get_cached_hash_material before resolve_dependencies"
         if self._cache_filepath.exists():
             with open(self._cache_filepath) as f:
-                cached_config_hash, _, cached_commit = next(f).strip().partition(" ")
-                wanted_commit = self.commit() or ""
-                if cached_config_hash == self._configuration_hash and cached_commit == wanted_commit:
-                    return f.read()
+                cache_key_line = next(f)
+                try:
+                    cache_key = json.loads(cache_key_line)
+                except json.JSONDecodeError:
+                    return None
+
+                version = cache_key.get("version")
+                if version != 1:
+                    return None
+
+                config_hash = cache_key.get("config_hash")
+                dep_commits = cache_key.get("dep_commits")
+
+                if config_hash is None or dep_commits is None:
+                    return None
+
+                if config_hash != self._configuration_hash:
+                    return None
+
+                cached_dependencies_names = set(dep_commits.keys())
+                actual_dependencies_names = {d.name for d in self._transitive_dependencies() if d.clone is not None}
+                if cached_dependencies_names != actual_dependencies_names:
+                    return None
+
+                for dep in self._transitive_dependencies():
+                    if dep_commits.get(dep.name) != dep.commit():
+                        return None
+
+                return f.read()
         return None
 
     def _cache_hash_material(self, hash_material: str):
         os.makedirs(self._cache_filepath.parent, exist_ok=True)
+
+        cache_key = self._cache_key()
+
         with open(self._cache_filepath, "w") as f:
-            f.write(f"{self._configuration_hash} {self.commit() or ''}\n")
+            f.write(json.dumps(cache_key))
+            f.write("\n")
             f.write(hash_material)
+
+    def _cache_key(self):
+        return {
+            "version": 1,
+            "config_hash": self._configuration_hash,
+            "dep_commits": {dep.name: dep.commit() for dep in self._transitive_dependencies() if dep.clone is not None},
+        }
 
     @property
     def _cache_filepath(self) -> Path:
