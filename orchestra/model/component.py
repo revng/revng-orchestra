@@ -69,8 +69,6 @@ class Component:
     def serialize(self):
         serialized_component = {
             "license": self.license,
-            "binary_archives": self.binary_archives,
-            "build_from_source": self.build_from_source,
             "skip_post_install": self.skip_post_install,
             "add_to_path": self.add_to_path,
             "repository": self.repository,

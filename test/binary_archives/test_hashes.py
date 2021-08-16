@@ -34,8 +34,6 @@ def test_component_serialize(orchestra: OrchestraShim):
     component = orchestra.configuration.components["component_C"]
     expected_value = {
         "license": component.license,
-        "binary_archives": component.binary_archives,
-        "build_from_source": component.build_from_source,
         "skip_post_install": component.skip_post_install,
         "add_to_path": component.add_to_path,
         "repository": component.repository,
