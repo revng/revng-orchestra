@@ -1,4 +1,4 @@
-import json
+import yaml
 
 from orchestra.model._hash import hash
 from ..orchestra_shim import OrchestraShim
@@ -19,55 +19,20 @@ def test_build_serialize(orchestra: OrchestraShim):
     assert build.serialize() == expected_value
 
 
-def test_build_hash(orchestra: OrchestraShim):
-    """Checks that Build computes the expected hash"""
-    orchestra("update")
-    build = orchestra.configuration.components["component_C"].builds["build0"]
-
-    computed_expected_hash = hash(json.dumps(build.serialize(), sort_keys=True))
-    assert build.build_hash == computed_expected_hash
-
-
 def test_component_serialize(orchestra: OrchestraShim):
     """Checks that Component.serialize returns the expected data"""
     orchestra("update")
     component = orchestra.configuration.components["component_C"]
     expected_value = {
         "license": component.license,
-        "binary_archives": component.binary_archives,
-        "build_from_source": component.build_from_source,
         "skip_post_install": component.skip_post_install,
         "add_to_path": component.add_to_path,
         "repository": component.repository,
         "default_build": component.default_build_name,
         "builds": {b.name: b.serialize() for b in component.builds.values()},
+        "commit": component.commit(),
     }
     assert component.serialize() == expected_value
-
-
-def test_component_self_hash_material(orchestra: OrchestraShim):
-    """Checks that Component returns the expected data used for computing self_hash"""
-    orchestra("update")
-    component = orchestra.configuration.components["component_C"]
-    builds = [
-        component.builds["build0"],
-    ]
-
-    to_hash = "".join(b.build_hash for b in builds)
-    commit = component.commit()
-    if commit:
-        to_hash += commit
-
-    assert component._self_hash_material() == to_hash
-
-
-def test_component_self_hash(orchestra: OrchestraShim):
-    """Checks that Component computes the expected self hash"""
-    orchestra("update")
-    component = orchestra.configuration.components["component_C"]
-
-    expected_hash = hash(component._self_hash_material())
-    assert component.self_hash == expected_hash
 
 
 def test_component_transitive_dependencies(orchestra: OrchestraShim):
@@ -88,15 +53,25 @@ def test_component_recursive_hash_material(orchestra: OrchestraShim):
     config = orchestra.configuration
     component = config.components["component_C"]
 
-    expected_hash_material = ""
-    for d in sorted(component._transitive_dependencies(), key=lambda c: c.name):
-        expected_hash_material += d.self_hash
+    components_to_hash = list(component._transitive_dependencies())
+    components_to_hash.sort(key=lambda c: c.name)
+    hash_material = [c.serialize() for c in components_to_hash]
+    expected_hash_material = yamldump(hash_material)
 
-    assert component._recursive_hash_material() == expected_hash_material
+    assert component.recursive_hash_material() == expected_hash_material
 
 
 def test_component_recursive_hash(orchestra: OrchestraShim):
     """Checks that Components computes the expected recursive_hash"""
     config = orchestra.configuration
     component = config.components["component_C"]
-    assert hash(component._recursive_hash_material()) == component.recursive_hash
+    assert hash(component.recursive_hash_material()) == component.recursive_hash
+
+
+def yamldump(data):
+    return yaml.dump(
+        data,
+        default_style="|",
+        width=100000,
+        sort_keys=True,
+    )

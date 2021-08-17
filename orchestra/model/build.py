@@ -8,6 +8,7 @@ from ._hash import hash
 from ..actions import any_of
 from ..actions import configure
 from ..actions import install
+from ..exceptions import UserException
 
 
 class Build:
@@ -46,8 +47,6 @@ class Build:
         # Dependency names are needed for resolving them to the actual Actions and to compute the build hash
         self._explicit_dependencies = serialized_build.get("dependencies", [])
         self._explicit_build_dependencies = serialized_build.get("build_dependencies", [])
-
-        self.build_hash = self._compute_build_hash()
 
         self._resolve_dependencies_called = False
 
@@ -96,9 +95,6 @@ class Build:
             "ndebug": self.ndebug,
         }
 
-    def _compute_build_hash(self):
-        return hash(json.dumps(self.serialize(), sort_keys=True))
-
     def __str__(self):
         return f"Build {self.component.name}@{self.name}"
 
@@ -127,7 +123,7 @@ def parse_dependency(dependency) -> (str, Union[str, None], bool):
     dependency_re = re.compile(r"(?P<component>[\w\-_/]+)((?P<type>[@~])(?P<build>[\w\-_/]+))?")
     match = dependency_re.fullmatch(dependency)
     if not match:
-        raise Exception(f"Invalid dependency specified: {dependency}")
+        raise UserException(f"Invalid dependency specified: {dependency}")
 
     component = match.group("component")
     exact_build_required = match.group("type") == "@"

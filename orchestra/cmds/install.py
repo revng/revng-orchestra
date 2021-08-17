@@ -34,6 +34,7 @@ def handle_install(args):
         no_merge=args.no_merge,
         keep_tmproot=args.keep_tmproot,
         run_tests=args.test,
+        max_lfs_retries=args.lfs_retries,
     )
 
     actions = set()

@@ -14,9 +14,10 @@ import networkx as nx
 import networkx.classes.filters as nxfilters
 from loguru import logger
 
-from .actions import AnyOfAction, InstallAction
+from .actions import AnyOfAction
 from .actions.action import Action, ActionForBuild
-from .util import set_terminal_title, OrchestraException
+from .util import set_terminal_title
+from .exceptions import UserException, OrchestraException, InternalException
 
 DUMMY_ROOT = "Dummy root"
 
@@ -45,14 +46,14 @@ class Executor:
     def run(self):
         dependency_graph = self._create_dependency_graph()
 
-        self._verify_binary_archives_exist(dependency_graph)
+        self._verify_prerequisites(dependency_graph)
 
         self._init_toposorter(dependency_graph)
 
         try:
             self._toposorter.prepare()
         except graphlib.CycleError as e:
-            raise Exception(f"A cycle was found in the dependency graph: {e.args[1]}. This should never happen.")
+            raise InternalException(f"A cycle was found in the solved dependency graph: {e.args[1]}")
 
         if not self._toposorter.is_active():
             logger.info("No actions to perform")
@@ -91,8 +92,7 @@ class Executor:
                         future.cancel()
                     self._failed_actions.append(action)
                     if isinstance(exception, OrchestraException):
-                        logger.error(f"{action} failed, waiting for running actions to terminate")
-                        logger.error(str(exception))
+                        exception.log_error()
                     else:
                         logger.error(f"An unexpected exception occurred while running {action}")
                         logger.error(exception)
@@ -119,7 +119,7 @@ class Executor:
         # Find an assignment for all the choices so the graph becomes acyclic
         dependency_graph = self._assign_choices(dependency_graph)
         if dependency_graph is None:
-            raise Exception("Could not find an acyclic assignment for the given dependency graph")
+            raise UserException("Could not find an acyclic assignment for the given dependency graph")
 
         if remove_unreachable:
             self._remove_unreachable_actions(dependency_graph, [DUMMY_ROOT])
@@ -333,7 +333,7 @@ class Executor:
         for component, group in groups_by_component.items():
             dependency_graph = self._try_group_orders(dependency_graph, group)
             if dependency_graph is None:
-                raise Exception(
+                raise UserException(
                     f"Could not enforce an order between actions of "
                     f"component {component} pertaining to multiple builds"
                 )
@@ -405,17 +405,9 @@ class Executor:
         return inflated_graph
 
     @staticmethod
-    def _verify_binary_archives_exist(dependency_graph):
+    def _verify_prerequisites(dependency_graph):
         for action in dependency_graph.nodes:
-            if not isinstance(action, InstallAction):
-                continue
-            if not action.binary_archive_exists() and not action.allow_build:
-                binary_archive_filename = action.binary_archive_relative_path
-                qualified_name = action.build.qualified_name
-                raise Exception(
-                    f"""Binary archive {binary_archive_filename} for {qualified_name} not found.
-                    Try `orc update` or run `orc install` with `-b`."""
-                )
+            action.assert_prerequisites_are_met()
 
     def _init_toposorter(self, dependency_graph):
         for action in dependency_graph.nodes:
@@ -441,7 +433,7 @@ class Executor:
         self._stop_updating_display = False
         # Display manager and status bar must be initialized in main thread
         self._display_manager = enlighten.get_manager()
-        self._status_bar = self._display_manager.status_bar()
+        self._status_bar = self._display_manager.status_bar(leave=False)
         self._display_thread = threading.Thread(target=self._update_display, name="Display updater")
         self._display_thread.start()
 
@@ -467,8 +459,10 @@ class Executor:
                 self._status_bar.status_format = "[{current}/{total}] Running {jobs}"
                 self._status_bar.update(**self._status_bar_args)
                 self._status_bar.refresh()
-                time.sleep(0.3)
+                time.sleep(0.1)
         finally:
+            self._status_bar.status_format = "Done"
+            self._status_bar.refresh()
             self._status_bar.close()
             self._display_thread = None
 

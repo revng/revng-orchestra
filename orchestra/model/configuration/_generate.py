@@ -1,47 +1,61 @@
 import json
 import os
+from pathlib import Path
 from textwrap import dedent
-import pkg_resources
+from typing import Optional
 
 import jsonschema
+import pkg_resources
 import yaml
 
 from ...actions.util import get_script_output, get_subprocess_output
+from ...exceptions import InternalSubprocessException, YTTException, UserException
 
 
-def generate_yaml_configuration(orchestra_dotdir, use_cache=True):
-    config_dir = os.path.join(orchestra_dotdir, "config")
-    config_cache_file = os.path.join(orchestra_dotdir, "config_cache.json")
-    yaml_config_cache_file = os.path.join(orchestra_dotdir, "config_cache.yml")
-    config_hash = hash_config_dir(orchestra_dotdir)
-
-    if use_cache and os.path.exists(config_cache_file):
-        with open(config_cache_file) as f:
-            cached_config = json.load(f)
-            if config_hash == cached_config.get("config_hash"):
-                return cached_config["config"]
-
+def run_ytt(config_dir):
     ytt = os.path.join(os.path.dirname(__file__), "..", "..", "support", "ytt")
     env = os.environ.copy()
     env["GOCG"] = "off"
-    expanded_yaml = get_subprocess_output(
-        [ytt, "--dangerous-allow-all-symlink-destinations", "-f", config_dir],
-        environment=env,
-    )
+    try:
+        expanded_yaml = get_subprocess_output(
+            [ytt, "--dangerous-allow-all-symlink-destinations", "-f", config_dir],
+            environment=env,
+        )
+        return expanded_yaml
+    except InternalSubprocessException as e:
+        raise YTTException from e
+
+
+def generate_yaml_configuration(
+    config_dir,
+    cache_dir: Optional[Path] = None,
+):
+    config_hash = hash_config_dir(config_dir)
+
+    if cache_dir is not None:
+        os.makedirs(cache_dir, exist_ok=True)
+        config_cache_file = cache_dir / "config_cache.json"
+        yaml_config_cache_file = cache_dir / "config_cache.yml"
+        if config_cache_file.exists():
+            with open(config_cache_file) as f:
+                cached_config = json.load(f)
+                if config_hash == cached_config.get("config_hash"):
+                    return cached_config["config"], config_hash
+
+    expanded_yaml = run_ytt(config_dir)
     parsed_config = yaml.safe_load(expanded_yaml)
 
-    if use_cache:
+    if cache_dir is not None:
         with open(config_cache_file, "w") as f:
             json.dump({"config_hash": config_hash, "config": parsed_config}, f)
 
         with open(yaml_config_cache_file, "w") as f:
             f.write(expanded_yaml)
 
-    return parsed_config
+    return parsed_config, config_hash
 
 
-def hash_config_dir(orchestra_dotdir):
-    config_dir = os.path.join(orchestra_dotdir, "config")
+def hash_config_dir(config_dir):
     hash_script = f"""find "{config_dir}" -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum"""
     config_hash = get_script_output(hash_script).strip().partition(" ")[0]
     return config_hash
@@ -65,7 +79,7 @@ def validate_configuration_schema(parsed_config):
             .format(path=error_path(e), message=e.message)
             .strip()
         )
-        raise Exception(error_message) from e
+        raise UserException(error_message)
 
 
 # pip release of jsonschema does not yet include this commit

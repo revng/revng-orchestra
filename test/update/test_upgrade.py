@@ -6,6 +6,7 @@ from ..conftest import OrchestraShim
 
 def test_upgrade_when_remote_config_changes(orchestra: OrchestraShim, capsys):
     """Checks that `orchestra upgrade` does upgrade components when the remote configuration changes"""
+    orchestra("update")
     orchestra.loglevel = "DEBUG"
     orchestra("install", "-b", "component_A")
     out, err = capsys.readouterr()
@@ -34,6 +35,7 @@ def test_upgrade_when_remote_repo_changes(orchestra: OrchestraShim):
     remote_repository_path = orchestra.default_remote_base_url / "component_A"
     remote_repository_content_path = Path(remote_repository_path / content_filename)
 
+    orchestra("update")
     orchestra("install", "-b", "component_A")
 
     # Modify remote repository

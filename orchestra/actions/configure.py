@@ -4,6 +4,7 @@ from pathlib import Path
 from loguru import logger
 
 from .action import ActionForBuild
+from ..exceptions import UserException
 
 
 class ConfigureAction(ActionForBuild):
@@ -11,7 +12,7 @@ class ConfigureAction(ActionForBuild):
         super().__init__("configure", build, script, config)
 
     def is_satisfied(self):
-        # TODO: invalidate configure if self_hash (or even recursive_hash?) has changed
+        # TODO: invalidate configure if recursive_hash has changed
         return os.path.exists(self._configure_successful_path)
 
     def _run(self, explicitly_requested=False):
@@ -29,7 +30,7 @@ class ConfigureAction(ActionForBuild):
         if self._configure_successful_path.parent.exists():
             self._configure_successful_path.touch()
         else:
-            raise Exception(f"{self._configure_successful_path.parent} was not created by the configure script")
+            raise UserException(f"{self._configure_successful_path.parent} was not created by the configure script")
 
     @property
     def _configure_successful_path(self) -> Path:

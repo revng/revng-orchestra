@@ -5,9 +5,10 @@ from loguru import logger
 from tqdm import tqdm
 
 from . import SubCommandParser
-from ..model.configuration import Configuration
 from ..actions.util import run_internal_subprocess, try_run_internal_subprocess
+from ..exceptions import UserException
 from ..gitutils import is_root_of_git_repo
+from ..model.configuration import Configuration
 
 
 def install_subcommand(sub_argparser: SubCommandParser):
@@ -42,12 +43,12 @@ def handle_update(args):
                 failed_clones.append(f"Binary archive {name} ({url})!")
 
     logger.info("Resetting ls-remote cached info")
-    ls_remote_cache = os.path.join(config.orchestra_dotdir, "remote_refs_cache.json")
+    ls_remote_cache = os.path.join(config.cache_dir, "remote_refs_cache.json")
     if os.path.exists(ls_remote_cache):
         os.remove(ls_remote_cache)
 
     logger.info("Updating ls-remote cached info")
-    config.remote_heads_cache.rebuild_cache(parallelism=args.parallelism)
+    failed_ls_remotes = config.remote_heads_cache.rebuild_cache(parallelism=args.parallelism)
 
     to_pull = []
     for _, component in config.components.items():
@@ -109,7 +110,23 @@ def handle_update(args):
         failed_git_clone_suggestion = failed_git_clone_template.format(formatted_failed_clones=formatted_failed_clones)
         logger.error(failed_git_clone_suggestion)
 
-    if failed_pulls or failed_clones:
+    if failed_ls_remotes:
+        formatted_failed_ls_remotes = "\n".join([f"  - {repo}" for repo in failed_ls_remotes])
+        # Note: f-strings don't account for indentation, using a template is more practical
+        failed_git_clone_template = dedent(
+            """
+            Could not find the following repositories in any remote:
+            {formatted_failed_ls_remotes}
+
+            You will not be able to install components that depend on them.
+            """
+        )
+        failed_ls_remote_suggestion = failed_git_clone_template.format(
+            formatted_failed_ls_remotes=formatted_failed_ls_remotes
+        )
+        logger.info(failed_ls_remote_suggestion)
+
+    if failed_pulls or failed_clones or failed_ls_remotes:
         return 1
     else:
         return 0
@@ -133,7 +150,7 @@ def pull_binary_archive(name, config):
     # This check is to ensure we are called with the path of an existing binary archive
     # and don't clean/reset orchestra configuration
     if not is_root_of_git_repo(binary_archive_path):
-        raise Exception(f"{binary_archive_path} is not the root of a git repo, aborting")
+        raise UserException(f"{binary_archive_path} is not the root of a git repo, aborting")
     # clean removes untracked files
     git_clean(binary_archive_path)
     # reset restores tracked files to their committed version

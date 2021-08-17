@@ -19,3 +19,6 @@ execution_group.add_argument(
     action="store_true",
     help="Do not execute actions, only print what would be done",
 )
+execution_group.add_argument(
+    "--lfs-retries", metavar="N", type=int, help="Retry fetching binary archives up to N times before giving up"
+)

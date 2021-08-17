@@ -6,6 +6,7 @@ from ..conftest import OrchestraShim
 
 def test_update_orchestra_configuration(orchestra: OrchestraShim, capsys):
     """Checks that `orchestra update` updates orchestra configuration"""
+    orchestra("update")
     orchestra.loglevel = "DEBUG"
     orchestra("install", "-b", "component_A")
     out, err = capsys.readouterr()

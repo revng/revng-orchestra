@@ -1,6 +1,7 @@
 import os
 import re
 from collections import OrderedDict
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from textwrap import dedent
 from typing import Dict
@@ -12,7 +13,8 @@ from pkg_resources import parse_version
 from ._generate import generate_yaml_configuration, validate_configuration_schema
 from ..component import Component
 from ..remote_cache import RemoteHeadsCache
-from ...actions.util import try_run_internal_subprocess, try_get_subprocess_output
+from ...actions.util import try_run_internal_subprocess, get_subprocess_output
+from ...exceptions import UserException, InternalException
 from ...util import parse_component_name, expand_variables
 from ...version import __version__, __parsed_version__
 
@@ -28,6 +30,7 @@ class Configuration:
         no_merge=False,
         keep_tmproot=False,
         run_tests=False,
+        max_lfs_retries=1,
     ):
         self.components: Dict[str, Component] = {}
 
@@ -39,6 +42,9 @@ class Configuration:
 
         # Enables creation of binary archives for all install actions that get run
         self.create_binary_archives = create_binary_archives
+
+        # Max lfs fetch attempts
+        self.max_lfs_retries = max_lfs_retries
 
         # Disables merging files into orchestra root after building
         # Useful for debugging a broken component without touching orchestra root
@@ -52,10 +58,23 @@ class Configuration:
 
         self.orchestra_dotdir = locate_orchestra_dotdir(cwd=orchestra_dotdir)
         if not self.orchestra_dotdir:
-            raise Exception("Directory .orchestra not found!")
+            raise UserException("Directory .orchestra not found!")
+
+        # Directory containing the user yaml configuration to be processed
+        self.config_dir = os.path.join(self.orchestra_dotdir, "config")
+
+        # Directory containing cache files
+        self.cache_dir = os.path.join(self.orchestra_dotdir, "cache")
+
+        self.use_config_cache = use_config_cache
 
         self._create_default_user_options()
-        self.parsed_yaml = generate_yaml_configuration(self.orchestra_dotdir, use_cache=use_config_cache)
+        parsed_yaml, config_hash = generate_yaml_configuration(
+            self.config_dir,
+            cache_dir=Path(self.cache_dir) if use_config_cache else None,
+        )
+        self.parsed_yaml = parsed_yaml
+        self.config_hash = config_hash
 
         self._check_minimum_version()
 
@@ -67,7 +86,7 @@ class Configuration:
 
         self._user_paths = self.parsed_yaml.get("paths", {})
 
-        remote_heads_cache_path = os.path.join(self.orchestra_dotdir, "remote_refs_cache.json")
+        remote_heads_cache_path = os.path.join(self.cache_dir, "remote_refs_cache.json")
         self.remote_heads_cache = RemoteHeadsCache(self, remote_heads_cache_path)
 
         self._initialize_paths()
@@ -167,7 +186,7 @@ class Configuration:
         if min_version:
             parsed_min_version = parse_version(min_version)
             if __parsed_version__ < parsed_min_version:
-                raise Exception(
+                raise UserException(
                     f"This configuration requires orchestra version >= {min_version}, you have {__version__}"
                 )
 
@@ -183,17 +202,18 @@ class Configuration:
         logger.info("Populating default remotes for repositories and binary archives")
         logger.info("Remember to run `orc update` next")
 
-        git_output = try_get_subprocess_output(
-            [
-                "git",
-                "-C",
-                self.orchestra_dotdir,
-                "config",
-                "--get-regexp",
-                r"remote\.[^.]*\.url",
-            ]
-        )
-        if git_output is None:
+        try:
+            git_output = get_subprocess_output(
+                [
+                    "git",
+                    "-C",
+                    self.orchestra_dotdir,
+                    "config",
+                    "--get-regexp",
+                    r"remote\.[^.]*\.url",
+                ]
+            )
+        except InternalException as e:
             logger.error(f"Could not get default remotes, manually configure {relative_path}")
             exit(1)
 

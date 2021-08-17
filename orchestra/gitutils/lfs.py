@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List, Optional, Union
 
 from . import run_git
-from ..util import OrchestraException
+from ..exceptions import InternalException, InternalSubprocessException
 
 
 def fetch(
@@ -44,9 +44,9 @@ def fetch(
 
 
 def assert_lfs_installed():
-    """Checks whether git-lfs is installed and raises an OrchestraException if it is not"""
+    """Checks whether git-lfs is installed and raises an InternalException if it is not"""
     try:
         run_git("lfs")
         return True
-    except Exception:
-        raise OrchestraException("Could not invoke `git lfs`, is it installed?")
+    except InternalSubprocessException as e:
+        raise InternalException("Could not invoke `git lfs`, is it installed?") from e

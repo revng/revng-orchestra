@@ -24,6 +24,7 @@ def handle_configure(args):
         force_from_source=args.from_source,
         use_config_cache=args.config_cache,
         run_tests=args.test,
+        max_lfs_retries=args.lfs_retries,
     )
 
     actions = set()

@@ -1,9 +1,15 @@
-from typing import Dict, Set, Union
+import os
+import json
+import yaml
+from functools import lru_cache
+from pathlib import Path
+from typing import Dict, Set, Union, Optional
 
 from . import build as bld
 from ._hash import hash
 from ..actions import any_of
 from ..actions import clone
+from ..exceptions import UserException
 
 
 class Component:
@@ -29,7 +35,7 @@ class Component:
             default_build_name = sorted(serialized_component["builds"])[0]
 
         if default_build_name not in serialized_component["builds"]:
-            raise Exception(f'Invalid default build "{default_build_name}" for component {name}')
+            raise UserException(f'Invalid default build "{default_build_name}" for component {name}')
 
         for build_name, build_yaml in serialized_component["builds"].items():
             build = bld.Build(build_name, build_yaml, self, configuration)
@@ -38,7 +44,9 @@ class Component:
                 self.default_build: bld.Build = build
                 self.default_build_name = build_name
 
-        self.self_hash = self._compute_self_hash()
+        self._orchestra_cache_dir = configuration.cache_dir
+        self._configuration_hash = configuration.config_hash
+        self._use_config_cache = configuration.use_config_cache
 
     def commit(self):
         if self.clone is None:
@@ -57,6 +65,85 @@ class Component:
         assert self._recursive_hash is not None, "Accessed recursive_hash before calling compute_recursive_hash"
         return self._recursive_hash
 
+    @lru_cache(maxsize=None, typed=False)
+    def recursive_hash_material(self) -> str:
+        """Returns the string that is hashed to compute recursive_hash"""
+        assert self._resolve_dependencies_called, "Called recursive_hash_material before resolve_dependencies"
+        hash_material = None
+
+        if self._use_config_cache:
+            hash_material = self._get_cached_hash_material()
+
+        if hash_material is None:
+            components_to_hash = list(self._transitive_dependencies())
+            components_to_hash.sort(key=lambda c: c.name)
+            hash_material = [c.serialize() for c in components_to_hash]
+
+            hash_material = yamldump(hash_material)
+            self._cache_hash_material(hash_material)
+
+        return hash_material
+
+    def _get_cached_hash_material(self) -> Optional[str]:
+        assert self._resolve_dependencies_called, "Called _get_cached_hash_material before resolve_dependencies"
+        if self._cache_filepath.exists():
+            with open(self._cache_filepath) as f:
+                cache_key_line = next(f)
+                try:
+                    cache_key = json.loads(cache_key_line)
+                except json.JSONDecodeError:
+                    return None
+
+                version = cache_key.get("version")
+                if version != 1:
+                    return None
+
+                config_hash = cache_key.get("config_hash")
+                dep_commits = cache_key.get("dep_commits")
+
+                if config_hash is None or dep_commits is None:
+                    return None
+
+                if config_hash != self._configuration_hash:
+                    return None
+
+                cached_dependencies_names = set(dep_commits.keys())
+                actual_dependencies_names = {d.name for d in self._transitive_dependencies() if d.clone is not None}
+                if cached_dependencies_names != actual_dependencies_names:
+                    return None
+
+                for dep in self._transitive_dependencies():
+                    if dep_commits.get(dep.name) != dep.commit():
+                        return None
+
+                return f.read()
+        return None
+
+    def _cache_hash_material(self, hash_material: str):
+        os.makedirs(self._cache_filepath.parent, exist_ok=True)
+
+        cache_key = self._cache_key()
+
+        with open(self._cache_filepath, "w") as f:
+            f.write(json.dumps(cache_key))
+            f.write("\n")
+            f.write(hash_material)
+
+    def _cache_key(self):
+        return {
+            "version": 1,
+            "config_hash": self._configuration_hash,
+            "dep_commits": {dep.name: dep.commit() for dep in self._transitive_dependencies() if dep.clone is not None},
+        }
+
+    @property
+    def _cache_filepath(self) -> Path:
+        return Path(self._orchestra_cache_dir) / "hash-material" / self._name_for_hash_material_cache
+
+    @property
+    def _name_for_hash_material_cache(self) -> str:
+        return self.name.replace("/", "-")
+
     def resolve_dependencies(self, configuration):
         assert not self._resolve_dependencies_called, "Called resolve_dependencies twice"
 
@@ -68,35 +155,15 @@ class Component:
     def serialize(self):
         serialized_component = {
             "license": self.license,
-            "binary_archives": self.binary_archives,
-            "build_from_source": self.build_from_source,
             "skip_post_install": self.skip_post_install,
             "add_to_path": self.add_to_path,
             "repository": self.repository,
             "default_build": self.default_build_name,
             "builds": {b.name: b.serialize() for b in self.builds.values()},
+            "commit": self.commit(),
         }
 
         return serialized_component
-
-    def _self_hash_material(self) -> str:
-        """Returns the string that is hashed to compute the self_hash"""
-        to_hash = ""
-        for build_name in sorted(self.builds.keys()):
-            to_hash += self.builds[build_name].build_hash
-
-        commit = self.commit()
-        if commit:
-            to_hash += commit
-
-        return to_hash
-
-    def _compute_self_hash(self):
-        """Computes self_hash.
-        This hash is defined by the configuration of all the builds of the component and the current source commit, if
-        the component has a repository name
-        """
-        return hash(self._self_hash_material())
 
     def _transitive_dependencies(self) -> Set["Component"]:
         """Returns all the Components on which any build of this component depends on, directly or indirectly"""
@@ -111,20 +178,11 @@ class Component:
             dependency_components.add(action.component)
         return dependency_components
 
-    def _recursive_hash_material(self) -> str:
-        """Returns the string that is hashed to compute recursive_hash"""
-        dependency_components = self._transitive_dependencies()
-
-        to_hash = ""
-        for d in sorted(dependency_components, key=lambda c: c.name):
-            to_hash += d.self_hash
-        return to_hash
-
     def compute_recursive_hash(self):
         assert self._resolve_dependencies_called, "Called compute_recursive_hash before resolve_dependencies"
 
         if self._recursive_hash is None:
-            hash_material = self._recursive_hash_material()
+            hash_material = self.recursive_hash_material()
             self._recursive_hash = hash(hash_material)
 
     def __str__(self):
@@ -144,3 +202,12 @@ def collect_dependencies(root_action, collected_actions):
     collected_actions.add(root_action)
     for d in root_action.dependencies_for_hash:
         collect_dependencies(d, collected_actions)
+
+
+def yamldump(data):
+    return yaml.dump(
+        data,
+        default_style="|",
+        width=100000,
+        sort_keys=True,
+    )

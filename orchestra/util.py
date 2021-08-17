@@ -3,9 +3,7 @@ import re
 import sys
 from collections import OrderedDict
 
-
-class OrchestraException(Exception):
-    pass
+from .exceptions import UserException
 
 
 def parse_component_name(component_spec):
@@ -21,7 +19,7 @@ def export_environment(variables: OrderedDict):
         if var.startswith("-"):
             var_name = var[1:]
             if val is not None and val != "":
-                raise Exception(f"Requested environment variable {var_name} to be unset but its value is not empty")
+                raise UserException(f"Requested environment variable {var_name} to be unset but its value is not empty")
             env += f"unset -v {var_name}\n"
         else:
             env += f'export {var}="{val}"\n'
