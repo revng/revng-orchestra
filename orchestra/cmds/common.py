@@ -1,5 +1,7 @@
 import argparse
 
+LFS_RETRIES_DEFAULT = 3
+
 build_options = argparse.ArgumentParser(add_help=False)
 build_group = build_options.add_argument_group(title="Build options")
 build_group.add_argument("--from-source", "-B", action="store_true", help="Build all components from source")
@@ -19,6 +21,11 @@ execution_group.add_argument(
     action="store_true",
     help="Do not execute actions, only print what would be done",
 )
+
 execution_group.add_argument(
-    "--lfs-retries", metavar="N", type=int, help="Retry fetching binary archives up to N times before giving up"
+    "--lfs-retries",
+    metavar="N",
+    type=int,
+    default=LFS_RETRIES_DEFAULT,
+    help=f"Retry fetching binary archives up to N times before giving up. Defaults to {LFS_RETRIES_DEFAULT}",
 )
