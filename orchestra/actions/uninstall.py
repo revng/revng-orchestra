@@ -1,4 +1,5 @@
 import os
+import stat
 
 from loguru import logger
 
@@ -26,6 +27,8 @@ def uninstall(component_name, config):
     # paths.sort(reverse=True)
     paths = [path.strip() for path in paths]
 
+    orchestra_root = config.global_env()["ORCHESTRA_ROOT"]
+
     for path in paths:
         # Ensure the path is relative to the root
         path = path.lstrip("/")
@@ -33,12 +36,17 @@ def uninstall(component_name, config):
         if path in postpone_removal_paths:
             continue
 
-        path_to_delete = os.path.join(config.global_env()["ORCHESTRA_ROOT"], path)
+        path_to_delete = os.path.join(orchestra_root, path)
+        try:
+            stat_result = os.stat(path_to_delete, follow_symlinks=False)
+            stat_mode = stat_result.st_mode
+        except FileNotFoundError:
+            continue
 
-        if os.path.isfile(path_to_delete) or os.path.islink(path_to_delete):
+        if stat.S_ISREG(stat_mode) or stat.S_ISLNK(stat_mode):
             logger.debug(f"Deleting {path_to_delete}")
             os.remove(path_to_delete)
-        elif os.path.isdir(path_to_delete):
+        elif stat.S_ISDIR(stat_mode):
             if os.listdir(path_to_delete):
                 logger.debug(f"Not removing directory {path_to_delete} as it is not empty")
             else:
@@ -46,7 +54,8 @@ def uninstall(component_name, config):
                 os.rmdir(path_to_delete)
 
         containing_directory = os.path.dirname(path_to_delete)
-        if os.path.exists(containing_directory) and len(os.listdir(containing_directory)) == 0:
+        # not any(scandir(path)) is a fast way to tell if a directory is empty
+        if os.path.exists(containing_directory) and not any(os.scandir(containing_directory)):
             logger.debug(f"Removing empty directory {containing_directory}")
             os.rmdir(containing_directory)
 
