@@ -71,7 +71,7 @@ setup(
     author="Filippo Cremonese (rev.ng SRLs)",
     author_email="filippocremonese@rev.ng",
     url="https://github.com/revng/revng-orchestra",
-    packages=find_packages(),
+    packages=find_packages(include=["orchestra*"]),
     package_data={
         "orchestra": [
             "support/shell-home/.bashrc",
