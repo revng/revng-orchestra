@@ -42,10 +42,11 @@ config_group.add_argument(
     help="Do not cache generated yaml configuration",
 )
 config_group.add_argument(
-    "--orchestra-dir",
-    "-C",
-    help="Behave as if orchestra was launched in this directory",
+    "--orchestra-dotdir",
+    help="Load configuration from this directory",
 )
+config_group.add_argument("--chdir", "-C", help="Behave as if orchestra was launched in this directory")
+
 
 subcommands = [
     components,

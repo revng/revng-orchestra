@@ -1,4 +1,5 @@
 import os
+import os.path
 import sys
 
 from loguru import logger
@@ -30,8 +31,12 @@ def _main(argv):
     orchestra.globals.loglevel = args.loglevel
     orchestra.globals.quiet = args.quiet
 
-    if args.orchestra_dir:
-        os.chdir(args.orchestra_dir)
+    if args.chdir:
+        os.chdir(args.chdir)
+
+    # Resolve the location of orchestra_dotdir after changing directory (like git)
+    if args.orchestra_dotdir:
+        globals.orchestra_dotdir = os.path.abspath(args.orchestra_dotdir)
 
     try:
         return_code = main_parser.parse_and_execute(argv)

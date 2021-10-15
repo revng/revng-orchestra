@@ -17,6 +17,7 @@ from ...actions.util import try_run_internal_subprocess, get_subprocess_output
 from ...exceptions import UserException, InternalException
 from ...util import parse_component_name, expand_variables
 from ...version import __version__, __parsed_version__
+from ... import globals
 
 
 class Configuration:
@@ -26,7 +27,7 @@ class Configuration:
         force_from_source=False,
         use_config_cache=True,
         create_binary_archives=False,
-        orchestra_dotdir=None,
+        override_orchestra_dotdir=None,
         no_merge=False,
         keep_tmproot=False,
         run_tests=False,
@@ -56,7 +57,7 @@ class Configuration:
         # Enables tests when building components from source
         self.run_tests = run_tests
 
-        self.orchestra_dotdir = locate_orchestra_dotdir(cwd=orchestra_dotdir)
+        self.orchestra_dotdir = locate_orchestra_dotdir(cwd=override_orchestra_dotdir)
         if not self.orchestra_dotdir:
             raise UserException("Directory .orchestra not found!")
 
@@ -315,7 +316,10 @@ class Configuration:
 
 def locate_orchestra_dotdir(cwd=None):
     if cwd is None:
-        cwd = os.getcwd()
+        if globals.orchestra_dotdir is not None:
+            cwd = globals.orchestra_dotdir
+        else:
+            cwd = os.getcwd()
 
     while cwd != "/":
         path_to_try = os.path.join(cwd, ".orchestra")

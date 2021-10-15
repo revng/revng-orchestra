@@ -96,7 +96,7 @@ class OrchestraShim:
         :param args: arguments used to invoke orchestra
         """
         orchestra_args = (
-            "--orchestra-dir",
+            "--orchestra-dotdir",
             str(self.orchestra_dir),
             "--loglevel",
             self.loglevel,
@@ -230,7 +230,7 @@ class OrchestraShim:
         Note: This is **not** the same object used when running orchestra, so modifying its properties will have no
               effect on orchestra execution.
         """
-        return Configuration(orchestra_dotdir=self.orchestra_dotdir)
+        return Configuration(override_orchestra_dotdir=self.orchestra_dotdir)
 
     def clean_root(self):
         """Deletes the orchestra root directory"""
