@@ -169,11 +169,14 @@ class InstallAction(ActionForBuild):
         binary_archive_root = get_worktree_root(binary_archive_path)
         binary_archive_relative_path = binary_archive_path.relative_to(binary_archive_root)
         failures = 0
+        retry_timeout = 5
         while True:
             try:
                 lfs.fetch(binary_archive_root, include=[binary_archive_relative_path])
                 break
             except InternalSubprocessException as e:
+                time.sleep(retry_timeout)
+                retry_timeout *= 2
                 failures += 1
                 if failures >= self.config.max_lfs_retries:
                     raise e
