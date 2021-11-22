@@ -220,6 +220,9 @@ class InstallAction(ActionForBuild):
             self._post_install()
 
     def _post_install(self):
+        logger.debug("Collecting tmproot files timestamps")
+        tmproot_timestamps = self._collect_times()
+
         logger.debug("Dropping absolute paths from pkg-config")
         self._drop_absolute_pkgconfig_paths()
 
@@ -241,6 +244,9 @@ class InstallAction(ActionForBuild):
         # TODO: this should be put into the configuration and not in orchestra itself
         logger.debug("Replacing ASAN preprocessor statements")
         self._replace_asan(self.build.asan)
+
+        logger.debug("Restoring tmproot files timestamps")
+        self._restore_mtimes(tmproot_timestamps)
 
         if self.build.component.license:
             logger.debug("Copying license file")
@@ -274,6 +280,22 @@ class InstallAction(ActionForBuild):
             """
         )
         self._run_internal_script(script)
+
+    def _collect_times(self):
+        """Returns a dict[path, times], where times is a tuple(atime_ns, mtime_ns)"""
+        times = {}
+        for root, dirnames, filenames in os.walk(f'{self.environment["TMP_ROOT"]}{self.environment["ORCHESTRA_ROOT"]}'):
+            for path in filenames:
+                fullpath = os.path.join(root, path)
+                info = os.lstat(fullpath)
+                times[fullpath] = (info.st_atime_ns, info.st_mtime_ns)
+        return times
+
+    @staticmethod
+    def _restore_mtimes(mtimes):
+        for path, times in mtimes.items():
+            if os.path.exists(path):
+                os.utime(path, times=None, ns=times)
 
     def _drop_absolute_pkgconfig_paths(self):
         script = dedent(
