@@ -36,6 +36,7 @@ def handle_install(args):
         keep_tmproot=args.keep_tmproot,
         run_tests=args.test,
         max_lfs_retries=args.lfs_retries,
+        discard_build_directories=args.discard_build_directories,
     )
 
     assert_lfs_installed()

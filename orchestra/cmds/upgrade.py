@@ -21,6 +21,7 @@ def handle_upgrade(args):
         use_config_cache=args.config_cache,
         run_tests=args.test,
         max_lfs_retries=args.lfs_retries,
+        discard_build_directories=args.discard_build_directories,
     )
 
     install_actions = set()

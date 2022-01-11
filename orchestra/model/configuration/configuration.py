@@ -31,6 +31,7 @@ class Configuration:
         no_merge=False,
         keep_tmproot=False,
         run_tests=False,
+        discard_build_directories=False,
         max_lfs_retries=1,
     ):
         self.components: Dict[str, Component] = {}
@@ -56,6 +57,9 @@ class Configuration:
 
         # Enables tests when building components from source
         self.run_tests = run_tests
+
+        # Discard build directories after a successful build
+        self.discard_build_directories = discard_build_directories
 
         self.orchestra_dotdir = locate_orchestra_dotdir(cwd=override_orchestra_dotdir)
         if not self.orchestra_dotdir:

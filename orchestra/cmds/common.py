@@ -11,6 +11,12 @@ build_group.add_argument(
     action="store_true",
     help="Build if binary archives are not available",
 )
+build_group.add_argument(
+    "--discard-build-directories",
+    action="store_true",
+    help="Discards build directories of the involved components after a successful build. Previously existing build "
+    "directories are used and then deleted. Use `orc clean` to remove them in advance.",
+)
 build_group.add_argument("--test", action="store_true", help="Run the test suite after building")
 
 execution_options = argparse.ArgumentParser(add_help=False)
