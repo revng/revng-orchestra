@@ -1,6 +1,7 @@
 import glob
 import os
 import pathlib
+import shutil
 import stat
 import time
 from collections import OrderedDict, defaultdict
@@ -483,7 +484,7 @@ class InstallAction(ActionForBuild):
         return paths
 
     def _cleanup_tmproot(self):
-        self._run_internal_script('rm -rf "$TMP_ROOT"')
+        shutil.rmtree(self.tmp_root, ignore_errors=True)
 
     @property
     def _binary_archive_repo_name(self):
