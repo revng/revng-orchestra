@@ -32,6 +32,8 @@ def clean_all(config: Configuration, args):
         if not args.pretend:
             shutil.rmtree(sources_dir, ignore_errors=True)
 
+    return 0
+
 
 def handle_clean(args):
     config = Configuration(use_config_cache=args.config_cache)
