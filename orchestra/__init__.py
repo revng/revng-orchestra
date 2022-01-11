@@ -40,7 +40,7 @@ def _main(argv):
 
     try:
         return_code = main_parser.parse_and_execute(argv)
-        assert isinstance(return_code, int), f"Handler for command {args.command_name} did not return an integer"
+        assert isinstance(return_code, int), f"Command handler did not return an integer"
         return return_code
     except OrchestraException as e:
         e.log_error()
