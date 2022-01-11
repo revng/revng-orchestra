@@ -42,6 +42,7 @@ class Build:
             no_merge=configuration.no_merge,
             keep_tmproot=configuration.keep_tmproot,
             run_tests=configuration.run_tests,
+            discard_build_directories=configuration.discard_build_directories,
         )
 
         # Dependency names are needed for resolving them to the actual Actions and to compute the build hash

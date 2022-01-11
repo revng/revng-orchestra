@@ -166,3 +166,9 @@ def test_keep_tmproot(orchestra: OrchestraShim):
     """Checks that the --keep-tmproot option works"""
     orchestra("install", "-b", "--keep-tmproot", "component_A")
     assert os.path.exists(orchestra.configuration.components["component_A"].default_build.install.tmp_root)
+
+
+def test_discard_build_directory(orchestra: OrchestraShim):
+    """Checks that the --keep-tmproot option works"""
+    orchestra("install", "-b", "--keep-tmproot", "--discard-build-directories", "component_A")
+    assert not os.path.exists(orchestra.configuration.components["component_A"].default_build.install.build_dir)

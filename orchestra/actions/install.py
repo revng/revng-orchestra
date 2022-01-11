@@ -1,6 +1,7 @@
 import glob
 import os
 import pathlib
+import shutil
 import stat
 import time
 from collections import OrderedDict, defaultdict
@@ -45,6 +46,7 @@ class InstallAction(ActionForBuild):
         no_merge=False,
         keep_tmproot=False,
         run_tests=False,
+        discard_build_directories=False,
     ):
         assert (
             allow_build or allow_binary_archive
@@ -63,6 +65,7 @@ class InstallAction(ActionForBuild):
         self.no_merge = no_merge
         self.keep_tmproot = keep_tmproot
         self.run_tests = run_tests
+        self.discard_build_directories = discard_build_directories
 
     def _run(self, explicitly_requested=False):
         tmp_root = self.environment["TMP_ROOT"]
@@ -116,6 +119,10 @@ class InstallAction(ActionForBuild):
         if not self.keep_tmproot:
             logger.debug("Cleaning up tmproot")
             self._cleanup_tmproot()
+
+        if self.discard_build_directories:
+            logger.debug("Discarding build directory")
+            self._discard_build_directory()
 
     def _update_metadata(self, file_list, install_time, source, set_manually_insalled):
         # Save installed file list (.idx)
@@ -483,7 +490,10 @@ class InstallAction(ActionForBuild):
         return paths
 
     def _cleanup_tmproot(self):
-        self._run_internal_script('rm -rf "$TMP_ROOT"')
+        shutil.rmtree(self.tmp_root, ignore_errors=True)
+
+    def _discard_build_directory(self):
+        shutil.rmtree(self.build_dir, ignore_errors=True)
 
     @property
     def _binary_archive_repo_name(self):
