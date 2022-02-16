@@ -5,6 +5,7 @@ from . import SubCommandParser
 from .common import build_options
 from ..executor import Executor
 from ..model.configuration import Configuration
+from ..actions.graph_util import assign_style
 
 
 def install_subcommand(sub_argparser: SubCommandParser):
@@ -47,6 +48,11 @@ def install_subcommand(sub_argparser: SubCommandParser):
         action="store_true",
         help="Don't force execution of the root action",
     )
+    cmd_parser.add_argument(
+        "--no-color",
+        action="store_true",
+        help="Don't color the graph",
+    )
 
 
 def handle_graph(args):
@@ -86,6 +92,8 @@ def handle_graph(args):
             remove_satisfied=not args.no_remove_satisfied_leaves,
             transitive_reduction=not args.no_transitive_reduction,
         )
+    if not args.no_color:
+        assign_style(graph)
     graphviz_format = nx.nx_agraph.to_agraph(graph)
     graphviz_format.graph_attr["splines"] = "ortho"
     graphviz_format.node_attr["shape"] = "box"
