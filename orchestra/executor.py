@@ -50,11 +50,6 @@ class Executor:
 
         self._init_toposorter(dependency_graph)
 
-        try:
-            self._toposorter.prepare()
-        except graphlib.CycleError as e:
-            raise InternalException(f"A cycle was found in the solved dependency graph: {e.args[1]}")
-
         if not self._toposorter.is_active():
             logger.info("No actions to perform")
 
@@ -410,9 +405,16 @@ class Executor:
             action.assert_prerequisites_are_met()
 
     def _init_toposorter(self, dependency_graph):
+        # Add edges to the toposorter
         for action in dependency_graph.nodes:
             dependencies = dependency_graph.successors(action)
             self._toposorter.add(action, *dependencies)
+
+        # toposorter.prepare() checks there are no cycles
+        try:
+            self._toposorter.prepare()
+        except graphlib.CycleError as e:
+            raise InternalException(f"A cycle was found in the solved dependency graph: {e.args[1]}")
 
     def _run_action(self, action: Action):
         self._running_actions.append(action)
