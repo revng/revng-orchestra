@@ -35,7 +35,7 @@ class Executor:
             return self._run_actions()
 
     def _run_actions(self, stop_on_failure=True):
-        """Runs all the actions
+        """Runs all the actions in the toposorter (in an order that respects dependencies)
         :arg stop_on_failure: stop execution as soon as one action fails
         """
         failed_actions = set()
@@ -75,7 +75,7 @@ class Executor:
         # Recursively collect all dependencies of the root action in an initial graph
         dependency_graph = self._create_initial_dependency_graph()
 
-        # Find an assignment for all the choices so the graph becomes acyclic
+        # Find an assignment for all the choices that ensure the resulting graph is acyclic
         dependency_graph = self._assign_choices(dependency_graph)
         if dependency_graph is None:
             raise UserException("Could not find an acyclic assignment for the given dependency graph")
@@ -84,8 +84,8 @@ class Executor:
             self._remove_unreachable_actions(dependency_graph, [DUMMY_ROOT])
 
         if simplify_anyof:
-            # The graph returned contains choices with only one alternative
-            # Simplify them by turning A -> Choice -> B into A -> B
+            # The solved dependency graph contains AnyOf nodes with only one alternative
+            # Simplify it by turning A -> AnyOf -> B into A -> B
             self._simplify_anyof_actions(dependency_graph)
 
         # Remove the dummy root node
@@ -106,6 +106,15 @@ class Executor:
         return dependency_graph
 
     def _create_initial_dependency_graph(self):
+        """Creates the initial dependency graph by collecting all transitive dependencies for the actions the user
+        wants to run.
+
+        This graph needs to be processed to be suitable for scheduling actions:
+
+        - it contains AnyOf actions with more than one successor, of which only one has to be chosen as a dependency
+        - it might not be a DAG, as some choices of AnyOf actions might generate cycles
+        - it has a dummy "root" node which makes the next steps easier
+        """
         graph = nx.DiGraph()
         graph.add_node(DUMMY_ROOT)
         for action in self.actions:
@@ -130,9 +139,23 @@ class Executor:
             self._collect_dependencies(dependency, graph, already_visited_nodes=already_visited_nodes)
 
     def _assign_choices(self, graph):
-        # We can assign the choices for each strongly connected component independently
+        """AnyOf nodes have more than one successor, of which only one has to be picked for inclusion in the final
+        dependency graph. Some successors of an AnyOf node can cause a dependency cycle; those successors are an invalid
+        choice (unless all the dependencies in the cycle are all already satisfied).
+
+        This step picks a choice for every AnyOf node in the graph, searching for an assignment that does not cause
+        cycles.
+
+        There is an important optimization which makes this task tractable with what is essentially a backtracking
+        search: the choices of disjoint Strongly Connected Components can be assigned independently of one another.
+        Intuitively, removing an edge from an SCC cannot create or destroy cycles in another SCC, as they don't share
+        any edge.
+        """
+        # Iterate until all the AnyOf nodes have been assigned a choice
         while has_choices(graph):
             strongly_connected_components = list(nx.algorithms.strongly_connected_components(graph))
+            # It's important that we assign the biggest strongly connected component as networkx returns all the
+            # possible SCCs. A smaller SCC might overlap with a bigger one.
             strongly_connected_components.sort(key=len, reverse=True)
             for strongly_connected_component in strongly_connected_components:
                 any_of_nodes = [
@@ -141,7 +164,7 @@ class Executor:
                     if isinstance(c, AnyOfAction) and len(list(graph.successors(c))) > 1
                 ]
                 if not any_of_nodes:
-                    # There are no InstallAny nodes in this SCC, don't waste time
+                    # There are no AnyOf nodes in this SCC, don't waste time
                     continue
                 graph = self._assign_strongly_connected_component(graph, any_of_nodes, strongly_connected_component)
                 if graph is None:
@@ -151,11 +174,20 @@ class Executor:
         return graph
 
     def _assign_strongly_connected_component(self, graph, remaining, strongly_connected_component):
+        """Searches for a solution to the given remaining choices in the given SCC
+
+        This is done via a recursive backtracking search: one of the possible choices is made, then this function
+        invokes itself recursively to assign the remaining choices.
+        If an invalid choice is found the search resumes from the innermost call which has more options to try.
+
+        :arg graph: the complete dependency graph
+        :arg remaining: list of AnyOf nodes with more than one successor (and therefore need an assignment)
+        :arg strongly_connected_component: the strongly connected component containing the remaining nodes
+        """
         # TODO: the copy() operation ~halves performance. The other edge/node add/removal
         #       operations have an impact as well. We can avoid them using filtered views.
 
-        # No more choices remain, check if the subgraph
-        # of the stringly connected components is cyclic
+        # No more choices remain, check if the subgraph of the strongly connected components is cyclic
         if not remaining:
             subgraph = graph.copy()
             self._remove_unreachable_actions(subgraph, [DUMMY_ROOT])
@@ -168,10 +200,12 @@ class Executor:
 
         to_assign = remaining.pop()
 
-        # Try all choices
+        # Try all choices -- attempts are done in a specific order, see the keyer() function
         alternatives = list(graph.successors(to_assign))
         alternatives.sort(key=keyer(to_assign))
 
+        # Remove all the edges representing alternatives -- they will be added back one at a time to try and see which
+        # represents an admissible assignment
         graph.remove_edges_from((to_assign, s) for s in alternatives)
 
         for alternative in alternatives:
@@ -182,17 +216,22 @@ class Executor:
             for n in pointless:
                 remaining.remove(n)
 
+            # Recursive call to assign the remaining choices
             solved_graph = self._assign_strongly_connected_component(graph, remaining, strongly_connected_component)
             if solved_graph is None:
+                # No possible assignment of the remaining choices was valid, so our choice was invalid
                 graph.remove_edge(to_assign, alternative)
 
+                # Add back the unreachable nodes
                 for n in pointless:
                     remaining.append(n)
             else:
                 return solved_graph
 
+        # All the choices were tried and no valid solution was found -- return None to the caller to signal this
         graph.add_edges_from((to_assign, a) for a in alternatives)
         remaining.append(to_assign)
+        return None
 
     @staticmethod
     def _simplify_anyof_actions(graph):
@@ -390,6 +429,7 @@ def has_unsatisfied_cycles(graph):
 
 
 def has_choices(graph):
+    """Returns true if a graph contains undecided AnyOf nodes"""
     for node in graph.nodes:
         if isinstance(node, AnyOfAction) and len(list(graph.successors(node))) > 1:
             return True
@@ -397,6 +437,8 @@ def has_choices(graph):
 
 
 def keyer(to_assign):
+    """Returns a function used to prioritize the choices for the given AnyOf node"""
+
     def _keyer(action):
         """
         Prioritize choices in this order:
@@ -415,7 +457,15 @@ def keyer(to_assign):
     return _keyer
 
 
-def filter_out_unreachable(graph, nodes, roots):
+def filter_out_unreachable(graph: nx.DiGraph, nodes, roots):
+    """Filters (separates) reachable nodes from unreachable nodes
+    Returns a tuple of sets, one for the reachable nodes, one for the unreachable ones
+    A node is reachable if there exists a path from any (*not* all) root.
+
+    :arg graph: the graph to operate on
+    :arg nodes: the nodes of interest to filter
+    :arg roots: the root nodes
+    """
     shortest_paths = nx.multi_source_dijkstra_path_length(graph, roots)
     reachable = []
     unreachable = []
