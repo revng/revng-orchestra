@@ -1,13 +1,7 @@
 import graphlib
-import os
-import signal
 import sys
-import threading
-import time
 from collections import defaultdict
-from concurrent import futures
 from itertools import permutations, product
-from typing import List, Dict
 
 import enlighten
 import networkx as nx
@@ -15,7 +9,7 @@ import networkx.classes.filters as nxfilters
 from loguru import logger
 
 from .actions import AnyOfAction
-from .actions.action import Action, ActionForBuild
+from .actions.action import ActionForBuild
 from .util import set_terminal_title
 from .exceptions import UserException, OrchestraException, InternalException
 
@@ -23,82 +17,52 @@ DUMMY_ROOT = "Dummy root"
 
 
 class Executor:
-    def __init__(self, actions, no_deps=False, no_force=False, pretend=False, threads=1):
+    def __init__(self, actions, no_deps=False, no_force=False, pretend=False):
         self.actions = actions
         self.no_deps = no_deps
         self.no_force = no_force
         self.pretend = pretend
-        self.threads = 1
 
-        self._toposorter = graphlib.TopologicalSorter()
-        self._pool = futures.ThreadPoolExecutor(max_workers=threads, thread_name_prefix="Builder")
-        self._queued_actions: Dict[futures.Future, Action] = {}
-        self._running_actions: List[Action] = []
-        self._failed_actions: List[Action] = []
-        self._stop_the_world = False
-
-        self._total_remaining = None
-        self._current_remaining = None
-        self._stop_updating_display = False
-        self._display_manager: enlighten.Manager
-        self._display_thread: threading.Thread
+        self._toposorter = TopologicalSorterWithStatusBar()
 
     def run(self):
         dependency_graph = self._create_dependency_graph()
-
         self._verify_prerequisites(dependency_graph)
-
         self._init_toposorter(dependency_graph)
+
+        # The context manager starts the statusbar and ensures it's stopped on exit
+        with self._toposorter:
+            return self._run_actions()
+
+    def _run_actions(self, stop_on_failure=True):
+        """Runs all the actions
+        :arg stop_on_failure: stop execution as soon as one action fails
+        """
+        failed_actions = set()
 
         if not self._toposorter.is_active():
             logger.info("No actions to perform")
 
-        self._total_remaining = dependency_graph.number_of_nodes()
-        self._current_remaining = self._total_remaining
-
-        self._start_display_update()
-
-        signal.signal(signal.SIGINT, self._sigint_handler)
-
-        self._stop_the_world = False
-
-        # Schedule and run the actions
-        while (self._toposorter.is_active() and not self._failed_actions) or self._queued_actions:
+        while self._toposorter.is_active() and (not failed_actions or not stop_on_failure):
             for action in self._toposorter.get_ready():
-                future = self._pool.submit(self._run_action, action)
-                self._queued_actions[future] = action
-
-            try:
-                done, not_done = futures.wait(self._queued_actions, return_when=futures.FIRST_COMPLETED)
-            except KeyboardInterrupt:
-                self._stop_display_update()
-                os.killpg(os.getpgid(os.getpid()), signal.SIGINT)
-
-            for completed_future in done:
-                action = self._queued_actions[completed_future]
-                del self._queued_actions[completed_future]
                 try:
-                    exception = completed_future.exception()
-                except futures.CancelledError:
-                    continue
-
-                if exception:
-                    for future in self._queued_actions:
-                        future.cancel()
-                    self._failed_actions.append(action)
-                    if isinstance(exception, OrchestraException):
-                        exception.log_error()
-                    else:
-                        logger.error(f"An unexpected exception occurred while running {action}")
-                        logger.error(exception)
-                else:
+                    self._toposorter.start_jobs(action)
+                    explicitly_requested = action in self.actions
+                    action.run(pretend=self.pretend, explicitly_requested=explicitly_requested)
                     self._toposorter.done(action)
+                except OrchestraException as exception:
+                    exception.log_error()
+                    failed_actions.add(action)
+                    if stop_on_failure:
+                        break
+                except Exception as exception:
+                    logger.error(f"An unexpected exception occurred while running {action}")
+                    logger.error(exception)
+                    failed_actions.add(action)
+                    if stop_on_failure:
+                        break
 
-        assert len(self._queued_actions) == 0 and len(self._running_actions) == 0
-
-        self._stop_display_update()
-
-        return list(self._failed_actions)
+        return failed_actions
 
     def _create_dependency_graph(
         self,
@@ -416,63 +380,6 @@ class Executor:
         except graphlib.CycleError as e:
             raise InternalException(f"A cycle was found in the solved dependency graph: {e.args[1]}")
 
-    def _run_action(self, action: Action):
-        self._running_actions.append(action)
-        self._current_remaining -= 1
-        explicitly_requested = action in self.actions
-
-        try:
-            if self._stop_the_world:
-                return
-            return action.run(pretend=self.pretend, explicitly_requested=explicitly_requested)
-        except Exception as e:
-            self._stop_the_world = True
-            raise e
-        finally:
-            self._running_actions.remove(action)
-
-    def _start_display_update(self):
-        self._stop_updating_display = False
-        # Display manager and status bar must be initialized in main thread
-        self._display_manager = enlighten.get_manager()
-        self._status_bar = self._display_manager.status_bar(leave=False)
-        self._display_thread = threading.Thread(target=self._update_display, name="Display updater")
-        self._display_thread.start()
-
-    def _stop_display_update(self):
-        self._stop_updating_display = True
-        while self._display_thread is not None:
-            pass
-        self._display_manager.stop()
-        sys.stdout.buffer.flush()
-        sys.stderr.buffer.flush()
-
-    def _update_display(self):
-        self._status_bar.color = "bright_white_on_lightslategray"
-        try:
-            while not self._stop_updating_display:
-                running_jobs_str = ", ".join(a.name_for_info for a in self._running_actions)
-                self._status_bar_args = {
-                    "jobs": running_jobs_str,
-                    "current": self._total_remaining - self._current_remaining,
-                    "total": self._total_remaining,
-                }
-                set_terminal_title(f"Running {running_jobs_str}")
-                self._status_bar.status_format = "[{current}/{total}] Running {jobs}"
-                self._status_bar.update(**self._status_bar_args)
-                self._status_bar.refresh()
-                time.sleep(0.1)
-        finally:
-            self._status_bar.status_format = "Done"
-            self._status_bar.refresh()
-            self._status_bar.close()
-            self._display_thread = None
-
-    def _sigint_handler(self, sig, frame):
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
-        self._stop_display_update()
-        signal.default_int_handler(signal.SIGINT, frame)
-
 
 def has_unsatisfied_cycles(graph):
     simple_cycles = list(nx.simple_cycles(graph))
@@ -518,3 +425,83 @@ def filter_out_unreachable(graph, nodes, roots):
         else:
             reachable.append(node)
     return reachable, unreachable
+
+
+class TopologicalSorterWithStatusBar(graphlib.TopologicalSorter):
+    def __init__(self, graph=None) -> None:
+        super().__init__(graph)
+        self.__display_manager = enlighten.get_manager()
+        self.__status_bar: enlighten.StatusBar = None
+        self.__all_nodes = set()
+        self.__running = set()
+        self.__completed = set()
+
+    def start_jobs(self, *nodes):
+        for job in nodes:
+            if job in self.__running:
+                raise OrchestraException(f"Started job {job} twice")
+            self.__running.add(job)
+        self._update_statusbar()
+
+    def add(self, node, *predecessors):
+        super().add(node, *predecessors)
+        self.__all_nodes.add(node)
+        for job in predecessors:
+            self.__all_nodes.add(job)
+
+    def done(self, *nodes):
+        for job in nodes:
+            try:
+                self.__running.remove(job)
+                self.__completed.add(job)
+            except KeyError:
+                raise OrchestraException(f"Job {job} was never marked as started")
+
+        super().done(*nodes)
+        self._update_statusbar()
+
+    def _start_statusbar(self):
+        if self.__status_bar:
+            raise OrchestraException("Status bar already started")
+
+        self.__status_bar = self.__display_manager.status_bar(
+            leave=False,
+            color="bright_white_on_lightslategray",
+        )
+
+    def _stop_statusbar(self, message=None):
+        if message is None:
+            message = "Done"
+
+        if self.__status_bar:
+            self.__status_bar.status_format = message
+            self.__status_bar.refresh()
+            self.__status_bar.close()
+
+        self.__display_manager.stop()
+        sys.stdout.buffer.flush()
+        sys.stderr.buffer.flush()
+
+    def _update_statusbar(self):
+        running_jobs_str = ", ".join(a.name_for_info for a in self.__running)
+        status_bar_args = {
+            "jobs": running_jobs_str,
+            "current": len(self.__completed) + len(self.__running),
+            "total": len(self.__all_nodes),
+        }
+        set_terminal_title(f"Running {running_jobs_str}")
+        self.__status_bar.status_format = "[{current}/{total}] Running {jobs}"
+        self.__status_bar.update(**status_bar_args)
+        self.__status_bar.refresh()
+
+    def __enter__(self):
+        self._start_statusbar()
+        self._update_statusbar()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        message = None
+        if exc_type is KeyboardInterrupt:
+            message = "Interrupted"
+
+        self._stop_statusbar(message=message)
