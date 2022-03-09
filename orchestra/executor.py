@@ -55,9 +55,9 @@ class Executor:
                     failed_actions.add(action)
                     if stop_on_failure:
                         break
-                except Exception as exception:
-                    logger.error(f"An unexpected exception occurred while running {action}")
-                    logger.error(exception)
+                except:
+                    # The call to logger.exception automatically prints the exception info
+                    logger.exception(f"An unexpected exception occurred while running {action}")
                     failed_actions.add(action)
                     if stop_on_failure:
                         break
