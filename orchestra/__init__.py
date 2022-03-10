@@ -44,6 +44,8 @@ def _main(argv):
         return return_code
     except OrchestraException as e:
         e.log_error()
+    except KeyboardInterrupt:
+        logger.error("Interrupted by SIGINT")
     except Exception as e:
         logger.exception(e)
 

@@ -637,3 +637,7 @@ class InstallAction(ActionForBuild):
         # Verify binary archive is available
         if not self.allow_build and not self.binary_archive_exists():
             raise BinaryArchiveNotFoundException(self)
+
+        # Check that if binary archives creation is requested we have a binary archive repo where it will be saved
+        if self.create_binary_archive and self._binary_archive_repo_name is None:
+            raise UserException("Cannot create binary archive, no binary archives are configured")

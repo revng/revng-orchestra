@@ -5,6 +5,14 @@ from .action import Action
 
 
 def assign_style(graph):
+    """Applies style attributes to the nodes of a dependency graph.
+
+    The node shape is set to "box" and the following colors are applied depending on the node type:
+
+    - AnyOf: lightblue
+    - Satisfied actions: green
+    - Unsatisfied actions: white
+    """
     styles = {}
     for node in graph.nodes:
         if isinstance(node, AnyOfAction):

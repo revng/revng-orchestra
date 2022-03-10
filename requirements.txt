@@ -1,5 +1,5 @@
 loguru~=0.5.3
-PyYAML~=5.4.1
+PyYAML~=6.0
 fuzzywuzzy~=0.18.0
 python-Levenshtein~=0.12.2
 pyelftools~=0.26
