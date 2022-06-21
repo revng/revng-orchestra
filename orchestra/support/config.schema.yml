@@ -74,6 +74,10 @@ definitions:
         type: array
         items:
           type: string
+      test_triggers:
+        type: array
+        items:
+          type: string
     required:
       - builds
     title: Component
