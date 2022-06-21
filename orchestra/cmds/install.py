@@ -51,6 +51,9 @@ def handle_install(args):
 
         actions.append(build.install)
 
+        for trigger in build.component.triggers:
+            actions.append(config.get_build(trigger).install)
+
     for action in actions:
         executor = Executor([action], no_deps=args.no_deps, no_force=args.no_force, pretend=args.pretend)
         failed = executor.run()

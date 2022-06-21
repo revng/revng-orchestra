@@ -29,6 +29,10 @@ class Component:
         if self.repository:
             self.clone = clone.CloneAction(self, self.repository, configuration)
 
+        self.triggers = []
+        if configuration.run_tests:
+            self.triggers += serialized_component.get("test_triggers", [])
+
         # The default build is either specified, or the first in alphabetical order
         default_build_name = serialized_component.get("default_build")
         if default_build_name is None:
