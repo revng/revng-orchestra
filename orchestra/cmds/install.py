@@ -41,16 +41,20 @@ def handle_install(args):
 
     assert_lfs_installed()
 
-    actions = set()
+    actions = []
     for component in args.components:
         build = config.get_build(component)
         if not build:
             suggested_component_name = config.get_suggested_component_name(component)
             logger.error(f"Component {component} not found! Did you mean {suggested_component_name}?")
             return 1
-        actions.add(build.install)
 
-    executor = Executor(actions, no_deps=args.no_deps, no_force=args.no_force, pretend=args.pretend)
-    failed = executor.run()
-    exitcode = 1 if failed else 0
-    return exitcode
+        actions.append(build.install)
+
+    for action in actions:
+        executor = Executor([action], no_deps=args.no_deps, no_force=args.no_force, pretend=args.pretend)
+        failed = executor.run()
+        if failed:
+            return 1
+
+    return 0
