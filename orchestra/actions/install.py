@@ -345,23 +345,7 @@ class InstallAction(ActionForBuild):
 
     def _fix_rpath(self):
         replace_dynstr = os.path.join(os.path.dirname(__file__), "..", "support", "elf-replace-dynstr.py")
-        fix_rpath_script = dedent(
-            f"""
-            cd "$TMP_ROOT$ORCHESTRA_ROOT"
-            # Fix rpath
-            find . -type f -executable | while read EXECUTABLE; do
-                if head -c 4 "$EXECUTABLE" | grep '^.ELF' > /dev/null &&
-                        file "$EXECUTABLE" | grep x86-64 | grep -E '(shared|dynamic)' > /dev/null;
-                then
-                    REPLACE='$'ORIGIN/$(realpath --relative-to="$(dirname "$EXECUTABLE")" ".")
-                    echo "Setting rpath of $EXECUTABLE to $REPLACE"
-                    "{replace_dynstr}" "$EXECUTABLE" "$RPATH_PLACEHOLDER" "$REPLACE" /
-                    "{replace_dynstr}" "$EXECUTABLE" "$ORCHESTRA_ROOT" "$REPLACE" /
-                fi
-            done
-            """
-        )
-        self._run_internal_script(fix_rpath_script)
+        self._run_internal_script(f'"{replace_dynstr}" "$TMP_ROOT$ORCHESTRA_ROOT" "$RPATH_PLACEHOLDER" "$ORCHESTRA_ROOT"')
 
     def _replace_ndebug(self, disable_debugging):
         debug, ndebug = ("0", "1") if disable_debugging else ("1", "0")
