@@ -21,11 +21,15 @@ class CloneAction(ActionForComponent):
 
         script += 'git -C "$SOURCE_DIR" branch -m orchestra-temporary\n'
 
-        checkout_cmds = []
+        # Try fetching each remote ref and adding a local branch with the same name that can be checked out
+        fetch_cmds = []
         for branch in self.config.branches:
-            checkout_cmds.append(f'git -C "$SOURCE_DIR" checkout -b "{branch}" "origin/{branch}"')
-        checkout_cmds.append("true")
-        script += " || \\\n  ".join(checkout_cmds)
+            fetch_cmds.append(
+                f'git -C "$SOURCE_DIR" fetch origin "{branch}:{branch}" && git -C "$SOURCE_DIR" checkout "{branch}"'
+            )
+        fetch_cmds.append("true")
+
+        script += " || \\\n  ".join(fetch_cmds)
         return script
 
     def is_satisfied(self):
