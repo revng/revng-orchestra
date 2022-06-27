@@ -31,13 +31,16 @@ def ls_remote(remote):
     env["GIT_SSH_COMMAND"] = "ssh -oControlPath=~/.ssh/ssh-mux-%r@%h:%p -oControlMaster=auto -o ControlPersist=10"
     env["GIT_ASKPASS"] = "/bin/true"
     try:
-        result = get_subprocess_output(["git", "ls-remote", "-h", "--refs", remote], environment=env)
+        result = get_subprocess_output(["git", "ls-remote", remote], environment=env)
     except InternalCommandException:
         return {}
 
-    parse_regex = re.compile(r"(?P<commit>[a-f0-9]*)\W*refs/heads/(?P<branch>.*)")
+    branch_regex = re.compile(r"(?P<commit>[a-f0-9]*)\W*refs/heads/(?P<branch>.*)")
+    other_ref_regex = re.compile(r"(?P<commit>[a-f0-9]*)\W*refs/(?!heads/)(?!remotes/)(?P<refname>.*)")
 
-    return {branch: commit for commit, branch in parse_regex.findall(result)}
+    return {
+        branch: commit for commit, branch in list(branch_regex.findall(result)) + list(other_ref_regex.findall(result))
+    }
 
 
 def current_branch_info(repo_path):

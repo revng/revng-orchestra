@@ -5,7 +5,7 @@ from loguru import logger
 from tqdm import tqdm
 
 from . import SubCommandParser
-from ..actions.util import run_internal_subprocess, try_run_internal_subprocess
+from ..actions.util import run_internal_subprocess, try_run_internal_subprocess, get_subprocess_output
 from ..exceptions import UserException
 from ..gitutils import is_root_of_git_repo
 from ..gitutils.lfs import assert_lfs_installed
@@ -176,5 +176,15 @@ def git_pull(directory):
     Returns a boolean value representing the operation success."""
     env = os.environ.copy()
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
-    returncode = try_run_internal_subprocess(["git", "pull", "--ff-only"], environment=env, cwd=directory)
+
+    # Try to pull from the remote reference with the same name as the currently checked-out branch.
+    # This is needed since remote non-branch references can't be set as branch upstreams.
+    branch = get_subprocess_output(["git", "branch", "--show-current"], environment=env, cwd=directory).strip()
+    if not branch:
+        returncode = try_run_internal_subprocess(["git", "pull", "--ff-only"], environment=env, cwd=directory)
+    else:
+        returncode = try_run_internal_subprocess(
+            ["git", "pull", "--ff-only", "origin", branch], environment=env, cwd=directory
+        )
+
     return returncode == 0
