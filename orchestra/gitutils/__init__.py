@@ -50,14 +50,42 @@ def ls_remote(remote):
 
 
 def current_branch_info(repo_path):
-    env = _clean_env()
-    try:
-        branch_name = get_subprocess_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_path, environment=env).strip()
-        commit = get_subprocess_output(["git", "rev-parse", "HEAD"], cwd=repo_path, environment=env).strip()
-        return branch_name, commit
-    except InternalCommandException as exception:
-        logger.log("DEBUG", str(exception))
+    # Compute base .git path
+    dot_git = os.path.join(repo_path, ".git")
+
+    # If it's a file, open it and move there
+    if os.path.isfile(dot_git):
+        with open(dot_git, "r") as dot_git_file:
+            content = dot_git_file.read().strip()
+        dot_git = re.match("""gitdir: (.*)""", content).groups()[0]
+
+    # At this point dot_git is a directory
+    assert os.path.isdir(dot_git)
+
+    # Read HEAD
+    with open(os.path.join(dot_git, "HEAD"), "r") as head_file:
+        head = head_file.read().strip()
+
+    # Are we on a branch?
+    match = re.match("ref: refs/heads/(.*)", head)
+    if not match:
         return None, None
+    branch = match.groups()[0]
+
+    # If we have a commondir file, move there
+    commondir_path = os.path.join(dot_git, "commondir")
+    if os.path.isfile(commondir_path):
+        with open(commondir_path, "r") as commondir_file:
+            commondir = commondir_file.read().strip()
+            if not os.path.isabs(commondir):
+                commondir = os.path.join(dot_git, commondir)
+            dot_git = commondir
+
+    # Open the file containing the branch name
+    with open(os.path.join(dot_git, "refs", "heads", branch), "r") as ref_file:
+        commit = ref_file.read().strip()
+
+    return branch, commit
 
 
 def is_root_of_git_repo(path):
