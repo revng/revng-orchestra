@@ -345,7 +345,9 @@ class InstallAction(ActionForBuild):
 
     def _fix_rpath(self):
         replace_dynstr = os.path.join(os.path.dirname(__file__), "..", "support", "elf-replace-dynstr.py")
-        self._run_internal_script(f'"{replace_dynstr}" "$TMP_ROOT$ORCHESTRA_ROOT" "$RPATH_PLACEHOLDER" "$ORCHESTRA_ROOT"')
+        self._run_internal_script(
+            f'"{replace_dynstr}" "$TMP_ROOT$ORCHESTRA_ROOT" "$RPATH_PLACEHOLDER" "$ORCHESTRA_ROOT"'
+        )
 
     def _replace_ndebug(self, disable_debugging):
         debug, ndebug = ("0", "1") if disable_debugging else ("1", "0")

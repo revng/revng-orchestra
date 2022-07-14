@@ -33,6 +33,11 @@ class Component:
         if configuration.run_tests:
             self.triggers += serialized_component.get("test_triggers", [])
 
+        self.check_branch_commands = serialized_component.get("check_branch", [])
+        # Due to a git limitation we can't allow newlines in check-branch commands
+        if any("\n" in command for command in self.check_branch_commands):
+            raise UserException("Newlines are not allowed in check-branch commands")
+
         # The default build is either specified, or the first in alphabetical order
         default_build_name = serialized_component.get("default_build")
         if default_build_name is None:
