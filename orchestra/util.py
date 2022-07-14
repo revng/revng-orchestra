@@ -47,7 +47,7 @@ def expand_variables(string: str, additional_environment: "OrderedDict[str, str]
     # Two groups are needed to match $VAR and ${VAR} forms
     # fmt: off
     var_regex = re.compile(
-        r"\$(?P<name1>[a-zA-Z_][a-zA-Z0-9_])*"
+        r"\$(?P<name1>[a-zA-Z_][a-zA-Z0-9_]*)"
         r"|\${(?P<name2>[a-zA-Z_][a-zA-Z0-9_]*)}"
     )
     # fmt: on
