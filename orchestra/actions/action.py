@@ -118,6 +118,9 @@ class ActionForComponent(Action):
 
     @property
     def source_dir(self) -> str:
+        if self.component.clone:
+            return os.path.join(self.config.sources_dir, self.component.clone.repository)
+
         return os.path.join(self.config.sources_dir, self.component.name)
 
 
