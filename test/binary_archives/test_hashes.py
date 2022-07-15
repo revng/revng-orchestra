@@ -74,4 +74,5 @@ def yamldump(data):
         default_style="|",
         width=100000,
         sort_keys=True,
+        Dumper=yaml.CSafeDumper,
     )

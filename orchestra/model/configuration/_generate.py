@@ -43,7 +43,7 @@ def generate_yaml_configuration(
                     return cached_config["config"], config_hash
 
     expanded_yaml = run_ytt(config_dir)
-    parsed_config = yaml.safe_load(expanded_yaml)
+    parsed_config = yaml.load(expanded_yaml, yaml.CSafeLoader)
 
     if cache_dir is not None:
         with open(config_cache_file, "w") as f:
@@ -63,7 +63,7 @@ def hash_config_dir(config_dir):
 
 def validate_configuration_schema(parsed_config):
     config_schema = pkg_resources.resource_stream("orchestra.support", "config.schema.yml")
-    parsed_config_schema = yaml.safe_load(config_schema)
+    parsed_config_schema = yaml.load(config_schema, yaml.CSafeLoader)
 
     try:
         jsonschema.validate(parsed_config, parsed_config_schema)
