@@ -151,6 +151,28 @@ def test_install_conflicting_builds(orchestra: OrchestraShim):
     assert compare_root_tree(orchestra.orchestra_root, expected_file_list_2)
 
 
+def test_uninstall_dependant_components(orchestra: OrchestraShim):
+    """Checks that when installing a component, components that depend on it are uninstalled."""
+    orchestra("install", "-b", "dependendant_component")
+    expected_file_list_1 = {
+        "./share/orchestra/dependency_component.idx",
+        "./share/orchestra/dependency_component.json",
+        "./dependency_component_file",
+        "./share/orchestra/dependendant_component.idx",
+        "./share/orchestra/dependendant_component.json",
+        "./dependendant_component_file",
+    }
+    assert compare_root_tree(orchestra.orchestra_root, expected_file_list_1)
+
+    orchestra("install", "-b", "dependency_component")
+    expected_file_list_2 = {
+        "./share/orchestra/dependency_component.idx",
+        "./share/orchestra/dependency_component.json",
+        "./dependency_component_file",
+    }
+    assert compare_root_tree(orchestra.orchestra_root, expected_file_list_2)
+
+
 def test_test_option_runs_tests(orchestra: OrchestraShim):
     """Checks that the --test option sets the RUN_TESTS environment variable"""
     orchestra("install", "-B", "--test", "component_that_tests_test_option")
