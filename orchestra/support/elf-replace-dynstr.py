@@ -105,6 +105,9 @@ def main():
             if not os.path.isfile(path):
                 continue
 
+            if not os.access(path, os.X_OK):
+                continue
+
             with open(path, "rb+") as elf_file:
                 if elf_file.read(4) != b'\x7fELF':
                     continue
