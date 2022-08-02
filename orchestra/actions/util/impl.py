@@ -169,7 +169,11 @@ def _run_subprocess(
     :return: a subprocess.CompletedProcess instance
     """
 
-    logger.log(loglevel, f"The following program is going to be executed: {argv}")
+    message = f"The following program is going to be executed: {argv}"
+    if cwd:
+        message += f" in {cwd}"
+
+    logger.log(loglevel, message)
     return subprocess.run(argv, stdout=stdout, stderr=stderr, cwd=cwd, env=environment)
 
 
