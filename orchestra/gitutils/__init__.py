@@ -2,6 +2,7 @@ import os
 import re
 from pathlib import Path
 from typing import Optional, Union
+from loguru import logger
 
 
 from ..actions.util import get_subprocess_output, run_internal_subprocess
@@ -45,7 +46,8 @@ def current_branch_info(repo_path):
         branch_name = get_subprocess_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_path).strip()
         commit = get_subprocess_output(["git", "rev-parse", "HEAD"], cwd=repo_path).strip()
         return branch_name, commit
-    except InternalCommandException:
+    except InternalCommandException as exception:
+        logger.log("DEBUG", str(exception))
         return None, None
 
 
