@@ -129,10 +129,7 @@ def handle_update(args):
         )
         logger.info(failed_ls_remote_suggestion)
 
-    if failed_pulls or failed_clones or failed_ls_remotes:
-        return 1
-    else:
-        return 0
+    return 0
 
 
 def clone_binary_archive(name, url, config):

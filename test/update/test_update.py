@@ -166,7 +166,7 @@ def test_update_does_not_overwrite_local_changes(orchestra: OrchestraShim):
     local_modified_commit_hash = git.commit_all(local_repository_path)
 
     # update is expected to fail
-    orchestra("update", should_fail=True)
+    orchestra("update")
 
     # Assert the local changes have not been discarded
     assert git.rev_parse(local_repository_path) == local_modified_commit_hash
