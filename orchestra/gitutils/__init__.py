@@ -8,6 +8,16 @@ from loguru import logger
 from ..actions.util import get_subprocess_output, run_internal_subprocess
 from ..exceptions import InternalException, InternalCommandException
 
+def _clean_env(env=None):
+    if not env:
+        env = os.environ
+
+    env = env.copy()
+
+    if "GIT_DIR" in env:
+        del env["GIT_DIR"]
+
+    return env
 
 def run_git(
     *args,
@@ -24,13 +34,11 @@ def run_git(
         git_cmd.append(str(workdir))
     git_cmd.extend(args)
 
-    return run_internal_subprocess(git_cmd)
+    return run_internal_subprocess(git_cmd, environment=_clean_env())
 
 
 def ls_remote(remote):
-    env = os.environ.copy()
-    env["GIT_SSH_COMMAND"] = "ssh -oControlPath=~/.ssh/ssh-mux-%r@%h:%p -oControlMaster=auto -o ControlPersist=10"
-    env["GIT_ASKPASS"] = "/bin/true"
+    env = _clean_env()
     try:
         result = get_subprocess_output(["git", "ls-remote", "-h", "--refs", remote], environment=env)
     except InternalCommandException:
@@ -42,9 +50,10 @@ def ls_remote(remote):
 
 
 def current_branch_info(repo_path):
+    env = _clean_env()
     try:
-        branch_name = get_subprocess_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_path).strip()
-        commit = get_subprocess_output(["git", "rev-parse", "HEAD"], cwd=repo_path).strip()
+        branch_name = get_subprocess_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_path, environment=env).strip()
+        commit = get_subprocess_output(["git", "rev-parse", "HEAD"], cwd=repo_path, environment=env).strip()
         return branch_name, commit
     except InternalCommandException as exception:
         logger.log("DEBUG", str(exception))
