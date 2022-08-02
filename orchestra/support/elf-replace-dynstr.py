@@ -102,7 +102,7 @@ def main():
         for file_name in files:
             path = os.path.join(directory, file_name)
 
-            if not os.path.isfile(path):
+            if not os.path.isfile(path) or os.path.islink(path):
                 continue
 
             if not os.access(path, os.X_OK):
