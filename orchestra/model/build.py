@@ -1,10 +1,8 @@
-import json
 import re
 from itertools import repeat
 from typing import Union
 
 from . import component as comp
-from ._hash import hash
 from ..actions import any_of
 from ..actions import configure
 from ..actions import install

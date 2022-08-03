@@ -1,7 +1,7 @@
 from loguru import logger
 
 from . import SubCommandParser
-from ..actions.install import uninstall
+from ..actions.uninstall import uninstall
 from ..model.configuration import Configuration
 from ..model.install_metadata import is_installed
 from ..util import parse_component_name

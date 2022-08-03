@@ -60,8 +60,6 @@ def fix_elf_file(elf_file, path, root_path, search_strings):
     for search_string in search_strings:
         replace = b"$ORIGIN/"
         replace += os.path.relpath(root_path, os.path.dirname(path))
-        log(path.decode("ascii"))
-        log(root_path.decode("ascii"))
 
         if len(replace) > len(search_string):
             log("The search string is shorter than replace:")
@@ -102,7 +100,7 @@ def main():
         for file_name in files:
             path = os.path.join(directory, file_name)
 
-            if not os.path.isfile(path):
+            if not os.path.isfile(path) or os.path.islink(path):
                 continue
 
             if not os.access(path, os.X_OK):

@@ -110,3 +110,25 @@ components:
 
           echo "Some content" > "$TMP_ROOT$ORCHESTRA_ROOT/file1"
           cp -farl "$TMP_ROOT$ORCHESTRA_ROOT/file1" "$TMP_ROOT$ORCHESTRA_ROOT/file2"
+
+  dependency_component:
+    builds:
+      default:
+        configure: |
+          mkdir -p "$BUILD_DIR"
+        install: |
+          echo "Executing" "install" "script"
+          cd "$BUILD_DIR"
+          touch "$TMP_ROOT$ORCHESTRA_ROOT/dependency_component_file"
+
+  dependendant_component:
+    builds:
+      default:
+        configure: |
+          mkdir -p "$BUILD_DIR"
+        install: |
+          echo "Executing" "install" "script"
+          cd "$BUILD_DIR"
+          touch "$TMP_ROOT$ORCHESTRA_ROOT/dependendant_component_file"
+        dependencies:
+          - dependency_component

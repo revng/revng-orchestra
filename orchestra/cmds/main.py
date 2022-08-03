@@ -1,7 +1,6 @@
-import argparse
-
 from . import SubCommandParser
 from . import binary_archives
+from . import check_branch
 from . import clean
 from . import clone
 from . import components
@@ -54,6 +53,7 @@ subcommands = [
     clone,
     configure,
     install,
+    check_branch,
     uninstall,
     clean,
     update,

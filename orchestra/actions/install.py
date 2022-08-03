@@ -306,12 +306,14 @@ class InstallAction(ActionForBuild):
 
     def _drop_absolute_pkgconfig_paths(self):
         script = dedent(
-            """
+            r"""
             cd "${TMP_ROOT}${ORCHESTRA_ROOT}"
             if [ -e lib/pkgconfig ]; then
-                find lib/pkgconfig \\
-                    -name "*.pc" \\
-                    -exec sed -i 's|/*'"$ORCHESTRA_ROOT"'/*|${pcfiledir}/../..|g' {} ';'
+              find lib/pkgconfig -name '*.pc' -print0 | \
+                xargs -0 -r -n 100 -P$(nproc) \
+                sed \
+                  -i \
+                  's|/*'"$ORCHESTRA_ROOT"'/*|${pcfiledir}/../..|g'
             fi
             """
         )
@@ -345,21 +347,22 @@ class InstallAction(ActionForBuild):
 
     def _fix_rpath(self):
         replace_dynstr = os.path.join(os.path.dirname(__file__), "..", "support", "elf-replace-dynstr.py")
-        self._run_internal_script(f'"{replace_dynstr}" "$TMP_ROOT$ORCHESTRA_ROOT" "$RPATH_PLACEHOLDER" "$ORCHESTRA_ROOT"')
+        self._run_internal_script(
+            f'"{replace_dynstr}" "$TMP_ROOT$ORCHESTRA_ROOT" "$RPATH_PLACEHOLDER" "$ORCHESTRA_ROOT"'
+        )
 
     def _replace_ndebug(self, disable_debugging):
         debug, ndebug = ("0", "1") if disable_debugging else ("1", "0")
         patch_ndebug_script = dedent(
             rf"""
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
-            find include/ -name "*.h" \
-                -exec \
-                    sed -i \
-                    -e 's|^\s*#\s*ifndef\s\+NDEBUG|#if {debug}|' \
-                    -e 's|^\s*#\s*ifdef\s\+NDEBUG|#if {ndebug}|' \
-                    -e 's|^\(\s*#\s*if\s\+.*\)!defined(NDEBUG)|\1{debug}|' \
-                    -e 's|^\(\s*#\s*if\s\+.*\)defined(NDEBUG)|\1{ndebug}|' \
-                    {{}} ';'
+            find include/ -name '*.h' -print0 | \
+              xargs -0 -r -n 100 -P$(nproc) \
+              sed -i \
+                -e 's|^\s*#\s*ifndef\s\+NDEBUG|#if {debug}|' \
+                -e 's|^\s*#\s*ifdef\s\+NDEBUG|#if {ndebug}|' \
+                -e 's|^\(\s*#\s*if\s\+.*\)!defined(NDEBUG)|\1{debug}|' \
+                -e 's|^\(\s*#\s*if\s\+.*\)defined(NDEBUG)|\1{ndebug}|'
             """
         )
         self._run_internal_script(patch_ndebug_script)
@@ -369,12 +372,11 @@ class InstallAction(ActionForBuild):
         # fmt: off
         patch_ndebug_script = dedent(rf"""
             cd "$TMP_ROOT$ORCHESTRA_ROOT"
-            find include/ -name "*.h" \
-                -exec \
-                    sed -i \
-                    -e 's|__has_feature\(address_sanitizer\)|{replace_with}|' \
-                    -e 's|defined\(__SANITIZE_ADDRESS__\)|{replace_with}|' \
-                    {{}} ';'
+            find include/ -name '*.h' -print0 | \
+              xargs -0 -r -n 100 -P$(nproc) \
+              sed -i \
+                -e 's|__has_feature\(address_sanitizer\)|{replace_with}|' \
+                -e 's|defined\(__SANITIZE_ADDRESS__\)|{replace_with}|'
             """)
         # fmt: on
         self._run_internal_script(patch_ndebug_script)
