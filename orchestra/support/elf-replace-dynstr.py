@@ -25,28 +25,19 @@ def unique_or_none(list):
 
 def fix_elf_file(elf_file, path, root_path, search_strings):
     elf = ELFFile(elf_file)
-    dynamic = unique_or_none([segment
-                              for segment
-                              in elf.iter_segments()
-                              if type(segment) is DynamicSegment])
+    dynamic = unique_or_none([segment for segment in elf.iter_segments() if type(segment) is DynamicSegment])
 
     if dynamic is None:
         log("Not a dynamic executable")
         return 0
 
-    address = unique_or_none([tag.entry.d_val
-                              for tag
-                              in dynamic.iter_tags()
-                              if tag.entry.d_tag == "DT_STRTAB"])
+    address = unique_or_none([tag.entry.d_val for tag in dynamic.iter_tags() if tag.entry.d_tag == "DT_STRTAB"])
 
     offset = None
     if address:
         offset = unique_or_none(list(elf.address_offsets(address)))
 
-    size = unique_or_none([tag.entry.d_val
-                           for tag
-                           in dynamic.iter_tags()
-                           if tag.entry.d_tag == "DT_STRSZ"])
+    size = unique_or_none([tag.entry.d_val for tag in dynamic.iter_tags() if tag.entry.d_tag == "DT_STRSZ"])
 
     if offset is None or size is None:
         log("DT_STRTAB not found")
@@ -86,15 +77,10 @@ def fix_elf_file(elf_file, path, root_path, search_strings):
 def main():
     parser = argparse.ArgumentParser(description="Rewrite portions of .dynstr.")
     parser.add_argument("path", metavar="PATH", help="path to search in.")
-    parser.add_argument("search_strings",
-                        metavar="SEARCH_STRINGS",
-                        nargs="+",
-                        help="strings to search.")
+    parser.add_argument("search_strings", metavar="SEARCH_STRINGS", nargs="+", help="strings to search.")
     args = parser.parse_args()
 
-    search_strings = [search_string.encode("ascii")
-                      for search_string
-                      in args.search_strings]
+    search_strings = [search_string.encode("ascii") for search_string in args.search_strings]
 
     for directory, _, files in os.walk(args.path):
         for file_name in files:
@@ -107,14 +93,11 @@ def main():
                 continue
 
             with open(path, "rb+") as elf_file:
-                if elf_file.read(4) != b'\x7fELF':
+                if elf_file.read(4) != b"\x7fELF":
                     continue
                 elf_file.seek(0)
 
-                result = fix_elf_file(elf_file,
-                                      path.encode("ascii"),
-                                      args.path.encode("ascii"),
-                                      search_strings)
+                result = fix_elf_file(elf_file, path.encode("ascii"), args.path.encode("ascii"), search_strings)
 
                 if result != 0:
                     return result
