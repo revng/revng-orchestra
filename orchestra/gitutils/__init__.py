@@ -16,13 +16,8 @@ def _only(elements):
 def _clean_env(env=None):
     if not env:
         env = os.environ
+    return {k: v for k, v in env.items() if k != "GIT_DIR"}
 
-    env = env.copy()
-
-    if "GIT_DIR" in env:
-        del env["GIT_DIR"]
-
-    return env
 
 def run_git(
     *args,
