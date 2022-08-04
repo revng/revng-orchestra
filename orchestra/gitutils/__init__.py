@@ -8,6 +8,11 @@ from loguru import logger
 from ..actions.util import get_subprocess_output, run_internal_subprocess
 from ..exceptions import InternalException, InternalCommandException
 
+def _only(elements):
+    assert len(elements) == 1
+    return elements[0]
+
+
 def _clean_env(env=None):
     if not env:
         env = os.environ
@@ -81,9 +86,21 @@ def current_branch_info(repo_path):
                 commondir = os.path.join(dot_git, commondir)
             dot_git = commondir
 
-    # Open the file containing the branch name
-    with open(os.path.join(dot_git, "refs", "heads", branch), "r") as ref_file:
-        commit = ref_file.read().strip()
+    # Look into .git/refs/heads/$BRANCH_NAME
+    branch_file = os.path.join(dot_git, "refs", "heads", branch)
+    if os.path.isfile(branch_file):
+        with open(branch_file, "r") as ref_file:
+            commit = ref_file.read().strip()
+    else:
+        # Look into .git/info/refs
+        with open(os.path.join(dot_git, "info", "refs"), "r") as refs_file:
+            refs = refs_file.read().strip()
+            commit = _only([match.groups()[0]
+                            for match
+                            in [re.match(fr"^([0-9a-f]*)\s+refs/heads/{branch}$", line.strip())
+                                for line
+                                in refs.split("\n")]
+                            if match])
 
     return branch, commit
 
