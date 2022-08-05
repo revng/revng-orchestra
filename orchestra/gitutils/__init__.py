@@ -8,6 +8,7 @@ from loguru import logger
 from ..actions.util import get_subprocess_output, run_internal_subprocess
 from ..exceptions import InternalException, InternalCommandException
 
+
 def _only(elements):
     assert len(elements) == 1
     return elements[0]
@@ -16,13 +17,8 @@ def _only(elements):
 def _clean_env(env=None):
     if not env:
         env = os.environ
+    return {k: v for k, v in env.items() if k != "GIT_DIR"}
 
-    env = env.copy()
-
-    if "GIT_DIR" in env:
-        del env["GIT_DIR"]
-
-    return env
 
 def run_git(
     *args,
@@ -56,51 +52,50 @@ def ls_remote(remote):
 
 def current_branch_info(repo_path):
     # Compute base .git path
-    dot_git = os.path.join(repo_path, ".git")
+    dot_git = Path(repo_path) / ".git"
 
     # If it's a file, open it and move there
-    if os.path.isfile(dot_git):
-        with open(dot_git, "r") as dot_git_file:
-            content = dot_git_file.read().strip()
-        dot_git = re.match("""gitdir: (.*)""", content).groups()[0]
+    if dot_git.is_file():
+        content = dot_git.read_text().strip()
+        dot_git = Path(re.search(r"(?<=gitdir: ).*", content)[0])
 
     # At this point dot_git is a directory
-    assert os.path.isdir(dot_git)
+    assert dot_git.is_dir()
 
     # Read HEAD
-    with open(os.path.join(dot_git, "HEAD"), "r") as head_file:
-        head = head_file.read().strip()
+    head = (dot_git / "HEAD").read_text().strip()
 
     # Are we on a branch?
     match = re.match("ref: refs/heads/(.*)", head)
     if not match:
-        return None, None
-    branch = match.groups()[0]
+        # Deatached head
+        return "HEAD", head
+    branch = match[1]
 
     # If we have a commondir file, move there
-    commondir_path = os.path.join(dot_git, "commondir")
-    if os.path.isfile(commondir_path):
-        with open(commondir_path, "r") as commondir_file:
-            commondir = commondir_file.read().strip()
-            if not os.path.isabs(commondir):
-                commondir = os.path.join(dot_git, commondir)
-            dot_git = commondir
+    commondir_path = dot_git / "commondir"
+    if commondir_path.is_file():
+        commondir = Path(commondir_path.read_text().strip())
+        if not commondir.is_absolute():
+            commondir = dot_git / commondir
+        dot_git = commondir
 
     # Look into .git/refs/heads/$BRANCH_NAME
-    branch_file = os.path.join(dot_git, "refs", "heads", branch)
-    if os.path.isfile(branch_file):
-        with open(branch_file, "r") as ref_file:
-            commit = ref_file.read().strip()
+    branch_file = dot_git / "refs" / "heads" / branch
+    if branch_file.is_file():
+        commit = branch_file.read_text().strip()
     else:
         # Look into .git/info/refs
-        with open(os.path.join(dot_git, "info", "refs"), "r") as refs_file:
-            refs = refs_file.read().strip()
-            commit = _only([match.groups()[0]
-                            for match
-                            in [re.match(fr"^([0-9a-f]*)\s+refs/heads/{branch}$", line.strip())
-                                for line
-                                in refs.split("\n")]
-                            if match])
+        refs = (dot_git / "info" / "refs").read_text().strip()
+        commit = _only(
+            [
+                match[1]
+                for match in [
+                    re.match(rf"^([0-9a-f]*)\s+refs/heads/{branch}$", line.strip()) for line in refs.split("\n")
+                ]
+                if match
+            ]
+        )
 
     return branch, commit
 
