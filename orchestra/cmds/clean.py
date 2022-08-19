@@ -1,3 +1,4 @@
+import os
 import shutil
 
 from loguru import logger
@@ -19,18 +20,30 @@ def install_subcommand(sub_argparser: SubCommandParser):
     cmd_parser.add_argument("--all", action="store_true", help="Clean directories for all components")
 
 
+def _delete_contents(directory: str):
+    if not os.path.isdir(directory):
+        return
+
+    with os.scandir(directory) as scan:
+        for entry in scan:
+            if entry.is_dir():
+                shutil.rmtree(entry.path, ignore_errors=True)
+            else:
+                os.remove(entry.path)
+
+
 def clean_all(config: Configuration, args):
     builds_dir = config.builds_dir
-    logger.info(f"Cleaning builds dir {builds_dir}")
 
+    logger.info(f"Cleaning builds dir {builds_dir}")
     if not args.pretend:
-        shutil.rmtree(builds_dir, ignore_errors=True)
+        _delete_contents(builds_dir)
 
     if args.include_sources:
         sources_dir = config.sources_dir
         logger.info(f"Cleaning sources dir {sources_dir}")
         if not args.pretend:
-            shutil.rmtree(sources_dir, ignore_errors=True)
+            _delete_contents(sources_dir)
 
     return 0
 
