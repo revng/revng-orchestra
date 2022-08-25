@@ -94,9 +94,9 @@ def handle_graph(args):
         )
     if not args.no_color:
         assign_style(graph)
-    graphviz_format = nx.nx_agraph.to_agraph(graph)
-    graphviz_format.graph_attr["splines"] = "ortho"
-    graphviz_format.node_attr["shape"] = "box"
+    graphviz_format = nx.nx_pydot.to_pydot(graph)
+    graphviz_format.set_splines("ortho")
+    graphviz_format.set_node_defaults(shape="box")
     print(graphviz_format)
 
     return 0

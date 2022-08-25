@@ -25,13 +25,7 @@ python setup.py develop
 
 ### Prerequisites
 
-To run the testsuite you need to either install orchestra (see previous section) or install its dependencies:
-
-```
-apt install tree python3-pygraphviz
-```
-
-You will also need the following dependencies:
+To run the testsuite you need the following dependencies too:
 ```
 apt install build-essential cmake make autoconf git git-lfs
 ```

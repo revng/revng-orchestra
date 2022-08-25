@@ -28,11 +28,3 @@ def assign_style(graph):
         }
     nx.set_node_attributes(graph, styles)
 
-
-def show_graph(graph):
-    """
-    Debugging utility to dump a graph
-    """
-    assign_style(graph)
-    fname = "/tmp/graph.svg"
-    nx.nx_agraph.view_pygraphviz(graph, path=fname, show=False, args="-Gsplines=ortho")

@@ -8,4 +8,4 @@ tqdm~=4.60.0
 graphlib-backport~=1.0.3
 networkx~=2.5.1
 jsonschema~=3.2.0
-pygraphviz==1.6.0
+pydot==1.4.2
