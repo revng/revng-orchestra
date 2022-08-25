@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+import os
+import sys
+
 from pathlib import Path
 import setuptools.command.install_lib
 import subprocess
@@ -16,7 +19,7 @@ ensure_ytt_path = Path(__file__).parent / "orchestra/support/ensure_ytt.py"
 executable_support_files = [
     "support/ytt",
     "support/elf-replace-dynstr.py",
-    "support/verify-root",
+    "support/verify-root.py",
     "support/ensure_ytt.py",
 ]
 
@@ -25,12 +28,27 @@ def is_an_executable_support_file(path: str):
     return any(path.endswith(f) for f in executable_support_files)
 
 
+def is_python_script(path: str):
+    return path.lower().endswith(".py")
+
+
 def set_executable_bit(install_lib_instance: setuptools.command.install_lib.install_lib):
     for filename in install_lib_instance.get_outputs():
         if is_an_executable_support_file(filename):
             mode = (os.stat(filename).st_mode | 0o555) & 0o7777
             print(f"Changing mode of {filename} to {mode:o}")
             os.chmod(filename, mode)
+
+
+def fix_shebang(install_lib_instance: setuptools.command.install_lib.install_lib):
+    for filename in install_lib_instance.get_outputs():
+        if is_an_executable_support_file(filename) and is_python_script(filename):
+            with open(filename) as f:
+                lines = f.readlines()
+            assert lines[0].startswith("#!")
+            lines[0] = f"#!{sys.executable}{os.linesep}"
+            with open(filename, "w") as f:
+                f.writelines(lines)
 
 
 class ExtensibleInstallLibCommandFactory:
@@ -58,6 +76,7 @@ class ExtensibleInstallLibCommandFactory:
 
 custom_install_lib_cmd = ExtensibleInstallLibCommandFactory(
     additional_actions=[
+        fix_shebang,
         set_executable_bit,
     ]
 ).get_command()
