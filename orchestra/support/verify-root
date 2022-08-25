@@ -37,10 +37,7 @@ def unique_or_none(list):
 
 
 def get_dynamic(elf):
-    return unique_or_none([segment
-                           for segment
-                           in elf.iter_segments()
-                           if type(segment) is DynamicSegment])
+    return unique_or_none([segment for segment in elf.iter_segments() if type(segment) is DynamicSegment])
 
 
 class Root:
@@ -96,15 +93,13 @@ class Root:
     def check_installed_files(self):
         missing_files = self.all_files - self.installed_files
         if missing_files:
-            log("The following files are listed as installed but are not"
-                + " present in root:")
+            log("The following files are listed as installed but are not" + " present in root:")
             for missing_file in sorted(missing_files):
                 log("  {}".format(missing_file))
 
         extra_files = self.installed_files - self.all_files
         if extra_files:
-            log("The following files are present in root but do not belong to"
-                + " any component:")
+            log("The following files are present in root but do not belong to" + " any component:")
             for extra_file in sorted(extra_files):
                 log("  {}".format(extra_file))
 
@@ -150,49 +145,46 @@ class Root:
                 with open(path, "rb") as elf_file:
                     elf = ELFFile(elf_file)
                     dynamic_segment = get_dynamic(elf)
-                    if (self.is_for_host(installed_file, elf)
-                            and dynamic_segment):
+                    if self.is_for_host(installed_file, elf) and dynamic_segment:
 
                         if "link-only" not in installed_file:
                             libraries_in_root[os.path.basename(installed_file)].append(installed_file)
 
                         # Get the string table
-                        tag = unique_or_none([tag
-                                              for tag
-                                              in dynamic_segment.iter_tags()
-                                              if tag.entry.d_tag == "DT_STRTAB"])
+                        tag = unique_or_none(
+                            [tag for tag in dynamic_segment.iter_tags() if tag.entry.d_tag == "DT_STRTAB"]
+                        )
                         string_table_address = tag.entry.d_val
                         string_table_offset = unique_or_none(list(elf.address_offsets(string_table_address)))
 
-                        tag = unique_or_none([tag
-                                              for tag
-                                              in dynamic_segment.iter_tags()
-                                              if tag.entry.d_tag == "DT_STRSZ"])
+                        tag = unique_or_none(
+                            [tag for tag in dynamic_segment.iter_tags() if tag.entry.d_tag == "DT_STRSZ"]
+                        )
                         string_table_size = tag.entry.d_val
                         elf_file.seek(string_table_offset)
                         string_table = elf_file.read(string_table_size)
 
-                        glibc_versions = set([version.strip(b"\x00").decode("ascii")
-                                              for version in
-                                              re.findall(b"GLIBC_[0-9.]*\x00", string_table)])
+                        glibc_versions = set(
+                            [
+                                version.strip(b"\x00").decode("ascii")
+                                for version in re.findall(b"GLIBC_[0-9.]*\x00", string_table)
+                            ]
+                        )
                         if "link-only" in installed_file:
                             allowed_glibc_versions = allowed_glibc_versions.union(glibc_versions)
                         else:
                             used_glibc_versions[installed_file] = glibc_versions
 
                         runpaths = []
-                        runpath_tag = unique_or_none([tag
-                                                      for tag
-                                                      in dynamic_segment.iter_tags()
-                                                      if tag.entry.d_tag == "DT_RUNPATH"])
+                        runpath_tag = unique_or_none(
+                            [tag for tag in dynamic_segment.iter_tags() if tag.entry.d_tag == "DT_RUNPATH"]
+                        )
                         if runpath_tag:
-                            runpath = string_table[runpath_tag.entry.d_val:].split(b"\x00")[0].decode("ascii")
+                            runpath = string_table[runpath_tag.entry.d_val :].split(b"\x00")[0].decode("ascii")
                             runpath = runpath.replace("$ORIGIN", os.path.dirname(os.path.realpath(path)))
                             runpaths = runpath.split(":")
                             runpaths = map(os.path.realpath, runpaths)
-                            runpaths = [os.path.relpath(runpath, self.root_path)
-                                        for runpath
-                                        in runpaths]
+                            runpaths = [os.path.relpath(runpath, self.root_path) for runpath in runpaths]
                             runpaths = list(set(runpaths))
 
                             for runpath in runpaths:
@@ -201,18 +193,16 @@ class Root:
                                     invalid_runpaths[runpath].append(installed_file)
 
                         # Collect DT_NEEDED
-                        needed_string_offsets = [tag.entry.d_val
-                                                 for tag
-                                                 in dynamic_segment.iter_tags()
-                                                 if tag.entry.d_tag == "DT_NEEDED"]
+                        needed_string_offsets = [
+                            tag.entry.d_val for tag in dynamic_segment.iter_tags() if tag.entry.d_tag == "DT_NEEDED"
+                        ]
                         for needed_string_offset in needed_string_offsets:
                             lib_name = string_table[needed_string_offset:].split(b"\x00")[0].decode("ascii")
                             found = False
                             for runpath in runpaths:
-                                candidate = os.path.relpath(os.path.join(self.root_path,
-                                                                         runpath,
-                                                                         lib_name),
-                                                            self.root_path)
+                                candidate = os.path.relpath(
+                                    os.path.join(self.root_path, runpath, lib_name), self.root_path
+                                )
                                 if candidate in self.all_files:
                                     found = True
                                     break
