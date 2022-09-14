@@ -1,6 +1,7 @@
 from textwrap import dedent
 
 from ...orchestra_shim import OrchestraShim
+from ...fork_shim import ForkShim
 
 # Mapping from the name of a property in Configuration to the corresponding environment variable
 configuration_property_name_to_environment = {
@@ -205,7 +206,9 @@ def test_shell_environment(orchestra: OrchestraShim, monkeypatch):
     config = orchestra.configuration
 
     # Check global variables have expected value
-    orchestra("shell", "bash", "-c", global_variables_check_script.format(config=config))
+    with ForkShim() as shim:
+        orchestra("shell", "bash", "-c", global_variables_check_script.format(config=config))
+        assert shim.get_last_execution().returncode == 0
 
     # Check the user config can set/unset variables
     with monkeypatch.context() as m:

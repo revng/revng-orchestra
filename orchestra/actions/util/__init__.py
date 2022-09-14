@@ -1,10 +1,13 @@
 from collections import OrderedDict
+from subprocess import CompletedProcess
+from typing import NoReturn
 
 from .impl import _get_script_output
 from .impl import _get_subprocess_output
 from .impl import _run_internal_script
 from .impl import _run_internal_subprocess
 from .impl import _run_user_script
+from .impl import _run_script, _exec_script
 
 
 def run_internal_script(script, environment: OrderedDict = None, cwd=None):
@@ -35,6 +38,45 @@ def run_user_script(script, environment: OrderedDict = None, cwd=None):
     :param cwd: if not None, the command is executed in the specified path
     """
     _run_user_script(script, environment=environment, check_returncode=True, cwd=cwd)
+
+
+def run_script(
+    script,
+    environment: OrderedDict = None,
+    strict_flags=True,
+    cwd=None,
+    loglevel="INFO",
+    stdout=None,
+    stderr=None,
+) -> CompletedProcess:
+    """Helper for running shell scripts.
+    :param script: the script to run
+    :param environment: will be exported at the beginning of the script
+    :param strict_flags: if True, a prelude is prepended to the script to help catch errors
+    :param cwd: if not None, the command is executed in the specified path
+    :param loglevel: log debug informations at this level
+    :param stdout: passed as the "stdout" parameter to subprocess.run
+    :param stderr: passed as the "stderr" parameter to subprocess.run
+    :return: a subprocess.CompletedProcess instance
+    """
+    return _run_script(script, environment, strict_flags, cwd, loglevel, stdout, stderr)
+
+
+def exec_script(
+    script,
+    environment: OrderedDict = None,
+    strict_flags=True,
+    cwd=None,
+    loglevel="INFO",
+) -> NoReturn:
+    """Helper for exec-ing into a shell scripts.
+    :param script: the script to run
+    :param environment: will be exported at the beginning of the script
+    :param strict_flags: if True, a prelude is prepended to the script to help catch errors
+    :param cwd: if not None, the command is executed in the specified path
+    :param loglevel: log debug informations at this level
+    """
+    _exec_script(script, environment, strict_flags, cwd, loglevel)
 
 
 def get_script_output(script, environment: OrderedDict = None, decode_as="utf-8", cwd=None):

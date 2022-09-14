@@ -27,4 +27,3 @@ def assign_style(graph):
             "fillcolor": color,
         }
     nx.set_node_attributes(graph, styles)
-

@@ -1,5 +1,9 @@
+import os
+import sys
 import subprocess
 from collections import OrderedDict
+from pathlib import Path
+from typing import NoReturn, Optional, Mapping, Union
 
 from loguru import logger
 
@@ -14,15 +18,38 @@ set -o pipefail
 """
 
 
+def _wrap_script(
+    script,
+    environment: Optional[Mapping] = None,
+    strict_flags: bool = True,
+    cwd: Union[Path, str] = None,
+) -> str:
+    """Helper function that will prepare the invocation of _{run,exec}_script
+    :param environment: environment variables to export
+    :param strict_flags: if True, prepends 'set' directives to the script to help catch errors
+    :param cwd: if present, switch directory to it before executing the script
+    """
+    script_to_run = bash_prelude if strict_flags else ""
+
+    if environment:
+        script_to_run += export_environment(environment)
+
+    if cwd:
+        script_to_run += f"cd '{cwd}'\n"
+
+    script_to_run += script
+    return script_to_run
+
+
 def _run_script(
     script,
-    environment: [OrderedDict, dict] = None,
+    environment: Optional[Mapping] = None,
     strict_flags=True,
     cwd=None,
     loglevel="INFO",
     stdout=None,
     stderr=None,
-):
+) -> subprocess.CompletedProcess:
     """Helper for running shell scripts.
     :param script: the script to run
     :param environment: will be exported at the beginning of the script
@@ -33,18 +60,37 @@ def _run_script(
     :param stderr: passed as the "stderr" parameter to subprocess.run
     :return: a subprocess.CompletedProcess instance
     """
-    if strict_flags:
-        script_to_run = bash_prelude
+
+    script_to_run = _wrap_script(script, environment, strict_flags, cwd)
+    logger.log(loglevel, f"The following script is going to be executed:\n{script.strip()}\n")
+    return subprocess.run(["/bin/bash", "-c", script_to_run], stdout=stdout, stderr=stderr)
+
+
+def _exec_script(
+    script,
+    environment: Optional[Mapping] = None,
+    strict_flags=True,
+    cwd=None,
+    loglevel="INFO",
+) -> NoReturn:
+    """Helper for exec-ing into a shell scripts.
+    :param script: the script to run
+    :param environment: will be exported at the beginning of the script
+    :param strict_flags: if True, a prelude is prepended to the script to help catch errors
+    :param cwd: if not None, the command is executed in the specified path
+    :param loglevel: log debug informations at this level
+    """
+
+    script_to_run = _wrap_script(script, environment, strict_flags, cwd)
+    logger.log(loglevel, f"The following script is going to be exec'ed into:\n{script.strip()}\n")
+
+    # Fork to allow the deletion of temporary directories/files by the child
+    pid = os.fork()
+    if pid == 0:
+        sys.exit(0)
     else:
-        script_to_run = ""
-
-    if environment:
-        script_to_run += export_environment(environment)
-
-    script_to_run += script
-
-    logger.log(loglevel, f"The following script is going to be executed:\n" + script.strip())
-    return subprocess.run(["/bin/bash", "-c", script_to_run], stdout=stdout, stderr=stderr, cwd=cwd)
+        os.waitpid(pid, 0)
+        os.execvpe("/bin/bash", ["/bin/bash", "-c", script_to_run], os.environ)
 
 
 def _run_internal_script(script, environment: OrderedDict = None, check_returncode=True, cwd=None):

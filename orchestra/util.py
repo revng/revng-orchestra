@@ -2,6 +2,7 @@ import os
 import re
 import sys
 from collections import OrderedDict
+from typing import Mapping
 
 from .exceptions import UserException
 
@@ -13,7 +14,7 @@ def parse_component_name(component_spec):
     return component_name, build_name
 
 
-def export_environment(variables: OrderedDict):
+def export_environment(variables: Mapping):
     env = ""
     for var, val in variables.items():
         if var.startswith("-"):
