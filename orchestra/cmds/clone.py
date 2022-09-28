@@ -2,7 +2,6 @@ from loguru import logger
 
 from . import SubCommandParser
 from .common import execution_options
-from ..executor import Executor
 from ..model.configuration import Configuration
 
 
@@ -34,6 +33,7 @@ def handle_clone(args):
 
         actions.add(build.component.clone)
 
+    from ..executor import Executor
     executor = Executor(actions, no_force=args.no_force, pretend=args.pretend)
     failed = executor.run()
     exitcode = 1 if failed else 0

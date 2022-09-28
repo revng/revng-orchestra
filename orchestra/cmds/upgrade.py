@@ -1,6 +1,5 @@
 from . import SubCommandParser
 from .common import execution_options, build_options
-from ..executor import Executor
 from ..model.configuration import Configuration
 from ..model.install_metadata import load_metadata
 
@@ -36,6 +35,7 @@ def handle_upgrade(args):
 
     args.keep_tmproot = False
     args.no_merge = False
+    from ..executor import Executor
     executor = Executor(install_actions, no_force=True, pretend=args.pretend)
     failed = executor.run()
     exitcode = 1 if failed else 0

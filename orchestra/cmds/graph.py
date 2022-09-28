@@ -1,11 +1,8 @@
-import networkx as nx
 from loguru import logger
 
 from . import SubCommandParser
 from .common import build_options
-from ..executor import Executor
 from ..model.configuration import Configuration
-from ..actions.graph_util import assign_style
 
 
 def install_subcommand(sub_argparser: SubCommandParser):
@@ -81,6 +78,7 @@ def handle_graph(args):
             else:
                 actions.add(component.default_build.install)
 
+    from ..executor import Executor
     executor = Executor(actions, no_force=args.no_force)
 
     if not args.solved:
@@ -93,7 +91,9 @@ def handle_graph(args):
             transitive_reduction=not args.no_transitive_reduction,
         )
     if not args.no_color:
+        from ..actions.graph_util import assign_style
         assign_style(graph)
+    import networkx as nx
     graphviz_format = nx.nx_pydot.to_pydot(graph)
     graphviz_format.set_splines("ortho")
     graphviz_format.set_node_defaults(shape="box")
