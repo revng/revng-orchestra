@@ -8,7 +8,7 @@ from typing import Dict
 
 from fuzzywuzzy import fuzz
 from loguru import logger
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 from ._generate import generate_yaml_configuration, validate_configuration_schema
 from ..component import Component

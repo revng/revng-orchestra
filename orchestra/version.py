@@ -1,5 +1,5 @@
 from pathlib import Path
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 version_file = Path(__file__).parent / "support/VERSION"
 

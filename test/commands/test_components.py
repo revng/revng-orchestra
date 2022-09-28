@@ -1,7 +1,8 @@
 import json
 import jsonschema
 import yaml
-import pkg_resources
+
+from pkgutil import get_data
 
 from ..orchestra_shim import OrchestraShim
 
@@ -22,5 +23,5 @@ def test_components_json_output_format(orchestra: OrchestraShim, capsys):
     out, err = capsys.readouterr()
     parsed_output = json.loads(out)
 
-    schema = yaml.safe_load(pkg_resources.resource_stream("test.commands", "components_json.schema.yml"))
+    schema = yaml.safe_load(get_data("test.commands", "components_json.schema.yml"))
     jsonschema.validate(parsed_output, schema)
