@@ -1,11 +1,11 @@
 import json
 import os
 from pathlib import Path
+from pkgutil import get_data
 from textwrap import dedent
 from typing import Optional
 
 import jsonschema
-import pkg_resources
 import yaml
 
 from ...actions.util import get_script_output, get_subprocess_output
@@ -62,7 +62,7 @@ def hash_config_dir(config_dir):
 
 
 def validate_configuration_schema(parsed_config):
-    config_schema = pkg_resources.resource_stream("orchestra.support", "config.schema.yml")
+    config_schema = get_data("orchestra.support", "config.schema.yml")
     parsed_config_schema = yaml.safe_load(config_schema)
 
     try:
