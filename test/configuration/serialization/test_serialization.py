@@ -13,6 +13,5 @@ def test_component_serialization_rountrip(orchestra: OrchestraShim):
     serialized_component = component_G1.serialize()
     component_G2 = Component("component_G", serialized_component, config)
     component_G2.resolve_dependencies(config)
-    component_G2.compute_recursive_hash()
 
     assert component_G1.recursive_hash == component_G2.recursive_hash
