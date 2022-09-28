@@ -3,7 +3,6 @@ from loguru import logger
 from . import SubCommandParser
 from .common import build_options, execution_options
 from ..actions.uninstall import uninstall
-from ..executor import Executor
 from ..gitutils.lfs import assert_lfs_installed
 from ..model.configuration import Configuration
 from ..model.install_metadata import is_installed
@@ -77,6 +76,7 @@ def handle_install(args):
             if not args.pretend:
                 uninstall(component_to_uninstall.name, config)
 
+    from ..executor import Executor
     for action in actions:
         executor = Executor([action], no_deps=args.no_deps, no_force=args.no_force, pretend=args.pretend)
         failed = executor.run()

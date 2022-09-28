@@ -2,7 +2,6 @@ from loguru import logger
 
 from . import SubCommandParser
 from .common import execution_options, build_options
-from ..executor import Executor
 from ..gitutils.lfs import assert_lfs_installed
 from ..model.configuration import Configuration
 
@@ -42,6 +41,7 @@ def handle_configure(args):
 
         actions.add(build.configure)
 
+    from ..executor import Executor
     executor = Executor(actions, no_deps=args.no_deps, no_force=args.no_force, pretend=args.pretend)
 
     failed = executor.run()
