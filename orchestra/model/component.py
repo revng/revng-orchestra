@@ -71,7 +71,12 @@ class Component:
 
     @property
     def recursive_hash(self):
-        assert self._recursive_hash is not None, "Accessed recursive_hash before calling compute_recursive_hash"
+        assert self._resolve_dependencies_called, "Called recursive_hash before resolve_dependencies"
+
+        if self._recursive_hash is None:
+            hash_material = self.recursive_hash_material()
+            self._recursive_hash = hash(hash_material)
+
         return self._recursive_hash
 
     @lru_cache(maxsize=None, typed=False)
@@ -186,13 +191,6 @@ class Component:
                 continue
             dependency_components.add(action.component)
         return dependency_components
-
-    def compute_recursive_hash(self):
-        assert self._resolve_dependencies_called, "Called compute_recursive_hash before resolve_dependencies"
-
-        if self._recursive_hash is None:
-            hash_material = self.recursive_hash_material()
-            self._recursive_hash = hash(hash_material)
 
     def __str__(self):
         return f"Component {self.name}"
