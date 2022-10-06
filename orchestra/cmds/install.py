@@ -77,6 +77,7 @@ def handle_install(args):
                 uninstall(component_to_uninstall.name, config)
 
     from ..executor import Executor
+
     for action in actions:
         executor = Executor([action], no_deps=args.no_deps, no_force=args.no_force, pretend=args.pretend)
         failed = executor.run()

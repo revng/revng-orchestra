@@ -79,6 +79,7 @@ def handle_graph(args):
                 actions.add(component.default_build.install)
 
     from ..executor import Executor
+
     executor = Executor(actions, no_force=args.no_force)
 
     if not args.solved:
@@ -92,8 +93,10 @@ def handle_graph(args):
         )
     if not args.no_color:
         from ..actions.graph_util import assign_style
+
         assign_style(graph)
     import networkx as nx
+
     graphviz_format = nx.nx_pydot.to_pydot(graph)
     graphviz_format.set_splines("ortho")
     graphviz_format.set_node_defaults(shape="box")

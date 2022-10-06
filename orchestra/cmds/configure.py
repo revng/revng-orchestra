@@ -42,6 +42,7 @@ def handle_configure(args):
         actions.add(build.configure)
 
     from ..executor import Executor
+
     executor = Executor(actions, no_deps=args.no_deps, no_force=args.no_force, pretend=args.pretend)
 
     failed = executor.run()

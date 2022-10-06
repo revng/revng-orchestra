@@ -34,6 +34,7 @@ def handle_clone(args):
         actions.add(build.component.clone)
 
     from ..executor import Executor
+
     executor = Executor(actions, no_force=args.no_force, pretend=args.pretend)
     failed = executor.run()
     exitcode = 1 if failed else 0
