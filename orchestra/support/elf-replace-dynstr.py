@@ -92,6 +92,9 @@ def main():
             if not os.access(path, os.X_OK):
                 continue
 
+            if not os.access(path, os.W_OK):
+                os.chmod(path, 0o755)
+
             with open(path, "rb+") as elf_file:
                 if elf_file.read(4) != b"\x7fELF":
                     continue
