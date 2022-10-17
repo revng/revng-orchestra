@@ -233,6 +233,9 @@ class InstallAction(ActionForBuild):
         logger.debug("Dropping absolute paths from pkg-config")
         self._drop_absolute_pkgconfig_paths()
 
+        logger.debug("Fix shebangs in bin/")
+        self._fix_shebangs()
+
         logger.debug("Purging libtools' files")
         self._purge_libtools_files()
 
@@ -314,6 +317,21 @@ class InstallAction(ActionForBuild):
                 sed \
                   -i \
                   's|/*'"$ORCHESTRA_ROOT"'/*|${pcfiledir}/../..|g'
+            fi
+            """
+        )
+        self._run_internal_script(script)
+
+    def _fix_shebangs(self):
+        script = dedent(
+            r"""
+            cd "${TMP_ROOT}${ORCHESTRA_ROOT}"
+            if [ -e bin ]; then
+              find bin -maxdepth 1 -type f -print0 | \
+                xargs -0 -r -n 100 -P$(nproc) \
+                sed \
+                  -i \
+                  '1 s|^#!'"$ORCHESTRA_ROOT"'/bin/|#!/usr/bin/env |g'
             fi
             """
         )
