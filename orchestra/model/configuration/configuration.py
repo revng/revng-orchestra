@@ -315,6 +315,9 @@ class Configuration:
 
 
 def locate_orchestra_dotdir(cwd=None):
+    if "ORCHESTRA_DOTDIR" in os.environ:
+        return os.environ["ORCHESTRA_DOTDIR"]
+
     if cwd is None:
         if globals.orchestra_dotdir is not None:
             cwd = globals.orchestra_dotdir
