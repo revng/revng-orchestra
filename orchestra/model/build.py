@@ -85,6 +85,14 @@ class Build:
     def safe_name(self):
         return self.qualified_name.replace("@", "_").replace("/", "_")
 
+    @property
+    def dependencies(self):
+        return self._explicit_dependencies
+
+    @property
+    def build_dependencies(self):
+        return self._explicit_build_dependencies
+
     def serialize(self):
         return {
             "configure": self.configure.script,

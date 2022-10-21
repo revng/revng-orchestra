@@ -4,7 +4,7 @@ from loguru import logger
 
 from . import SubCommandParser
 from ..model.configuration import Configuration
-from ..model.install_metadata import load_file_list, is_installed
+from ..model.install_metadata import load_file_list, is_installed, load_metadata
 
 
 def install_subcommand(sub_argparser: SubCommandParser):
@@ -45,6 +45,17 @@ def install_component_subcommand(sub_argparser: SubCommandParser):
     )
     all_subparsers.add(hash_material_parser)
 
+    dependencies_parser = component_parser.add_subcmd(
+        "dependencies",
+        handler=handle_dependencies,
+        help="Print all the dependencies of the specified component",
+    )
+    dependencies_parser.add_argument(
+        "--installed", action="store_true", help="Use metadata from the installed components"
+    )
+    dependencies_parser.add_argument("--runtime", action="store_true", help="Only show runtime dependencies")
+    all_subparsers.add(dependencies_parser)
+
     # Add component parameter to all subcmds
     for subparser in all_subparsers:
         subparser.add_argument("component", help="Name of the component to act on")
@@ -84,9 +95,50 @@ def handle_hash_material(args):
     return 0
 
 
+def handle_dependencies(args):
+    if not args.installed:
+        logger.error("'orc inspect component dependencies' only works with --installed for now")
+        return 1
+    config = Configuration(use_config_cache=args.config_cache)
+    main_build = config.get_build(args.component)
+
+    if main_build is None:
+        suggested_component_name = config.get_suggested_component_name(args.component)
+        logger.error(f"Component {args.component} not found! Did you mean {suggested_component_name}?")
+        return 1
+
+    if _get_installed_build(config, args.component) is None:
+        logger.error(f"Component {args.component} is not installed but --installed was provided")
+        return 1
+
+    if args.runtime:
+        dependencies = [*main_build.dependencies]
+    else:
+        dependencies = [*main_build.dependencies, *main_build.build_dependencies]
+
+    builds_to_scan = [_get_installed_build(config, d) for d in dependencies]
+    while len(builds_to_scan) > 0:
+        build = builds_to_scan.pop(0)
+
+        for dependency in build.dependencies:
+            if dependency not in dependencies:
+                builds_to_scan.append(_get_installed_build(config, dependency))
+                dependencies.append(dependency)
+
+    print("\n".join(dependencies))
+    return 0
+
+
 def handle_config(args):
     config = Configuration(use_config_cache=args.config_cache)
     with open(os.path.join(config.cache_dir, "config_cache.yml")) as f:
         print(f.read())
 
     return 0
+
+
+def _get_installed_build(config, component_name):
+    metadata = load_metadata(component_name, config)
+    if metadata is None:
+        return None
+    return config.components[component_name].builds[metadata.build_name]
