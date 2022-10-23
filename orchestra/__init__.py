@@ -23,7 +23,7 @@ def _main(argv):
     # Remove all handlers before installing ours
     logger.remove()
     logger.add(
-        TqdmWrapper(),
+        sys.stderr,
         level=args.loglevel,
         colorize=True,
         format="<level>[+] {level}</level> - {message}",
