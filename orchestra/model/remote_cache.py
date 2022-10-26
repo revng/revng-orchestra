@@ -56,12 +56,12 @@ class RemoteHeadsCache:
             if not result:
                 return component.clone.repository
 
-        failed_repositories = []
+        failed_repositories = set()
         progress_bar = tqdm(total=len(clonable_components), unit="component")
         with ThreadPoolExecutor(max_workers=parallelism) as executor:
             for failed_repository in executor.map(get_branches, clonable_components):
                 if failed_repository is not None:
-                    failed_repositories.append(failed_repository)
+                    failed_repositories.add(failed_repository)
                 progress_bar.update()
 
         self._persist_cache()
