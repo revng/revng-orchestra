@@ -15,7 +15,7 @@ from ..model.configuration import Configuration
 def install_subcommand(sub_argparser: SubCommandParser):
     cmd_parser = sub_argparser.add_subcmd("update", handler=handle_update, help="Update components")
     cmd_parser.add_argument("--no-config", action="store_true", help="Don't pull orchestra config")
-    cmd_parser.add_argument("--parallelism", type=int, default=1, help="Maximum parallel processes")
+    cmd_parser.add_argument("--parallelism", type=int, default=8, help="Maximum parallel processes")
 
 
 def handle_update(args):
