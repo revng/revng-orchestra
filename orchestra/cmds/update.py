@@ -138,6 +138,7 @@ def clone_binary_archive(name, url, config):
     env = os.environ.copy()
     env["GIT_SSH_COMMAND"] = "ssh -oControlPath=~/.ssh/ssh-mux-%r@%h:%p -oControlMaster=auto -o ControlPersist=10"
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
+    env["GIT_TERMINAL_PROMPT"] = "0"
     returncode = try_run_internal_subprocess(
         ["git", "clone", url, binary_archive_path],
         environment=env,
@@ -165,6 +166,7 @@ def git_clean(directory):
 def git_reset_hard(directory, ref="master"):
     env = os.environ.copy()
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
+    env["GIT_TERMINAL_PROMPT"] = "0"
     return run_internal_subprocess(["git", "reset", "--hard", ref], cwd=directory, environment=env)
 
 
@@ -173,5 +175,6 @@ def git_pull(directory):
     Returns a boolean value representing the operation success."""
     env = os.environ.copy()
     env["GIT_LFS_SKIP_SMUDGE"] = "1"
+    env["GIT_TERMINAL_PROMPT"] = "0"
     returncode = try_run_internal_subprocess(["git", "pull", "--ff-only"], environment=env, cwd=directory)
     return returncode == 0
