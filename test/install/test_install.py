@@ -87,7 +87,7 @@ def test_forced_install_from_source(orchestra: OrchestraShim, capsys):
     assert "Executing install script" in out
 
     orchestra.clean_root()
-    orchestra("clean", "--include-sources", "component_A")
+    orchestra("clean", "component_A")
 
     orchestra("install", "-B", "component_A")
     out, err = capsys.readouterr()
@@ -106,7 +106,7 @@ def test_install_from_binary_archives(orchestra: OrchestraShim, capsys):
     assert "Executing install script" in out
 
     orchestra.clean_root()
-    orchestra("clean", "--include-sources", "component_A")
+    orchestra("clean", "component_A")
 
     orchestra("install", "component_A")
     out, err = capsys.readouterr()
