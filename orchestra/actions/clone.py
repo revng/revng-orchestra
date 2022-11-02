@@ -1,13 +1,12 @@
 import os.path
 
-from .action import ActionForComponent
+from .action import ActionForRepository
 from .. import gitutils
 
 
-class CloneAction(ActionForComponent):
-    def __init__(self, component, repository, config):
-        super().__init__("clone", component, None, config)
-        self.repository = repository
+class CloneAction(ActionForRepository):
+    def __init__(self, repository, config):
+        super().__init__("clone", repository, None, config)
 
     @property
     def script(self):
@@ -40,7 +39,7 @@ class CloneAction(ActionForComponent):
         if os.path.exists(source_dir):
             return gitutils.ls_remote(source_dir)
 
-        return self.config.remote_heads_cache.heads(self.component)
+        return self.config.remote_heads_cache.heads(self.repository)
 
     def branch(self):
         """Returns a 2-tuple (branch name, commit hash).

@@ -266,7 +266,7 @@ class InstallAction(ActionForBuild):
                 f"""
                 DESTINATION_DIR="$TMP_ROOT$(dirname "{destination}")"
                 mkdir -p "$DESTINATION_DIR"
-                for DIR in "$BUILD_DIR" "$SOURCE_DIR"; do
+                for DIR in "$BUILD_DIR" "${{SOURCE_DIR-/non-existing}}"; do
                   if test -e "$DIR/{source}"; then
                     cp "$DIR/{source}" "$TMP_ROOT/{destination}"
                     exit 0

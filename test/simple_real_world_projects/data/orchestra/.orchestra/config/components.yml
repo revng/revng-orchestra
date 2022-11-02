@@ -7,13 +7,11 @@ components:
             echo "Sources not found" && exit 1
           fi
 
-          mkdir -p "$(dirname "$SOURCE_DIR")"
-          cp -r "$PROJECT_SOURCES" "$SOURCE_DIR"
-
-          mkdir -p "$BUILD_DIR"
+          mkdir -p "$BUILD_DIR/source"
           cd "$BUILD_DIR"
-          autoreconf -i "$SOURCE_DIR"
-          "$SOURCE_DIR/configure" \
+          cp -r "$PROJECT_SOURCES"/* source/
+          autoreconf -i source/
+          "source/configure" \
             --prefix="$ORCHESTRA_ROOT"
 
         install: |
@@ -29,15 +27,13 @@ components:
             echo "Sources not found" && exit 1
           fi
 
-          mkdir -p "$(dirname "$SOURCE_DIR")"
-          cp -r "$PROJECT_SOURCES" "$SOURCE_DIR"
-
-          mkdir -p "$BUILD_DIR"
+          mkdir -p "$BUILD_DIR/source"
           cd "$BUILD_DIR"
+          cp -r "$PROJECT_SOURCES"/* source/
           cmake \
             -G"Unix Makefiles" \
             -DCMAKE_INSTALL_PREFIX="$ORCHESTRA_ROOT" \
-            "$SOURCE_DIR"
+            source/
 
         install: |
           cd "$BUILD_DIR"

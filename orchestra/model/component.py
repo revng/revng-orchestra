@@ -9,6 +9,7 @@ from . import build as bld
 from ._hash import hash
 from ..actions import any_of
 from ..actions import clone
+from ..actions.action import ActionForBuild
 from ..exceptions import UserException
 
 
@@ -27,7 +28,9 @@ class Component:
 
         self.clone: Union[clone.CloneAction, None] = None
         if self.repository:
-            self.clone = clone.CloneAction(self, self.repository, configuration)
+            if self.repository not in configuration.repositories:
+                configuration.repositories[self.repository] = clone.CloneAction(self.repository, configuration)
+            self.clone = configuration.repositories[self.repository]
 
         self.triggers = []
         if configuration.run_tests:
@@ -189,7 +192,8 @@ class Component:
         for action in dependency_actions:
             if isinstance(action, any_of.AnyOfAction):
                 continue
-            dependency_components.add(action.component)
+            if isinstance(action, ActionForBuild):
+                dependency_components.add(action.component)
         return dependency_components
 
     def __str__(self):

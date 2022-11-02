@@ -83,18 +83,18 @@ components:
         default:
           configure: |
             if [[ ! -d "$PROJECT_SOURCES" ]]; then
-              echo "Sources not found" && exit 1
+              echo "Sources not found: $PROJECT_SOURCES" && exit 1
             fi
 
-            mkdir -p "$(dirname "$SOURCE_DIR")"
-            cp -r "$PROJECT_SOURCES" "$SOURCE_DIR"
-            mkdir -p "$BUILD_DIR"
+            mkdir -p "$BUILD_DIR/source"
+            cd "$BUILD_DIR"
+            cp -r "$PROJECT_SOURCES"/* source/
           install: |
             cd "$BUILD_DIR"
             gcc -o test \
               -Wl,--enable-new-dtags \
               -Wl,-rpath="$RPATH_PLACEHOLDER" \
-              "$SOURCE_DIR/test.c"
+              "source/test.c"
             cp test "$TMP_ROOT$ORCHESTRA_ROOT/bin"
 
   component_that_skips_post_install:

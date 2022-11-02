@@ -33,33 +33,33 @@ class RemoteHeadsCache:
         else:
             logger.warning("The remote HEADs cache does not exist, you should run `orchestra update`")
 
-    def heads(self, component):
-        return self._cached_remote_data.get(component.name)
+    def heads(self, repository):
+        return self._cached_remote_data.get(repository)
 
     def rebuild_cache(self, parallelism=1):
         # TODO: outline progress reporting using a callback
         self._cached_remote_data = {}
 
-        clonable_components = list(filter(lambda c: c.clone is not None, self.config.components.values()))
+        repositories = list(self.config.repositories.keys())
 
-        def get_branches(component):
-            logger.debug(f"Fetching the latest remote commit for {component.name}")
+        def get_branches(repository):
+            logger.debug(f"Fetching the latest remote commit for {repository}")
 
-            remotes = [f"{base_url}/{component.clone.repository}" for base_url in self.config.remotes.values()]
+            remotes = [f"{base_url}/{repository}" for base_url in self.config.remotes.values()]
             result = None
             for remote in remotes:
                 result = ls_remote(remote)
                 if result:
-                    self._cached_remote_data[component.name] = result
+                    self._cached_remote_data[repository] = result
                     break
 
             if not result:
-                return component.clone.repository
+                return repository
 
         failed_repositories = set()
-        progress_bar = tqdm(total=len(clonable_components), unit="component")
+        progress_bar = tqdm(total=len(repositories), unit="repository")
         with ThreadPoolExecutor(max_workers=parallelism) as executor:
-            for failed_repository in executor.map(get_branches, clonable_components):
+            for failed_repository in executor.map(get_branches, repositories):
                 if failed_repository is not None:
                     failed_repositories.add(failed_repository)
                 progress_bar.update()
@@ -71,9 +71,9 @@ class RemoteHeadsCache:
         with open(self.cache_path, "w") as f:
             json.dump(self._cached_remote_data, f)
 
-    def set_entry(self, component_name, branch_name, commit):
+    def set_entry(self, repository, branch_name, commit):
         """Sets a cache entry and persists the cache to disk. Not thread safe!"""
-        current_cached_info = self._cached_remote_data.get(component_name, {})
+        current_cached_info = self._cached_remote_data.get(repository, {})
         current_cached_info[branch_name] = commit
-        self._cached_remote_data[component_name] = current_cached_info
+        self._cached_remote_data[repository] = current_cached_info
         self._persist_cache()

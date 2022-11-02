@@ -101,32 +101,34 @@ class Action:
         return try_get_script_output(script, environment=self.environment, cwd=cwd)
 
 
-class ActionForComponent(Action):
-    def __init__(self, name, component, script, config):
+class ActionForRepository(Action):
+    def __init__(self, name, repository, script, config):
         super().__init__(name, script, config)
-        self.component = component
+        self.repository = repository
 
     @property
     def environment(self) -> "OrderedDict[str, str]":
         env = super().environment
-        env["SOURCE_DIR"] = self.source_dir
+        if self.source_dir:
+            env["SOURCE_DIR"] = self.source_dir
         return env
 
     @property
-    def _target_name(self):
-        return self.component.name
+    def source_dir(self) -> str:
+        if self.repository:
+            return os.path.join(self.config.sources_dir, self.repository)
+        return None
 
     @property
-    def source_dir(self) -> str:
-        if self.component.clone:
-            return os.path.join(self.config.sources_dir, self.component.clone.repository)
-
-        return os.path.join(self.config.sources_dir, self.component.name)
+    def _target_name(self):
+        assert self.repository
+        return self.repository
 
 
-class ActionForBuild(ActionForComponent):
+class ActionForBuild(ActionForRepository):
     def __init__(self, name, build, script, config):
-        super().__init__(name, build.component, script, config)
+        super().__init__(name, build.component.repository, script, config)
+        self.component = build.component
         self.build = build
 
     @property

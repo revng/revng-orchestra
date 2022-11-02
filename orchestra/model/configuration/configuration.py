@@ -36,6 +36,8 @@ class Configuration:
     ):
         self.components: Dict[str, Component] = {}
 
+        self.repositories: Dict[str, CloneAction] = {}
+
         # Allows to trigger a build from source if binary archives are not found
         self.fallback_to_build = fallback_to_build
 

@@ -16,7 +16,6 @@
   configure: #@ configure
   #@ else:
   configure: |
-    mkdir -p "$SOURCE_DIR"
     mkdir -p "$BUILD_DIR"
   #@ end
 
