@@ -43,24 +43,28 @@ class Executor:
         if not self._toposorter.is_active():
             logger.info("No actions to perform")
 
+        ready = set()
         while self._toposorter.is_active() and (not failed_actions or not stop_on_failure):
-            for action in self._toposorter.get_ready():
-                try:
-                    self._toposorter.start_jobs(action)
-                    explicitly_requested = action in self.actions
-                    action.run(pretend=self.pretend, explicitly_requested=explicitly_requested)
-                    self._toposorter.done(action)
-                except OrchestraException as exception:
-                    exception.log_error()
-                    failed_actions.add(action)
-                    if stop_on_failure:
-                        break
-                except:
-                    # The call to logger.exception automatically prints the exception info
-                    logger.exception(f"An unexpected exception occurred while running {action}")
-                    failed_actions.add(action)
-                    if stop_on_failure:
-                        break
+            ready.update(set(self._toposorter.get_ready()))
+            action = sorted(ready, key=lambda action: action.name_for_components)[0]
+            ready.remove(action)
+
+            try:
+                self._toposorter.start_jobs(action)
+                explicitly_requested = action in self.actions
+                action.run(pretend=self.pretend, explicitly_requested=explicitly_requested)
+                self._toposorter.done(action)
+            except OrchestraException as exception:
+                exception.log_error()
+                failed_actions.add(action)
+                if stop_on_failure:
+                    break
+            except:
+                # The call to logger.exception automatically prints the exception info
+                logger.exception(f"An unexpected exception occurred while running {action}")
+                failed_actions.add(action)
+                if stop_on_failure:
+                    break
 
         return failed_actions
 
