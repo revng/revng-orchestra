@@ -7,7 +7,7 @@ import time
 from collections import OrderedDict, defaultdict
 from pathlib import Path
 from textwrap import dedent
-from typing import Optional
+from typing import Iterable, List, Optional
 
 from loguru import logger
 
@@ -105,6 +105,12 @@ class InstallAction(ActionForBuild):
             if is_installed(self.config, self.build.component.name):
                 logger.debug("Uninstalling previously installed build")
                 uninstall(self.build.component.name, self.config)
+
+            logger.debug("Checking for file conflicts")
+            conflicts_list = self._get_conflicts(new_files, orchestra_root)
+            if len(conflicts_list) > 0:
+                list_joined = "\n".join(conflicts_list)
+                raise UserException(f"File conflicts detected:\n{list_joined}\nAborting merge")
 
             logger.debug("Merging installed files into orchestra root directory")
             self._merge()
@@ -399,8 +405,11 @@ class InstallAction(ActionForBuild):
         # fmt: on
         self._run_internal_script(patch_ndebug_script)
 
+    def _get_conflicts(self, file_list: Iterable[str], root: str) -> List[str]:
+        return [file for file in file_list if os.path.exists(os.path.join(root, file))]
+
     def _merge(self):
-        copy_command = f'cp -far --reflink=auto "$TMP_ROOT/$ORCHESTRA_ROOT/." "$ORCHESTRA_ROOT"'
+        copy_command = 'cp -ar --reflink=auto "$TMP_ROOT/$ORCHESTRA_ROOT/." "$ORCHESTRA_ROOT"'
         self._run_internal_script(copy_command)
 
     def _create_binary_archive(self):
