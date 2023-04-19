@@ -311,13 +311,15 @@ class InstallAction(ActionForBuild):
         script = dedent(
             r"""
             cd "${TMP_ROOT}${ORCHESTRA_ROOT}"
-            if [ -e lib/pkgconfig ]; then
-              find lib/pkgconfig -name '*.pc' -print0 | \
-                xargs -0 -r -n 100 -P$(nproc) \
-                sed \
-                  -i \
-                  's|/*'"$ORCHESTRA_ROOT"'/*|${pcfiledir}/../..|g'
-            fi
+            for PKG_PATH in lib/pkgconfig share/pkgconfig; do
+              if [ -e "$PKG_PATH" ]; then
+                find "$PKG_PATH" -name '*.pc' -print0 | \
+                  xargs -0 -r -n 100 -P$(nproc) \
+                  sed \
+                    -i \
+                    's|/*'"$ORCHESTRA_ROOT"'/*|${pcfiledir}/../..|g'
+              fi
+            done
             """
         )
         self._run_internal_script(script)
