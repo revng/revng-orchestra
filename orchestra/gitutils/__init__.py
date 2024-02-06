@@ -9,11 +9,6 @@ from ..actions.util import get_subprocess_output, run_internal_subprocess
 from ..exceptions import InternalException, InternalCommandException
 
 
-def _only(elements):
-    assert len(elements) == 1
-    return elements[0]
-
-
 def _clean_env(env=None):
     if not env:
         env = os.environ
@@ -86,17 +81,22 @@ def current_branch_info(repo_path):
     if branch_file.is_file():
         commit = branch_file.read_text().strip()
     else:
-        # Look into .git/info/refs
-        refs = (dot_git / "info" / "refs").read_text().strip()
-        commit = _only(
-            [
-                match[1]
-                for match in [
-                    re.match(rf"^([0-9a-f]*)\s+refs/heads/{branch}$", line.strip()) for line in refs.split("\n")
-                ]
-                if match
+        # Look into .git/info/refs and into .git/packed-refs, if they are files.
+        if (dot_git / "info" / "refs").is_file():
+            refs = (dot_git / "info" / "refs").read_text().strip()
+        if (dot_git / "packed-refs").is_file():
+            refs += (dot_git / "packed-refs").read_text().strip()
+
+        matching_lines = [
+            match[1]
+            for match in [
+                re.match(rf"^([0-9a-f]*)\s+refs/heads/{branch}$", line.strip()) for line in refs.split("\n")
             ]
-        )
+            if match
+        ]
+        assert len(matching_lines) >= 1, f"Expected at least one match for branch '{branch}', got none"
+        assert all(matching_lines[0] == x for x in matching_lines), f"All matches for branch '{branch}' should be equal"
+        commit = matching_lines[0]
 
     return branch, commit
 
