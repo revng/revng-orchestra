@@ -1,12 +1,16 @@
 import os
 import re
+import warnings
 from collections import OrderedDict
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from textwrap import dedent
 from typing import Dict
 
-from fuzzywuzzy import fuzz
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from fuzzywuzzy import fuzz
+
 from loguru import logger
 from packaging.version import parse as parse_version
 
