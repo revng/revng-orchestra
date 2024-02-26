@@ -41,7 +41,7 @@ def run_git(
 def ls_remote(remote):
     env = _clean_env()
     try:
-        env["GIT_ASKPASS"] = "true"
+        env["GIT_ASKPASS"] = "false"
         env["GIT_TERMINAL_PROMPT"] = "0"
         result = get_subprocess_output(["git", "ls-remote", "-h", "--refs", remote], environment=env)
     except Exception as e:
