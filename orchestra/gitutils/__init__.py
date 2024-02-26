@@ -43,7 +43,8 @@ def ls_remote(remote):
     try:
         env["GIT_TERMINAL_PROMPT"] = "0"
         result = get_subprocess_output(["git", "ls-remote", "-h", "--refs", remote], environment=env)
-    except InternalCommandException:
+    except InternalCommandException as e:
+        logger.error(e.message)
         return {}
 
     parse_regex = re.compile(r"(?P<commit>[a-f0-9]*)\W*refs/heads/(?P<branch>.*)")
