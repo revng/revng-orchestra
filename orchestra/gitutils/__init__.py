@@ -41,8 +41,9 @@ def run_git(
 def ls_remote(remote):
     env = _clean_env()
     try:
+        #env["GIT_ASKPASS"] = "echo"
         env["GIT_TERMINAL_PROMPT"] = "0"
-        result = get_subprocess_output(["git", "-c", "core.askPass=echo", "ls-remote", "-h", "--refs", remote], environment=env)
+        result = get_subprocess_output(["git", "-c", 'credential.helper=!f() { echo "username=myusername"; echo "password=mysecretpassword"; }; f', "ls-remote", "-h", "--refs", remote], environment=env)
     except Exception as e:
         logger.error(e)
         return {}
