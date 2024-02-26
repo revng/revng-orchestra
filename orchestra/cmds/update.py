@@ -53,6 +53,10 @@ def handle_update(args):
     logger.info("Updating ls-remote cached info")
     failed_ls_remotes = config.remote_heads_cache.rebuild_cache(parallelism=args.parallelism)
 
+    logger.info("Updating ls-remote cached info")
+    logger.info("Updating ls-remote cached info")
+    logger.info("Updating ls-remote cached info")
+
     to_pull = []
     for _, component in config.components.items():
         if not component.clone:
@@ -128,6 +132,8 @@ def handle_update(args):
             formatted_failed_ls_remotes=formatted_failed_ls_remotes
         )
         logger.info(failed_ls_remote_suggestion)
+
+    logger.info("Updating ls-remote cached info jjjj")
 
     return 0
 
