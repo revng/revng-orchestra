@@ -59,8 +59,9 @@ class RemoteHeadsCache:
         failed_repositories = set()
         progress_bar = tqdm(total=len(repositories), unit="repository")
         logger.debug("xxx")
-        with ThreadPoolExecutor(max_workers=parallelism) as executor:
-            for failed_repository in executor.map(get_branches, repositories):
+
+        if True:
+            for failed_repository in map(get_branches, repositories):
                 logger.debug("yyy")
                 if failed_repository is not None:
                     failed_repositories.add(failed_repository)
