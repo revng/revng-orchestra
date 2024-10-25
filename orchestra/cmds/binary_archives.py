@@ -3,10 +3,9 @@ import os
 from loguru import logger
 
 from . import SubCommandParser
-from .fix_binary_archives_symlinks import handle_fix_binary_archives_symlinks
+from ..model.configuration import Configuration
 from ..actions.util import get_script_output
 from ..gitutils import is_root_of_git_repo
-from ..model.configuration import Configuration
 
 
 def install_subcommand(sub_argparser: SubCommandParser):
@@ -25,12 +24,6 @@ def install_subcommand(sub_argparser: SubCommandParser):
         "-a",
         action="store_true",
         help="Include binary archives that have not yet been cloned (nonexisting paths)",
-    )
-
-    cmd_parser.add_subcmd(
-        "fix-symlinks",
-        handler=handle_fix_binary_archives_symlinks,
-        help="Fix symlinks in binary archives",
     )
 
     clean_subcmd = cmd_parser.add_subcmd("clean", handler=handle_clean, help="Delete stale binary archives")

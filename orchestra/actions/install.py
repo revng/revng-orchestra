@@ -89,9 +89,6 @@ class InstallAction(ActionForBuild):
             raise UserException(f"Could not find binary archive nor build: {self.build.qualified_name}")
         install_end_time = time.time()
 
-        # Binary archive symlinks always need to be updated, not only when the binary archive is rebuilt
-        self.update_binary_archive_symlink()
-
         post_file_list = self._index_directory(tmp_root + orchestra_root, relative_to=tmp_root + orchestra_root)
         post_file_list.append(
             os.path.relpath(installed_component_file_list_path(self.component.name, self.config), orchestra_root)
@@ -444,47 +441,6 @@ class InstallAction(ActionForBuild):
         logger.debug("Saving hash material")
         hash_material_path = Path(self._hash_material_path())
         hash_material_path.write_text(self.component.recursive_hash_material())
-
-    def update_binary_archive_symlink(self):
-        """Creates/updates convenience symlinks to the binary archives.
-        Symlinks named <component_branch>_<orchestra_branch>.tar.xz point to the binary archives built for the
-        corresponding component and orchestra branches.
-        Example: fix-something_master.tar.xz -> abcdef_fedcba.tar.xz would be created if the binary archive
-        for component branch fix-something with orchestra configuration on the `master` branch is available.
-        """
-        logger.debug("Updating binary archive symlink")
-
-        binary_archive_repo_name = self._binary_archive_repo_name
-        if binary_archive_repo_name is None:
-            logger.warning("No binary archive configured")
-            return
-
-        try:
-            orchestra_config_branch = self._get_script_output('git -C "$ORCHESTRA_DOTDIR" rev-parse --abbrev-ref HEAD')
-            orchestra_config_branch = orchestra_config_branch.strip().replace("/", "-")
-        except InternalCommandException:
-            logger.warning(
-                "Orchestra configuration is not inside a git repository. Defaulting to `master` as branch name"
-            )
-            orchestra_config_branch = "master"
-
-        archive_dir_path = os.path.dirname(self._binary_archive_path())
-
-        def create_symlink(branch, commit):
-            branch = branch.replace("/", "-")
-            target_name = self._binary_archive_filename(commit, self.component.recursive_hash)
-            target_absolute_path = os.path.join(archive_dir_path, target_name)
-            symlink_absolute_path = os.path.join(archive_dir_path, f"{branch}_{orchestra_config_branch}.tar.xz")
-            if os.path.exists(target_absolute_path):
-                if os.path.exists(symlink_absolute_path):
-                    os.unlink(symlink_absolute_path)
-                os.symlink(target_name, symlink_absolute_path)
-
-        if self.component.clone:
-            for branch, commit in self.component.clone.heads().items():
-                create_symlink(branch, commit)
-        else:
-            create_symlink("none", "none")
 
     def symlink_binary_archive(self, name: str):
         """Creates/updates convenience symlinks to the binary archive with the specified name.
