@@ -89,9 +89,7 @@ def current_branch_info(repo_path):
 
         matching_lines = [
             match[1]
-            for match in [
-                re.match(rf"^([0-9a-f]*)\s+refs/heads/{branch}$", line.strip()) for line in refs.split("\n")
-            ]
+            for match in [re.match(rf"^([0-9a-f]*)\s+refs/heads/{branch}$", line.strip()) for line in refs.split("\n")]
             if match
         ]
         assert len(matching_lines) >= 1, f"Expected at least one match for branch '{branch}', got none"
