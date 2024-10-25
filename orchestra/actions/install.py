@@ -486,6 +486,31 @@ class InstallAction(ActionForBuild):
         else:
             create_symlink("none", "none")
 
+    def symlink_binary_archive(self, name: str):
+        """Creates/updates convenience symlinks to the binary archive with the specified name.
+        Example: {name}.tar.xz -> abcdef_fedcba.tar.xz would be created if `abcdef_defcba.tar.xz`
+        exists in the binary archives.
+        """
+        logger.debug("Adding binary archive symlink")
+
+        if self._binary_archive_repo_name is None:
+            logger.warning("No binary archive configured")
+            return
+
+        if self.component.clone:
+            _, commit = self.component.clone.branch()
+        else:
+            commit = "none"
+
+        archive_dir_path = os.path.dirname(self._binary_archive_path())
+        target_name = self._binary_archive_filename(commit, self.component.recursive_hash)
+        target_absolute_path = os.path.join(archive_dir_path, target_name)
+        symlink_absolute_path = os.path.join(archive_dir_path, f"{name}.tar.xz")
+        if os.path.exists(target_absolute_path):
+            if os.path.exists(symlink_absolute_path):
+                os.unlink(symlink_absolute_path)
+            os.symlink(target_name, symlink_absolute_path)
+
     @staticmethod
     def _index_directory(root_dir_path, relative_to=None):
         paths = []

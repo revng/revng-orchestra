@@ -8,6 +8,7 @@ from . import configure
 from . import inspect
 from . import environment
 from . import fix_binary_archives_symlinks
+from . import symlink_binary_archives
 from . import graph
 from . import install
 from . import ls
@@ -62,6 +63,7 @@ subcommands = [
     shell,
     ls,
     fix_binary_archives_symlinks,
+    symlink_binary_archives,
     inspect,
     binary_archives,
     version,
