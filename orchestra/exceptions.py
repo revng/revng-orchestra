@@ -224,7 +224,8 @@ class BinaryArchiveNotFoundException(UserException):
                 _, output = orchestra.actions.util.try_get_subprocess_output(
                     [
                         "diff",
-                        "-u",
+                        "-U",
+                        "8",
                         color,
                         str(available_hash_material_path),
                         f.name,
