@@ -34,7 +34,7 @@ def install_subcommand(sub_argparser: SubCommandParser):
     cmd_parser.add_argument("--deps", action="store_true", help="Print dependencies")
     cmd_parser.add_argument("--hashes", action="store_true", help="Show hashes")
     cmd_parser.add_argument("--repository-url", help="Show components from this repository URL")
-    cmd_parser.add_argument("--branch", help="Show components using this branch (jolly expression)")
+    cmd_parser.add_argument("--branch", help="Show components using this branch (fnmatch expression)")
     cmd_parser.add_argument("--json", action="store_true", help="Print infos as JSON")
 
 
