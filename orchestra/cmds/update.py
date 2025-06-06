@@ -54,30 +54,24 @@ def handle_update(args):
     failed_ls_remotes = config.remote_heads_cache.rebuild_cache(parallelism=args.parallelism)
 
     to_pull = []
-    for _, component in config.components.items():
-        if not component.clone:
-            continue
+    for clone_action in config.repositories.values():
+        if clone_action.source_dir is not None and os.path.exists(clone_action.source_dir):
+            to_pull.append(clone_action.source_dir)
 
-        source_path = os.path.join(config.sources_dir, component.name)
-        if not os.path.exists(source_path):
-            continue
-
-        to_pull.append(component)
-
-    if to_pull:
+    if len(to_pull) > 0:
         logger.info("Updating repositories")
         progress_bar = tqdm(to_pull, unit="components")
-        for component in progress_bar:
-            source_path = os.path.join(config.sources_dir, component.name)
-            logger.debug(f"Pulling {component.name}")
-            progress_bar.set_postfix_str(f"{component.name}")
+        for source_path in progress_bar:
+            source_name = os.path.basename(source_path)
+            logger.debug(f"Pulling {source_name}")
+            progress_bar.set_postfix_str(f"{source_name}")
 
             if not is_root_of_git_repo(source_path):
-                failed_pulls.append(f"Repository {component.name}: Directory {source_path} is not a git repo")
+                failed_pulls.append(f"Repository {source_name}: Directory {source_path} is not a git repo")
                 continue
 
             if not git_pull(source_path):
-                failed_pulls.append(f"Repository {component.name}")
+                failed_pulls.append(f"Repository {source_name}")
 
     if failed_pulls:
         formatted_failed_pulls = "\n".join([f"  - {repo}" for repo in failed_pulls])

@@ -28,15 +28,10 @@ def handle_ls(args):
         return 1
 
     if args.git_sources:
-        for component in config.components.values():
-            if not component.clone:
-                continue
+        for clone_action in config.repositories.values():
+            if clone_action.source_dir is not None:
+                print(clone_action.source_dir)
 
-            source_path = os.path.join(config.sources_dir, component.name)
-            if not os.path.exists(source_path):
-                continue
-
-            print(source_path)
     elif args.binary_archives:
         for name in config.binary_archives_remotes.keys():
             path = os.path.join(config.binary_archives_dir, name)

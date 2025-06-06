@@ -1,6 +1,6 @@
 import os.path
 from collections import OrderedDict
-from typing import Set
+from typing import Optional, Set
 
 from loguru import logger
 
@@ -114,7 +114,7 @@ class ActionForRepository(Action):
         return env
 
     @property
-    def source_dir(self) -> str:
+    def source_dir(self) -> Optional[str]:
         if self.repository:
             return os.path.join(self.config.sources_dir, self.repository)
         return None
